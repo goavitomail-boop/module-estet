@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Варианты логотипа — Модуль Эстет</title>
+<style>
+  :root { --ink:#1A1A1A; --gold:#B99358; --cream:#F8F5EF; --paper:#FAF8F4; --muted:#8A8578; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--paper); color:var(--ink); font-family:'Segoe UI',system-ui,sans-serif; padding:44px 20px 80px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  h1 { font-size:26px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  h1 span { color:var(--gold); }
+  .lead { color:var(--muted); max-width:700px; margin-top:10px; line-height:1.6; font-size:15px; }
+  .howto { background:var(--cream); border-left:3px solid var(--gold); border-radius:0 14px 14px 0; padding:14px 18px; font-size:14px; line-height:1.6; color:#4d493f; margin:26px 0 40px; }
+  .grid { display:grid; gap:22px; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); }
+  figure.var { background:#fff; border:1px solid #ECE7DD; border-radius:20px; padding:22px; display:flex; flex-direction:column; gap:16px; }
+  .chip { border-radius:16px; background:var(--paper); border:1px solid #EFEAE0; display:flex; align-items:center; justify-content:center; padding:26px; }
+  .minis { display:flex; align-items:flex-end; gap:22px; padding:6px 4px 0; }
+  .minis figure { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .minis figcaption { font-size:10px; color:var(--muted); }
+  figcaption.cap { display:flex; flex-direction:column; gap:5px; border-top:1px dashed #ECE7DD; padding-top:12px; margin-top:auto; }
+  figcaption.cap b { font-size:14px; letter-spacing:.04em; text-transform:uppercase; }
+  figcaption.cap b i { color:var(--gold); font-style:normal; }
+  figcaption.cap span { font-size:13px; color:var(--muted); line-height:1.55; }
+  .ref { grid-column:1/-1; display:flex; gap:22px; align-items:flex-start; background:var(--cream); border:1px dashed var(--gold); border-radius:20px; padding:20px 22px; flex-wrap:wrap; }
+  .ref .chip { background:#fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Варианты логотипа <span>«Модуль Эстет»</span></h1>
+    <p class="lead">Пять новых исполнений знака в фирменной палитре: графит #1A1A1A, золото #B99358, крем #F8F5EF.
+    Все — на плашке, поэтому работают на любом фоне. Рядом с каждым — проверка читаемости в 48 и 24 px (размер фавикона).</p>
+    <p class="howto"><b>Как выбрать:</b> назовите номер варианта (например, «V2») — и я заменю им текущий знак везде:
+    шапка, футер, фавикон, прелоадер, комплект в public/brand/. Текущий знак оставлен внизу страницы как образец для сравнения.</p>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- V0 · текущий знак: модульная «М» -->
+      <symbol id="v0" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <path d="M29 65.5 L29 28.5 L48 50 L67 28.5 L67 65.5" fill="none" stroke="#F8F5EF" stroke-width="7"/>
+        <g stroke="#1A1A1A" stroke-width="3">
+          <line x1="25.5" y1="47" x2="32.5" y2="47"/><line x1="63.5" y1="47" x2="70.5" y2="47"/>
+        </g>
+        <g stroke="#B99358" stroke-width="3.5">
+          <line x1="24" y1="76" x2="72" y2="76"/><line x1="24" y1="72" x2="24" y2="80"/><line x1="72" y1="72" x2="72" y2="80"/>
+        </g>
+      </symbol>
+
+      <!-- V1 · Штамп проекта: рамка чертежа + монограмма МЭ -->
+      <symbol id="v1" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <rect x="15" y="15" width="66" height="66" rx="8" fill="none" stroke="#F8F5EF" stroke-width="2"/>
+        <path d="M26 63 L26 35 L37 49 L48 35 L48 63" fill="none" stroke="#F8F5EF" stroke-width="5"/>
+        <path d="M76.5 40 A12 12 0 1 0 76.5 58" fill="none" stroke="#F8F5EF" stroke-width="5"/>
+        <line x1="61" y1="49" x2="77" y2="49" stroke="#F8F5EF" stroke-width="5"/>
+        <g stroke="#B99358" stroke-width="2.5">
+          <line x1="42" y1="9.5" x2="54" y2="9.5"/><line x1="42" y1="86.5" x2="54" y2="86.5"/>
+          <line x1="9.5" y1="42" x2="9.5" y2="54"/><line x1="86.5" y1="42" x2="86.5" y2="54"/>
+        </g>
+      </symbol>
+
+      <!-- V2 · Столешница: золотая плита и два фасада -->
+      <symbol id="v2" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <rect x="22" y="31" width="52" height="7" rx="3.5" fill="#B99358"/>
+        <rect x="27" y="45" width="17" height="18" fill="none" stroke="#F8F5EF" stroke-width="4"/>
+        <rect x="52" y="45" width="17" height="18" fill="none" stroke="#F8F5EF" stroke-width="4"/>
+        <circle cx="40.5" cy="54" r="2.2" fill="#B99358"/>
+        <circle cx="55.5" cy="54" r="2.2" fill="#B99358"/>
+        <line x1="24" y1="70" x2="72" y2="70" stroke="#F8F5EF" stroke-width="2" stroke-opacity="0.45"/>
+      </symbol>
+
+      <!-- V3 · Фасад: пенал, полки, столешница, тумбы -->
+      <symbol id="v3" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <rect x="25" y="26" width="13" height="29.5" fill="none" stroke="#F8F5EF" stroke-width="4"/>
+        <g stroke="#F8F5EF" stroke-width="3.5">
+          <line x1="44" y1="29" x2="71" y2="29"/><line x1="44" y1="38" x2="71" y2="38"/><line x1="44" y1="47" x2="71" y2="47"/>
+        </g>
+        <rect x="52" y="31.5" width="6" height="6.5" rx="1" fill="#B99358"/>
+        <line x1="21" y1="55.5" x2="75" y2="55.5" stroke="#B99358" stroke-width="4"/>
+        <g fill="none" stroke="#F8F5EF" stroke-width="4">
+          <rect x="25" y="60" width="13" height="13"/><rect x="41.5" y="60" width="13" height="13"/><rect x="58" y="60" width="13" height="13"/>
+        </g>
+      </symbol>
+
+      <!-- V4 · Остров: вид сверху, конфорки и мойка -->
+      <symbol id="v4" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <rect x="24" y="30" width="48" height="36" rx="8" fill="none" stroke="#F8F5EF" stroke-width="4"/>
+        <line x1="44" y1="30" x2="44" y2="66" stroke="#F8F5EF" stroke-width="3"/>
+        <circle cx="34" cy="40.5" r="5" fill="none" stroke="#B99358" stroke-width="3.5"/>
+        <circle cx="34" cy="55.5" r="5" fill="none" stroke="#B99358" stroke-width="3.5"/>
+        <rect x="50" y="38.5" width="16" height="19" rx="5" fill="none" stroke="#F8F5EF" stroke-width="3.5"/>
+        <circle cx="58" cy="34.5" r="2.4" fill="#B99358"/>
+      </symbol>
+
+      <!-- V5 · Перспектива: угловая кухня в аксонометрии -->
+      <symbol id="v5" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <g transform="translate(48 0)">
+          <rect x="-7" y="17" width="14" height="9" fill="none" stroke="#F8F5EF" stroke-width="3"/>
+          <g transform="skewY(12)">
+            <g fill="none" stroke="#F8F5EF" stroke-width="3.5">
+              <rect x="-27" y="29" width="23" height="13"/>
+              <rect x="-27" y="47" width="23" height="16"/>
+            </g>
+            <line x1="-28" y1="45" x2="-3" y2="45" stroke="#B99358" stroke-width="4"/>
+          </g>
+          <g transform="skewY(-12)">
+            <g fill="none" stroke="#F8F5EF" stroke-width="3.5">
+              <rect x="4" y="29" width="23" height="13"/>
+              <rect x="4" y="47" width="23" height="16"/>
+            </g>
+            <line x1="3" y1="45" x2="28" y2="45" stroke="#B99358" stroke-width="4"/>
+          </g>
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="grid">
+
+  <div class="ref">
+    <div class="chip"><svg width="110" height="110"><use href="#v0"/></svg></div>
+    <figcaption class="cap" style="border:0;padding:0;margin:0;flex:1;min-width:240px;">
+      <b>V0 · <i>Текущий знак</i> — модульная «М»</b>
+      <span>Оставлен для сравнения. Если остаётесь при нём — просто скажите «оставляем V0».</span>
+    </figcaption>
+  </div>
+
+  <figure class="var">
+    <div class="chip"><svg width="130" height="130"><use href="#v1"/></svg></div>
+    <div class="minis">
+      <figure><svg width="48" height="48"><use href="#v1"/></svg><figcaption>48 px</figcaption></figure>
+      <figure><svg width="24" height="24"><use href="#v1"/></svg><figcaption>24 px</figcaption></figure>
+    </div>
+    <figcaption class="cap"><b>V1 · <i>Штамп проекта</i></b>
+    <span>Рамка чертёжного листа, монограмма «МЭ» и золотые регистрационные метки — как штамп на архитектурном паспорте. Самый «проектный»: соединяет модули и проектирование.</span></figcaption>
+  </figure>
+
+  <figure class="var">
+    <div class="chip"><svg width="130" height="130"><use href="#v2"/></svg></div>
+    <div class="minis">
+      <figure><svg width="48" height="48"><use href="#v2"/></svg><figcaption>48 px</figcaption></figure>
+      <figure><svg width="24" height="24"><use href="#v2"/></svg><figcaption>24 px</figcaption></figure>
+    </div>
+    <figcaption class="cap"><b>V2 · <i>Столешница</i></b>
+    <span>Минимализм: золотая плита столешницы над двумя фасадами с ручками. Самый чистый знак, лучше всех читается в маленьких размерах.</span></figcaption>
+  </figure>
+
+  <figure class="var">
+    <div class="chip"><svg width="130" height="130"><use href="#v3"/></svg></div>
+    <div class="minis">
+      <figure><svg width="48" height="48"><use href="#v3"/></svg><figcaption>48 px</figcaption></figure>
+      <figure><svg width="24" height="24"><use href="#v3"/></svg><figcaption>24 px</figcaption></figure>
+    </div>
+    <figcaption class="cap"><b>V3 · <i>Фасад</i></b>
+    <span>Кухня анфас: пенал, открытые полки с золотым аксессуаром, столешница и тумбы. Самый предметный — считывается любым покупателем с первого взгляда.</span></figcaption>
+  </figure>
+
+  <figure class="var">
+    <div class="chip"><svg width="130" height="130"><use href="#v4"/></svg></div>
+    <div class="minis">
+      <figure><svg width="48" height="48"><use href="#v4"/></svg><figcaption>48 px</figcaption></figure>
+      <figure><svg width="24" height="24"><use href="#v4"/></svg><figcaption>24 px</figcaption></figure>
+    </div>
+    <figcaption class="cap"><b>V4 · <i>Остров</i></b>
+    <span>Остров сверху: золотые конфорки и мойка. Необычный ракурс, выделяется среди конкурентов, отлично работает в приложениях и соцсетях.</span></figcaption>
+  </figure>
+
+  <figure class="var">
+    <div class="chip"><svg width="130" height="130"><use href="#v5"/></svg></div>
+    <div class="minis">
+      <figure><svg width="48" height="48"><use href="#v5"/></svg><figcaption>48 px</figcaption></figure>
+      <figure><svg width="24" height="24"><use href="#v5"/></svg><figcaption>24 px</figcaption></figure>
+    </div>
+    <figcaption class="cap"><b>V5 · <i>Перспектива</i></b>
+    <span>Угловая кухня в лёгкой аксонометрии с золотыми столешницами на обоих уровнях. Самый «объёмный» и дизайнерский вариант, передаёт индивидуальные проекты.</span></figcaption>
+  </figure>
+
+</div>
+
+<footer class="howto" style="margin-top:36px;">
+  <b>Что дальше:</b> назовите номер — V1…V5 (или «оставляем V0» / «микс: база V2, но детали из V3»).
+  Я заменю знак во всех местах сайта: шапка, футер, фавикон (<code>app/icon.svg</code>, <code>public/icon.svg</code>),
+  прелоадер с анимацией сборки под выбранный знак, комплект <code>public/brand/</code>.
+</footer>
+
+</div>
+</body>
+</html>

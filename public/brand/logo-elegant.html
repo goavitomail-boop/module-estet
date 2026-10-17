@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Элегантные варианты логотипа — Модуль Эстет</title>
+<style>
+  :root { --ink:#1A1A1A; --gold:#B99358; --cream:#F8F5EF; --paper:#FAF8F4; --muted:#8A8578; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--paper); color:var(--ink); font-family:'Segoe UI',system-ui,sans-serif; padding:44px 20px 80px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  h1 { font-size:26px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  h1 span { color:var(--gold); }
+  .lead { color:var(--muted); max-width:720px; margin-top:10px; line-height:1.6; font-size:15px; }
+  .howto { background:var(--cream); border-left:3px solid var(--gold); border-radius:0 14px 14px 0; padding:14px 18px; font-size:14px; line-height:1.65; color:#4d493f; margin:26px 0 40px; }
+  .howto code { background:#fff; border:1px solid #ECE7DD; border-radius:5px; padding:1px 7px; font-size:12px; }
+  .grid { display:grid; gap:22px; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); }
+  figure.var { background:#fff; border:1px solid #ECE7DD; border-radius:20px; padding:22px; display:flex; flex-direction:column; gap:14px; }
+  .duo { display:flex; gap:12px; }
+  .chip { flex:1; border-radius:14px; display:flex; align-items:center; justify-content:center; padding:24px 10px; }
+  .bg-light { background:var(--paper); border:1px solid #EFEAE0; }
+  .bg-dark { background:var(--ink); }
+  .minis { display:flex; align-items:flex-end; gap:20px; padding:4px 4px 0; }
+  .minis figure { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .minis .tile { background:var(--ink); border-radius:11px; padding:7px; display:flex; }
+  .minis figcaption { font-size:10px; color:var(--muted); }
+  figcaption.cap { display:flex; flex-direction:column; gap:5px; border-top:1px dashed #ECE7DD; padding-top:12px; margin-top:auto; }
+  figcaption.cap b { font-size:14px; letter-spacing:.04em; text-transform:uppercase; }
+  figcaption.cap b i { color:var(--gold); font-style:normal; }
+  figcaption.cap span { font-size:13px; color:var(--muted); line-height:1.55; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Итерация 2 · <span>тонкие линии</span></h1>
+    <p class="lead">Все знаки нарисованы волосяными линиями 1–2 px — ювелирно, в духе архитектурной графики и часовых эмблем.
+    Палитра прежняя: графит, золото #B99358, крем. У каждого варианта — светлая и тёмная подложка плюс проверка в малых размерах.</p>
+    <p class="howto"><b>Важно про фавикон:</b> волосяные линии в 16–24 px становятся деликатнее — это нормально для премиум-брендов.
+    При выборе варианта я дополнительно сделаю упрощённую плотную версию специально для фавикона, а элегантную оставлю для сайта и печати.</p>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- E1 · Хронограф: кольцо с делениями, монограмма МЭ -->
+      <symbol id="e1" viewBox="0 0 96 96">
+        <circle cx="48" cy="48" r="43" fill="none" stroke="#B99358" stroke-width="1.4"/>
+        <circle cx="48" cy="48" r="39" fill="none" stroke="#B99358" stroke-width="4"
+                stroke-dasharray="1 3.08" stroke-dashoffset="0.5" opacity="0.85"/>
+        <circle cx="48" cy="48" r="35.5" fill="none" stroke="#F8F5EF" stroke-width="0.7" opacity="0.4"/>
+        <path d="M31 58 L31 40 L39 50 L47 40 L47 58" fill="none" stroke="#F8F5EF" stroke-width="1.7"/>
+        <path d="M67.5 42.5 A8.5 8.5 0 1 0 67.5 55.5" fill="none" stroke="#F8F5EF" stroke-width="1.7"/>
+        <line x1="58" y1="49" x2="68.5" y2="49" stroke="#F8F5EF" stroke-width="1.7"/>
+      </symbol>
+
+      <!-- E2 · Одна линия: кухня единым росчерком -->
+      <symbol id="e2" viewBox="0 0 96 96">
+        <path d="M18 70 L18 46 L34 46 L34 32 L62 32 L62 46 L78 46 L78 70"
+              fill="none" stroke="#B99358" stroke-width="2" stroke-linecap="round"/>
+        <g fill="none" stroke="#F8F5EF" stroke-width="1.1" opacity="0.85">
+          <rect x="24" y="52" width="10" height="12"/>
+          <rect x="62" y="52" width="10" height="12"/>
+          <line x1="40" y1="38.5" x2="56" y2="38.5"/>
+          <line x1="48" y1="32" x2="48" y2="27"/>
+        </g>
+        <circle cx="48" cy="25" r="1.6" fill="#B99358"/>
+      </symbol>
+
+      <!-- E3 · Портал: двойная арка с подвесным светильником -->
+      <symbol id="e3" viewBox="0 0 96 96">
+        <path d="M25 71 V45 A23 23 0 0 1 71 45 V71" fill="none" stroke="#F8F5EF" stroke-width="1.7"/>
+        <path d="M31.5 71 V47 A16.5 16.5 0 0 1 64.5 47 V71" fill="none" stroke="#B99358" stroke-width="1.2"/>
+        <line x1="19" y1="71" x2="77" y2="71" stroke="#F8F5EF" stroke-width="1.1" opacity="0.55"/>
+        <line x1="48" y1="30.5" x2="48" y2="38.5" stroke="#B99358" stroke-width="1"/>
+        <circle cx="48" cy="42" r="3" fill="none" stroke="#B99358" stroke-width="1.2"/>
+        <circle cx="48" cy="42" r="0.9" fill="#B99358"/>
+      </symbol>
+
+      <!-- E4 · Три огня: шевроны между пилястрами -->
+      <symbol id="e4" viewBox="0 0 96 96">
+        <g stroke="#F8F5EF" stroke-width="1.4" fill="none">
+          <path d="M37 43 L48 34 L59 43"/>
+          <path d="M37 52 L48 43 L59 52"/>
+          <path d="M37 61 L48 52 L59 61" stroke="#B99358"/>
+        </g>
+        <g stroke="#F8F5EF" stroke-width="1.1" opacity="0.75">
+          <line x1="30" y1="36" x2="30" y2="64"/>
+          <line x1="66" y1="36" x2="66" y2="64"/>
+          <line x1="27.5" y1="33.5" x2="32.5" y2="33.5"/>
+          <line x1="63.5" y1="33.5" x2="68.5" y2="33.5"/>
+          <line x1="27.5" y1="66.5" x2="32.5" y2="66.5"/>
+          <line x1="63.5" y1="66.5" x2="68.5" y2="66.5"/>
+        </g>
+        <line x1="24" y1="72" x2="72" y2="72" stroke="#B99358" stroke-width="1.3"/>
+      </symbol>
+
+      <!-- E5 · Тонкая М: наследие текущего знака, чертёжные выноски -->
+      <symbol id="e5" viewBox="0 0 96 96">
+        <rect width="96" height="96" rx="20" fill="#1A1A1A"/>
+        <path d="M29 62 L29 31 L48 49.5 L67 31 L67 62"
+              fill="none" stroke="#F8F5EF" stroke-width="1.8" stroke-linejoin="miter"/>
+        <g stroke="#B99358" stroke-width="1">
+          <line x1="22" y1="70.5" x2="74" y2="70.5"/>
+          <line x1="22" y1="67.5" x2="22" y2="73.5"/>
+          <line x1="74" y1="67.5" x2="74" y2="73.5"/>
+        </g>
+        <g stroke="#B99358" stroke-width="0.9" opacity="0.85">
+          <line x1="69" y1="24" x2="77" y2="24"/>
+          <line x1="73" y1="20" x2="73" y2="28"/>
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="grid">
+
+    <figure class="var">
+      <div class="chip bg-dark"><svg width="120" height="120"><use href="#e1"/></svg></div>
+      <div class="minis">
+        <figure><div class="tile"><svg width="44" height="44"><use href="#e1"/></svg></div><figcaption>44 px</figcaption></figure>
+        <figure><div class="tile"><svg width="24" height="24"><use href="#e1"/></svg></div><figcaption>24 px</figcaption></figure>
+      </div>
+      <figcaption class="cap"><b>E1 · <i>Хронограф</i></b>
+      <span>Кольцо с минутными делениями, как у швейцарских часов, и ювелирная монограмма «МЭ» в центре. Точность измерений и люкс — про замер и индивидуальный проект.</span></figcaption>
+    </figure>
+
+    <figure class="var">
+      <div class="chip bg-dark"><svg width="120" height="120"><use href="#e2"/></svg></div>
+      <div class="minis">
+        <figure><div class="tile"><svg width="44" height="44"><use href="#e2"/></svg></div><figcaption>44 px</figcaption></figure>
+        <figure><div class="tile"><svg width="24" height="24"><use href="#e2"/></svg></div><figcaption>24 px</figcaption></figure>
+      </div>
+      <figcaption class="cap"><b>E2 · <i>Одна линия</i></b>
+      <span>Кухня единым непрерывным золотым росчерком: фасады, центральная вытяжка, подвесной свет. Самый современный язык — минимализм премиальных брендов.</span></figcaption>
+    </figure>
+
+    <figure class="var">
+      <div class="chip bg-dark"><svg width="120" height="120"><use href="#e3"/></svg></div>
+      <div class="minis">
+        <figure><div class="tile"><svg width="44" height="44"><use href="#e3"/></svg></div><figcaption>44 px</figcaption></figure>
+        <figure><div class="tile"><svg width="24" height="24"><use href="#e3"/></svg></div><figcaption>24 px</figcaption></figure>
+      </div>
+      <figcaption class="cap"><b>E3 · <i>Портал</i></b>
+      <span>Двойная арка входа с тёплым подвесным светильником внутри — дом, очаг, гостеприимство. Спокойная архитектурная эмблема с глубиной.</span></figcaption>
+    </figure>
+
+    <figure class="var">
+      <div class="chip bg-dark"><svg width="120" height="120"><use href="#e4"/></svg></div>
+      <div class="minis">
+        <figure><div class="tile"><svg width="44" height="44"><use href="#e4"/></svg></div><figcaption>44 px</figcaption></figure>
+        <figure><div class="tile"><svg width="24" height="24"><use href="#e4"/></svg></div><figcaption>24 px</figcaption></figure>
+      </div>
+      <figcaption class="cap"><b>E4 · <i>Три огня</i></b>
+      <span>Три шеврона пламени между пилястрами на золотой базе — арт-деко символ очага и уюта. Симметрия и ритм, отлично смотрится как вышивка/тиснение.</span></figcaption>
+    </figure>
+
+    <figure class="var">
+      <div class="chip bg-dark"><svg width="120" height="120"><use href="#e5"/></svg></div>
+      <div class="minis">
+        <figure><div class="tile"><svg width="44" height="44"><use href="#e5"/></svg></div><figcaption>44 px</figcaption></figure>
+        <figure><div class="tile"><svg width="24" height="24"><use href="#e5"/></svg></div><figcaption>24 px</figcaption></figure>
+      </div>
+      <figcaption class="cap"><b>E5 · <i>Тонкая М</i></b>
+      <span>Ваша текущая «М», утончённая до волосяной линии, с чертёжной размерной линией и реперным крестом геодезиста. Преемственность без потери элегантности.</span></figcaption>
+    </figure>
+
+  </div>
+
+  <footer class="howto" style="margin-top:36px;">
+    <b>Что дальше:</b> назовите букву — E1…E5 (можно с правками: «E2, но без светильника», «E1, но деления крупнее»).
+    После выбора заменю знак на сайте (шапка, футер, фавикон, прелоадер) и сделаю упрощённую плотную версию для фавикона.
+    Знаки задуманы для тёмных поверхностей; для светлых фонов линии инвертируются в графит — покажу при внедрении.
+  </footer>
+
+</div>
+</body>
+</html>

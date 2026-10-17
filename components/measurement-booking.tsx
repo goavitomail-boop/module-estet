@@ -1,0 +1,636 @@
+'use client'
+
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { AnimatePresence, m } from 'framer-motion'
+import { useFloatingHidden } from '@/lib/use-floating-hidden'
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock, MapPin, Sparkles, UserCheck } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { formatRussianPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
+import { reachGoal } from '@/lib/metrika'
+import { getAttribution } from '@/lib/attribution'
+import { buildMeasurementIcs, downloadIcs } from '@/lib/ics'
+import { COMPANY } from '@/lib/company'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { MaxSocialIcon } from '@/components/max-social-icon'
+import { PlanLabel } from '@/components/plan'
+import { FormMotion, SuccessMark, itemVariants, riseVariants, stepVariants, successVariants } from '@/components/form-motion'
+
+export const MEASUREMENT_BOOKING_EVENT = 'open-measurement-booking'
+export const MEASUREMENT_BOOKING_ALT_EVENT = 'measurement-booking:open'
+
+export function triggerMeasurementBooking() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(MEASUREMENT_BOOKING_EVENT))
+    window.dispatchEvent(new CustomEvent(MEASUREMENT_BOOKING_ALT_EVENT))
+  }
+}
+
+const TOTAL_STEPS = 3
+
+// Порядок — от лёгкого к трудному: выбрать дату проще, чем вспоминать
+// адрес с номером квартиры. Адрес последним и необязательный — менеджер
+// всё равно перезванивает подтвердить запись
+const stepContent = [
+  {
+    eyebrow: 'Время визита',
+    title: 'Когда вам удобно встретить мастера?',
+    description: 'Замер занимает от 40 до 90 минут. Выберите подходящую дату и диапазон времени.',
+    icon: Clock,
+  },
+  {
+    eyebrow: 'Контакты',
+    title: 'Кому подтвердить запись?',
+    description: 'Мы отправим напоминание и свяжемся за 2 часа до выезда.',
+    icon: UserCheck,
+  },
+  {
+    eyebrow: 'Локация объекта',
+    title: 'Куда приехать на замер?',
+    description: 'Мастер привезёт образцы материалов, лазерный инструмент и каталоги фурнитуры.',
+    icon: MapPin,
+  },
+] as const
+
+const timeSlots = [
+  { value: 'morning', label: 'Утро', detail: '09:00 — 12:00', icon: Clock },
+  { value: 'day', label: 'День', detail: '13:00 — 16:00', icon: Clock },
+  { value: 'evening', label: 'Вечер', detail: '17:00 — 20:00', icon: Clock },
+] as const
+
+/** Ответ /api/availability: только цифры занятости, без данных клиентов */
+type Availability = {
+  capacity: number
+  taken: Record<string, Record<string, number>>
+  passedToday: string[]
+  today: string
+  horizonDays: number
+}
+
+/** «20 сент., сб» — коротко, чтобы помещалось в кнопку-подсказку */
+function formatShortDate(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', weekday: 'short' })
+}
+
+const initialData = {
+  city: 'Москва',
+  address: '',
+  date: '',
+  name: '',
+  phone: '',
+}
+
+function formatBookingDate(dateString: string) {
+  if (!dateString) return 'Дата согласовывается'
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return dateString
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'short',
+  })
+}
+
+export function MeasurementBooking() {
+  const pathname = usePathname()
+  const nearFooter = useFloatingHidden()
+  const [open, setOpen] = useState(false)
+  const [heroPassed, setHeroPassed] = useState(false)
+  const showMobileBar = heroPassed && !open && !nearFooter
+  const [step, setStep] = useState(1)
+  const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [data, setData] = useState(initialData)
+  const [time, setTime] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [website, setWebsite] = useState('')
+  const [startedAt, setStartedAt] = useState(() => Date.now())
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const firstFieldRef = useRef<HTMLInputElement>(null)
+
+  const [availability, setAvailability] = useState<Availability | null>(null)
+
+  /**
+   * Занятость слотов подгружается при открытии формы, а не при монтировании:
+   * виджет висит на каждой странице, и дёргать базу на каждом заходе на сайт
+   * незачем. Ошибку глушим — без занятости форма просто работает как раньше,
+   * а переполнение слота отловит сервер при отправке.
+   */
+  useEffect(() => {
+    if (!open || availability) return
+    let cancelled = false
+    fetch('/api/availability')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: Availability | null) => { if (!cancelled && data) setAvailability(data) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [open, availability])
+
+  /** Слот занят, если выбран лимит записей или он сегодня уже начался */
+  const isSlotBusy = (date: string, slot: string): boolean => {
+    if (!availability || !date) return false
+    if (date === availability.today && availability.passedToday.includes(slot)) return true
+    const taken = availability.taken[date]?.[slot] ?? 0
+    return taken >= availability.capacity
+  }
+
+  const dayIsFull = (date: string): boolean =>
+    Boolean(availability) && timeSlots.every((slot) => isSlotBusy(date, slot.value))
+
+  /** Ближайшие свободные даты — чтобы не заставлять перебирать календарь вручную */
+  const nextFreeDays = useMemo(() => {
+    if (!availability) return []
+    const result: string[] = []
+    const cursor = new Date(`${availability.today}T00:00:00Z`)
+    for (let i = 0; i < availability.horizonDays && result.length < 4; i++) {
+      const iso = cursor.toISOString().slice(0, 10)
+      if (!dayIsFull(iso)) result.push(iso)
+      cursor.setUTCDate(cursor.getUTCDate() + 1)
+    }
+    return result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availability])
+
+  // Дату могли поменять на ту, где выбранный слот занят — снимаем выбор,
+  // иначе человек уедет на следующий шаг с недоступным временем
+  useEffect(() => {
+    if (time && data.date && isSlotBusy(data.date, time)) setTime('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.date, availability])
+
+  const minDate = useMemo(() => {
+    const today = new Date()
+    return new Date(today.getTime() - today.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+  }, [])
+  const activeStep = stepContent[step - 1]
+  const ActiveIcon = activeStep.icon
+
+  // Направление листания для анимации: «Далее» — шаг приходит справа, «Назад» — слева
+  const lastStep = useRef(step)
+  const direction = step >= lastStep.current ? 1 : -1
+  useEffect(() => { lastStep.current = step }, [step])
+
+  useEffect(() => {
+    const openBooking = () => {
+      setSubmitted(false)
+      setStartedAt(Date.now())
+      setOpen(true)
+    }
+    window.addEventListener(MEASUREMENT_BOOKING_EVENT, openBooking)
+    window.addEventListener(MEASUREMENT_BOOKING_ALT_EVENT, openBooking)
+    return () => {
+      window.removeEventListener(MEASUREMENT_BOOKING_EVENT, openBooking)
+      window.removeEventListener(MEASUREMENT_BOOKING_ALT_EVENT, openBooking)
+    }
+  }, [])
+
+  // Форма смонтирована в общем layout и переживает переходы между
+  // страницами — ищем hero заново на каждом адресе. Нет hero (внутренние
+  // страницы) — нет и мобильной кнопки, как было раньше
+  useEffect(() => {
+    setHeroPassed(false)
+    const hero = document.querySelector('.hero-life')
+    if (!hero) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroPassed(!entry.isIntersecting && entry.boundingClientRect.bottom < 0),
+      { threshold: 0 },
+    )
+    observer.observe(hero)
+    return () => observer.disconnect()
+  }, [pathname])
+
+  /**
+   * Фокус на первое поле — когда шаг доехал на место. Раньше хватало
+   * задержки, но теперь новый шаг появляется только после того, как старый
+   * уехал, и по таймеру фокус попадал бы в уходящее поле
+   */
+  const focusFirstField = (definition: unknown) => {
+    if (definition === 'center') firstFieldRef.current?.focus({ preventScroll: true })
+  }
+
+  function updateData<K extends keyof typeof initialData>(key: K, value: (typeof initialData)[K]) {
+    setData((current) => ({ ...current, [key]: value }))
+    if (errors[key]) {
+      setErrors((current) => {
+        const next = { ...current }
+        delete next[key]
+        return next
+      })
+    }
+  }
+
+  function validateStep(currentStep: number): boolean {
+    const nextErrors: Record<string, string> = {}
+    if (currentStep === 1) {
+      if (!data.date) nextErrors.date = 'Выберите дату замера'
+      else if (dayIsFull(data.date)) nextErrors.date = 'На эту дату всё занято — выберите другой день'
+      if (!time) nextErrors.time = 'Выберите период времени'
+      else if (isSlotBusy(data.date, time)) nextErrors.time = 'Это время уже занято — выберите другое'
+    }
+    if (currentStep === 2) {
+      if (data.name.trim().length < 2) nextErrors.name = 'Укажите ваше имя'
+      if (!isValidRussianPhone(data.phone)) nextErrors.phone = `Введите номер в формате ${PHONE_PLACEHOLDER}`
+      if (!consent) nextErrors.consent = 'Необходимо согласие на обработку данных'
+    }
+    if (currentStep === 3) {
+      if (!data.city.trim()) nextErrors.city = 'Укажите город'
+      // Адрес необязателен, но если начали вводить — пусть будет похож на адрес
+      const address = data.address.trim()
+      if (address && address.length < 5) nextErrors.address = 'Укажите улицу, дом и квартиру или оставьте поле пустым'
+    }
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
+  function goForward() {
+    if (validateStep(step)) setStep((current) => Math.min(current + 1, TOTAL_STEPS))
+  }
+
+  function goBack() {
+    setErrors({})
+    setStep((current) => Math.max(current - 1, 1))
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (step < TOTAL_STEPS) return goForward()
+    if (!validateStep(TOTAL_STEPS) || isSubmitting) return
+    setIsSubmitting(true)
+    setErrors({})
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'measurement',
+          name: data.name,
+          phone: data.phone,
+          website,
+          startedAt,
+          attribution: getAttribution(),
+          details: { city: data.city, address: data.address, date: data.date, time },
+        }),
+      })
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => null)
+
+        // Слот заняли, пока человек дозаполнял форму: обновляем занятость
+        // и возвращаем на шаг выбора времени, а не показываем тупик
+        if (errJson?.slotTaken) {
+          const fresh = await fetch('/api/availability').then((r) => (r.ok ? r.json() : null)).catch(() => null)
+          if (fresh) setAvailability(fresh)
+          setTime('')
+          setStep(1)
+          setErrors({ time: errJson.error })
+          return
+        }
+
+        throw new Error(errJson?.error || 'Lead request failed')
+      }
+      reachGoal('lead_measurement')
+      setSubmitted(true)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Не удалось отправить заявку. Попробуйте ещё раз через несколько секунд.'
+      setErrors({ submit: msg })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  function resetForm() {
+    setSubmitted(false)
+    setStep(1)
+    setData(initialData)
+    setTime('')
+    setConsent(false)
+    setWebsite('')
+    setStartedAt(Date.now())
+    setIsSubmitting(false)
+    setErrors({})
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen)
+    if (!nextOpen) window.setTimeout(resetForm, 220)
+  }
+
+  return (
+    <FormMotion>
+      <div
+        className={cn('mobile-booking-bar md:hidden', showMobileBar && 'mobile-booking-bar--visible')}
+        aria-hidden={!showMobileBar}
+      >
+        <Button
+          type="button"
+          className="h-12 flex-1 rounded-full px-4 text-xs font-bold uppercase tracking-wider sm:px-5 sm:text-sm"
+          onClick={() => {
+            setSubmitted(false)
+            setStartedAt(Date.now())
+            setOpen(true)
+          }}
+          tabIndex={showMobileBar ? 0 : -1}
+        >
+          Записаться на замер
+        </Button>
+      </div>
+
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="booking-dialog flex h-[100dvh] w-[100dvw] max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 p-0 max-sm:inset-0 max-sm:translate-x-0 max-sm:translate-y-0 sm:h-auto sm:max-h-[min(800px,calc(100dvh-2rem))] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:rounded-3xl sm:border">
+          {submitted ? (
+            <m.div
+              initial="enter"
+              animate="center"
+              variants={successVariants}
+              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))] text-center sm:min-h-[600px] sm:px-12"
+            >
+              <SuccessMark className="size-20 sm:size-24" />
+              <m.div variants={riseVariants} className="flex w-full justify-center">
+              <DialogHeader className="max-w-md items-center gap-3 text-center">
+                {/* Время закрепляется за клиентом только после подтверждения
+                    менеджером — обещать «забронировано» сразу нельзя */}
+                <DialogTitle className="flyer-title text-balance text-4xl leading-none sm:text-5xl">Заявка на замер принята</DialogTitle>
+                <DialogDescription className="text-pretty text-base leading-relaxed sm:text-lg">
+                  Менеджер скоро перезвонит и подтвердит время. До звонка оно за вами ещё не закреплено.
+                </DialogDescription>
+              </DialogHeader>
+              </m.div>
+              <m.div variants={riseVariants} className="flex w-full max-w-md flex-col gap-3 rounded-2xl bg-muted p-4 text-left sm:flex-row sm:items-center sm:p-5">
+                <CalendarDays className="size-6 shrink-0 text-primary" aria-hidden="true" />
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Вы выбрали</span>
+                  <span className="text-pretty font-medium">{formatBookingDate(data.date)} · {timeSlots.find((slot) => slot.value === time)?.detail}</span>
+                  <span className="truncate text-sm text-muted-foreground">
+                    {data.address.trim() ? `${data.city}, ${data.address}` : `${data.city}, адрес уточним по телефону`}
+                  </span>
+                </div>
+              </m.div>
+              {/* Памятка: что будет дальше и что подготовить. Снимает половину
+                  вопросов, с которыми клиент потом звонит менеджеру */}
+              <m.ul variants={riseVariants} className="w-full max-w-md space-y-2 text-left text-sm text-muted-foreground">
+                <li className="flex gap-2.5">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                  Замер занимает от 40 до 90 минут.
+                </li>
+                <li className="flex gap-2.5">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                  Мастер привезёт образцы материалов, лазерный инструмент и каталоги фурнитуры.
+                </li>
+                <li className="flex gap-2.5">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                  Освободите доступ к стенам, где встанет кухня, — так замер будет точнее.
+                </li>
+              </m.ul>
+
+              <m.div variants={riseVariants} className="flex w-full max-w-md flex-col gap-2.5">
+                <Button type="button" size="lg" className="h-12 w-full rounded-full" onClick={() => handleOpenChange(false)}>
+                  Вернуться на сайт
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const ics = buildMeasurementIcs({
+                      date: data.date,
+                      slot: time,
+                      city: data.city,
+                      address: data.address,
+                      companyPhone: COMPANY.phone,
+                    })
+                    if (ics) downloadIcs(ics)
+                  }}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-background font-semibold text-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary"
+                >
+                  <CalendarPlus className="size-4 text-primary" aria-hidden="true" />
+                  Добавить в календарь
+                </button>
+                <a
+                  href="https://web.max.ru/93711404"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-background font-semibold text-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary"
+                >
+                  <MaxSocialIcon className="size-4 text-primary" />
+                  Написать нам в Max
+                </a>
+              </m.div>
+            </m.div>
+          ) : (
+            <form className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" onSubmit={handleSubmit} noValidate>
+              <div className="sr-only" aria-hidden="true">
+                <label htmlFor="booking-website">Ваш сайт</label>
+                <input id="booking-website" name="website" value={website} onChange={(event) => setWebsite(event.target.value)} autoComplete="off" tabIndex={-1} />
+              </div>
+
+              <header className="shrink-0 border-b bg-background px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-9 sm:pb-5 sm:pt-7">
+                <div className="flex flex-col gap-3 pr-8 sm:gap-4">
+                  {/* Подпись, заголовок и описание перелистываются вместе с шагом */}
+                  <AnimatePresence mode="wait" custom={direction}>
+                    <m.div key={step} custom={direction} variants={stepVariants} initial="enter" animate="center" exit="exit" className="flex flex-col gap-3 sm:gap-4">
+                      <m.div variants={itemVariants} className="flex items-center justify-between gap-4">
+                        <PlanLabel index={step}>{activeStep.eyebrow}</PlanLabel>
+                        <span className="font-mono text-xs text-muted-foreground">{step} / {TOTAL_STEPS}</span>
+                      </m.div>
+                      <div className="flex flex-col gap-1">
+                        <m.h2 variants={itemVariants} className="flyer-title text-balance text-2xl sm:text-3xl">{activeStep.title}</m.h2>
+                        <m.p variants={itemVariants} className="text-pretty text-xs text-muted-foreground sm:text-sm">{activeStep.description}</m.p>
+                      </div>
+                    </m.div>
+                  </AnimatePresence>
+                  {/* Прогресс — линейкой с делениями, как в квизе; деление заполняется латунью слева направо */}
+                  <div className="flex gap-1" aria-hidden="true">
+                    {stepContent.map((item, index) => (
+                      <span key={item.title} className="h-1 flex-1 overflow-hidden rounded-[1px] bg-muted">
+                        <span className={cn('block h-full origin-left bg-primary transition-transform duration-500 ease-out', index < step ? 'scale-x-100' : 'scale-x-0')} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 sm:px-9 sm:py-6">
+                <AnimatePresence mode="wait" custom={direction}>
+                <m.div
+                  key={step}
+                  custom={direction}
+                  variants={stepVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  onAnimationComplete={focusFirstField}
+                  className="mx-auto flex max-w-xl flex-col gap-5 sm:gap-6"
+                >
+                  {step === 3 && (
+                    <FieldGroup className="gap-4 sm:gap-5">
+                      <Field className="min-w-0" data-invalid={Boolean(errors.city)}>
+                        <FieldLabel htmlFor="booking-city">Город</FieldLabel>
+                        <Input id="booking-city" name="city" value={data.city} onChange={(event) => updateData('city', event.target.value)} placeholder="Москва" className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.city)} />
+                        {errors.city && <FieldError>{errors.city}</FieldError>}
+                      </Field>
+                      <Field className="min-w-0" data-invalid={Boolean(errors.address)}>
+                        <FieldLabel htmlFor="booking-address">
+                          Адрес объекта <span className="font-normal text-muted-foreground">— необязательно</span>
+                        </FieldLabel>
+                        <Input ref={firstFieldRef} id="booking-address" name="address" value={data.address} onChange={(event) => updateData('address', event.target.value)} autoComplete="street-address" placeholder="ул. Ленина, д. 12, кв. 45" className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.address)} aria-describedby="booking-address-hint" />
+                        <p id="booking-address-hint" className="text-xs text-muted-foreground">
+                          Можно не заполнять — менеджер уточнит адрес, когда позвонит подтвердить запись.
+                        </p>
+                        {errors.address && <FieldError>{errors.address}</FieldError>}
+                      </Field>
+                    </FieldGroup>
+                  )}
+
+                  {step === 1 && (
+                    <FieldGroup className="gap-4 sm:gap-5">
+                      <Field className="min-w-0" data-invalid={Boolean(errors.date)}>
+                        <FieldLabel htmlFor="booking-date">Дата замера</FieldLabel>
+                        <Input ref={firstFieldRef} id="booking-date" name="date" type="date" min={minDate} value={data.date} onChange={(event) => updateData('date', event.target.value)} className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.date)} />
+                        {/* Ближайшие свободные даты — сразу под полем даты и не
+                            пропадают после выбора: так легко переключиться на
+                            соседний день, если нужное время занято */}
+                        {nextFreeDays.length > 0 && (
+                          <div className="flex flex-wrap gap-2" role="group" aria-label="Ближайшие свободные даты">
+                            {nextFreeDays.map((day) => {
+                              const selected = data.date === day
+                              return (
+                                <button
+                                  key={day}
+                                  type="button"
+                                  aria-pressed={selected}
+                                  // Выбранное время сохраняем: если на новый день оно
+                                  // занято, его снимет эффект выше
+                                  onClick={() => updateData('date', day)}
+                                  className={cn(
+                                    'rounded-full border px-3.5 py-2 text-sm transition-colors',
+                                    selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background hover:bg-muted',
+                                  )}
+                                >
+                                  {formatShortDate(day)}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {errors.date && <FieldError>{errors.date}</FieldError>}
+                      </Field>
+                      <fieldset className="flex min-w-0 flex-col gap-3">
+                        <legend className="mb-3 text-sm font-medium">Период времени</legend>
+                        <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-3 sm:gap-3">
+                          {timeSlots.map((slot) => {
+                            const Icon = slot.icon
+                            const selected = time === slot.value
+                            const busy = isSlotBusy(data.date, slot.value)
+                            return (
+                              <button
+                                key={slot.value}
+                                type="button"
+                                disabled={busy}
+                                onClick={() => {
+                                  setTime(slot.value)
+                                  setErrors((current) => {
+                                    const next = { ...current }
+                                    delete next.time
+                                    return next
+                                  })
+                                }}
+                                className={cn(
+                                  'flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 min-[380px]:min-h-24 min-[380px]:flex-col min-[380px]:items-start min-[380px]:justify-between min-[380px]:gap-2 min-[380px]:px-3',
+                                  busy
+                                    ? 'cursor-not-allowed border-border bg-muted/60 text-muted-foreground'
+                                    : selected
+                                      ? 'border-primary bg-primary text-primary-foreground'
+                                      : 'border-border bg-background hover:bg-muted',
+                                )}
+                                aria-pressed={selected}
+                              >
+                                <Icon className="size-5 shrink-0" aria-hidden="true" />
+                                <span className="flex min-w-0 flex-col gap-0.5">
+                                  <span className={cn('font-medium', busy && 'line-through')}>{slot.label}</span>
+                                  <span className={cn('text-xs', selected && !busy ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+                                    {busy ? 'Занято' : slot.detail}
+                                  </span>
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        {/* Пояснение появляется только когда занято хоть что-то:
+                            иначе это лишний текст на пустом месте */}
+                        {data.date && dayIsFull(data.date) && (
+                          <p className="rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+                            На эту дату всё занято. Выберите другой день — ближайшие свободные даты под полем даты.
+                          </p>
+                        )}
+                        {errors.time && <FieldError>{errors.time}</FieldError>}
+                      </fieldset>
+                    </FieldGroup>
+                  )}
+
+                  {step === 2 && (
+                    <FieldGroup className="gap-4 sm:grid sm:grid-cols-2 sm:gap-5">
+                      <Field className="min-w-0" data-invalid={Boolean(errors.name)}>
+                        <FieldLabel htmlFor="booking-name">Ваше имя</FieldLabel>
+                        <Input ref={firstFieldRef} id="booking-name" name="name" value={data.name} onChange={(event) => updateData('name', event.target.value)} autoComplete="name" placeholder="Александр" className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.name)} />
+                        {errors.name && <FieldError>{errors.name}</FieldError>}
+                      </Field>
+                      <Field className="min-w-0" data-invalid={Boolean(errors.phone)}>
+                        <FieldLabel htmlFor="booking-phone">Телефон</FieldLabel>
+                        <Input id="booking-phone" name="phone" type="tel" inputMode="tel" value={data.phone} onChange={(event) => updateData('phone', formatRussianPhone(event.target.value))} autoComplete="tel" placeholder={PHONE_PLACEHOLDER} maxLength={18} className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.phone)} />
+                        {errors.phone && <FieldError>{errors.phone}</FieldError>}
+                      </Field>
+                      <Field orientation="horizontal" data-invalid={Boolean(errors.consent)} className="items-start sm:col-span-2">
+                        <Checkbox id="booking-consent" checked={consent} onCheckedChange={(checked) => {
+                          setConsent(checked === true)
+                          if (checked === true) setErrors((current) => ({ ...current, consent: '' }))
+                        }} aria-invalid={Boolean(errors.consent)} />
+                        {/* block, а не flex из FieldLabel: иначе текст и ссылка
+                            встают двумя колонками */}
+                        <FieldLabel htmlFor="booking-consent" className="block cursor-pointer text-xs font-normal leading-relaxed text-muted-foreground">
+                          Я согласен на обработку персональных данных для согласования замера и расчёта кухни и принимаю{' '}
+                          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground" onClick={(event) => event.stopPropagation()}>
+                            политику конфиденциальности
+                          </a>
+                        </FieldLabel>
+                        {errors.consent && <FieldError>{errors.consent}</FieldError>}
+                      </Field>
+                    </FieldGroup>
+                  )}
+
+                  {errors.submit && <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">{errors.submit}</div>}
+                </m.div>
+                </AnimatePresence>
+              </div>
+
+              <footer className="shrink-0 border-t bg-background px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-9 sm:py-5">
+                <div className="flex items-center justify-between gap-3">
+                  {step > 1 ? (
+                    <Button type="button" variant="outline" className="h-11 rounded-full px-4 text-xs font-semibold sm:h-12 sm:px-6 sm:text-sm" onClick={goBack}>
+                      <ChevronLeft className="mr-1 size-4" /> Назад
+                    </Button>
+                  ) : <span />}
+                  <Button type="submit" disabled={isSubmitting} className="h-11 rounded-full px-5 text-xs font-bold uppercase tracking-wider sm:h-12 sm:px-7 sm:text-sm">
+                    {step < TOTAL_STEPS ? (
+                      <>
+                        Далее <ChevronRight className="ml-1 size-4" />
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 size-4" />
+                        {isSubmitting ? 'Отправка...' : 'Отправить заявку на замер'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </footer>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+    </FormMotion>
+  )
+}

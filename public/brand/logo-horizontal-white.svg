@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 132" role="img" aria-label="Модуль Эстет — кухни на заказ, Москва и МО">
+  <!-- Горизонтальный локап для тёмных фонов -->
+  <style>
+    .title { font: 600 46px Oswald, 'Arial Narrow', 'Segoe UI', sans-serif; letter-spacing: 1.5px; }
+    .sub   { font: 500 13.5px Roboto, 'Segoe UI', Arial, sans-serif; letter-spacing: 4px; }
+  </style>
+  <g transform="translate(6,6)">
+    <g transform="scale(1.25)">
+      <rect width="96" height="96" rx="22" fill="#F8F5EF"/>
+      <path d="M29 65.5 L29 28.5 L48 50 L67 28.5 L67 65.5"
+            fill="none" stroke="#1A1A1A" stroke-width="7"/>
+      <g stroke="#F8F5EF" stroke-width="3">
+        <line x1="25.5" y1="47" x2="32.5" y2="47"/>
+        <line x1="63.5" y1="47" x2="70.5" y2="47"/>
+      </g>
+      <g stroke="#B99358" stroke-width="3.5">
+        <line x1="24" y1="76" x2="72" y2="76"/>
+        <line x1="24" y1="72" x2="24" y2="80"/>
+        <line x1="72" y1="72" x2="72" y2="80"/>
+      </g>
+    </g>
+  </g>
+  <text x="150" y="64" class="title" fill="#F8F5EF">МОДУЛЬ <tspan fill="#B99358">ЭСТЕТ</tspan></text>
+  <text x="152" y="98" class="sub" fill="#F8F5EF" fill-opacity="0.62">КУХНИ НА ЗАКАЗ · МОСКВА И МО</text>
+</svg>

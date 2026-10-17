@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 48" width="504" height="144" role="img" aria-label="Логотип «Модуль Эстет» — иконки прорисовываются, затем проявляется текст">
+  <style>
+    .i { stroke: #1A1A1A; fill: none; stroke-width: 1.1; }
+    .w { fill: #1A1A1A; font-family: Arial, 'Segoe UI', system-ui, sans-serif; }
+    .w1 { font-size: 19px; font-weight: 400; letter-spacing: 2px; }
+    .w2 { font-size: 21px; font-weight: 700; letter-spacing: 1.6px; fill: #B99358; }
+    @media (prefers-reduced-motion: no-preference) {
+      .i { stroke-dasharray: 1; stroke-dashoffset: 1; animation: dr 520ms ease-out forwards; }
+      .wt, .wb { opacity: 0; animation: wi 520ms ease-out forwards; }
+      .wt { animation-delay: 1450ms; }
+      .wb { animation-delay: 1600ms; }
+    }
+    @keyframes dr { to { stroke-dashoffset: 0; } }
+    @keyframes wi { to { opacity: 1; } }
+  </style>
+  <!-- Вытяжка -->
+  <rect class="i" x="1" y="1" width="22" height="22" pathLength="1"/>
+  <line class="i" x1="9.5" y1="5.5" x2="9.5" y2="11" pathLength="1" style="animation-delay:130ms"/>
+  <line class="i" x1="14.5" y1="5.5" x2="14.5" y2="11" pathLength="1" style="animation-delay:210ms"/>
+  <path class="i" d="M6 11 H18 L20 16 H4 Z" pathLength="1" style="animation-delay:290ms"/>
+  <!-- Варочная панель -->
+  <rect class="i" x="25" y="1" width="22" height="22" rx="6" pathLength="1" style="animation-delay:430ms"/>
+  <circle class="i" cx="36" cy="12" r="4.4" pathLength="1" style="animation-delay:550ms"/>
+  <!-- Конфорки -->
+  <rect class="i" x="1" y="25" width="22" height="22" pathLength="1" style="animation-delay:660ms"/>
+  <circle class="i" cx="9.2" cy="33.2" r="2.5" pathLength="1" style="animation-delay:760ms"/>
+  <circle class="i" cx="14.8" cy="33.2" r="2.5" pathLength="1" style="animation-delay:830ms"/>
+  <circle class="i" cx="9.2" cy="38.8" r="2.5" pathLength="1" style="animation-delay:900ms"/>
+  <circle class="i" cx="14.8" cy="38.8" r="2.5" pathLength="1" style="animation-delay:970ms"/>
+  <!-- Духовка -->
+  <rect class="i" x="25" y="25" width="22" height="22" pathLength="1" style="animation-delay:1100ms"/>
+  <rect class="i" x="30" y="32" width="12" height="10" pathLength="1" style="animation-delay:1200ms"/>
+  <!-- Текст -->
+  <text class="w wt w1" x="60" y="21.5">МОДУЛЬ</text>
+  <text class="w wb w2" x="60" y="42">ЭСТЕТ</text>
+</svg>

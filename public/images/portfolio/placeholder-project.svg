@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1917" />
+      <stop offset="50%" stop-color="#292524" />
+      <stop offset="100%" stop-color="#18181b" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="900" fill="url(#bg)" />
+  <rect width="1200" height="900" fill="url(#grid)" />
+
+  <!-- Blueprint decorative lines -->
+  <g stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" stroke-dasharray="4 4">
+    <rect x="120" y="120" width="960" height="660" rx="16" />
+    <line x1="120" y1="360" x2="1080" y2="360" />
+    <line x1="120" y1="560" x2="1080" y2="560" />
+    <line x1="440" y1="120" x2="440" y2="780" />
+    <line x1="760" y1="120" x2="760" y2="780" />
+  </g>
+
+  <!-- Central Badge & Icon -->
+  <g transform="translate(600, 410)">
+    <!-- Circle Glow -->
+    <circle r="70" fill="#292524" stroke="url(#gold)" stroke-width="2" stroke-opacity="0.6"/>
+    
+    <!-- Camera / Architecture Icon -->
+    <g transform="translate(-24, -24)" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </g>
+
+    <!-- Text -->
+    <text y="110" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#f4f4f5" text-anchor="middle" letter-spacing="1.5">
+      ФОТООТЧЁТ ГОТОВИТСЯ К ПУБЛИКАЦИИ
+    </text>
+    <text y="140" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#a1a1aa" text-anchor="middle" letter-spacing="0.5">
+      Съёмка нового реализованного объекта
+    </text>
+  </g>
+</svg>
