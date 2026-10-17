@@ -49,3 +49,14 @@ export function writeConsent(choice: ConsentChoice): void {
 export function analyticsAllowed(): boolean {
   return readConsent() === 'accepted'
 }
+
+/**
+ * Можно ли запускать «Яндекс.Метрику».
+ *
+ * В отличие от остальной аналитики, счётчик работает и до ответа на баннер:
+ * иначе Метрика видела только тех, кто нажал «Принимаю», — меньшинство
+ * посетителей. Выключает его только явное «Только необходимые».
+ */
+export function metrikaAllowed(): boolean {
+  return readConsent() !== 'necessary'
+}

@@ -1,3 +1,5 @@
+import { metrikaAllowed } from '@/lib/consent'
+
 /**
  * Яндекс.Метрика: номер счётчика и отправка целей.
  *
@@ -11,16 +13,18 @@ export const YANDEX_METRIKA_ID = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_I
  * Цели — их идентификаторы нужно завести в Метрике как «JavaScript-событие»:
  *   lead_measurement — отправлена заявка на замер
  *   lead_project     — отправлен расчёт из квиза
+ *   click_phone      — нажат номер телефона
+ *   click_max        — нажата ссылка на чат в Максе
  */
-export type MetrikaGoal = 'lead_measurement' | 'lead_project'
+export type MetrikaGoal = 'lead_measurement' | 'lead_project' | 'click_phone' | 'click_max'
 
 /**
- * Отмечает достижение цели. Если счётчик не загружен (посетитель не дал
- * согласия или Метрика заблокирована), молча ничего не делает: учёт целей
+ * Отмечает достижение цели. Если счётчик не загружен или выключен (посетитель
+ * выбрал «Только необходимые» или Метрика заблокирована), молча ничего не делает: учёт целей
  * не должен мешать отправке заявки.
  */
 export function reachGoal(goal: MetrikaGoal): void {
-  if (typeof window === 'undefined' || !YANDEX_METRIKA_ID) return
+  if (typeof window === 'undefined' || !YANDEX_METRIKA_ID || !metrikaAllowed()) return
   try {
     const ym = (window as Window & { ym?: (id: number, method: string, goal: string) => void }).ym
     ym?.(YANDEX_METRIKA_ID, 'reachGoal', goal)
