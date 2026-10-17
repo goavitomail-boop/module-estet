@@ -40,6 +40,8 @@ import {
   timeAgo,
 } from '@/lib/admin-format'
 import { EmptyState, Panel, StatusBadge, TypeBadge } from '../../../_components/ui'
+import { deleteLeadAction } from '@/app/admin/actions'
+import { DeleteLeadButton } from './delete-button'
 import { LeadActions } from './lead-actions'
 import { ManagerFiles } from './manager-files'
 import { PrintButton } from './print-button'
@@ -296,8 +298,21 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* ── Правая колонка: действия. На печати не нужна — на бумаге кнопки не нажимаются ── */}
-        <div className="lg:sticky lg:top-6 lg:self-start print:hidden">
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start print:hidden">
           <LeadActions lead={lead} managers={managers} occupancy={occupancy} capacity={slotCapacity()} />
+
+          <section className="rounded-xl border border-destructive/30 bg-card p-4 shadow-sm md:p-5">
+            <h2 className="text-sm font-semibold">Удалить заявку</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Для спама, дублей и тестовых заявок. Вместе с заявкой удалятся история, заметки и файлы — отменить
+              это нельзя. Если клиент просто отказался, лучше поставьте статус «Отказ»: так заявка останется в
+              аналитике.
+            </p>
+            <form action={deleteLeadAction} className="mt-3">
+              <input type="hidden" name="id" value={lead.id} />
+              <DeleteLeadButton leadId={lead.id} />
+            </form>
+          </section>
         </div>
       </div>
     </div>

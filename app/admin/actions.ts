@@ -19,6 +19,7 @@ import {
   addLeadNote,
   addLeadUpload,
   assignLead,
+  deleteLead,
   getLead,
   isSlotFull,
   measurementConfirmError,
@@ -282,6 +283,35 @@ export async function deleteFileAction(formData: FormData) {
   }
 
   revalidatePath(`/admin/leads/${leadId}`)
+}
+
+/**
+ * Удаление заявки навсегда — для спама, дублей и тестовых заявок.
+ * Вместе с ней уходят история, заметки и все файлы
+ */
+export async function deleteLeadAction(formData: FormData) {
+  await requireSession()
+  const id = String(formData.get('id') ?? '')
+  if (!id) return
+
+  const removed = await deleteLead(id)
+  console.warn(`[Admin] Заявка ${id} удалена (${ADMIN_ACTOR})`)
+
+  // Как и с файлами менеджера: сначала база, потом хранилище
+  if (removed && removed.pathnames.length > 0) {
+    try {
+      const { del } = await import('@vercel/blob')
+      await del(removed.pathnames)
+    } catch (error) {
+      console.error('[Admin] Заявка удалена, но файлы остались в хранилище:', error)
+    }
+  }
+
+  revalidatePath('/admin/leads')
+  revalidatePath('/admin/calendar')
+  revalidatePath('/admin/analytics')
+  revalidatePath('/admin')
+  redirect('/admin/leads')
 }
 
 /* ── Настройки ─────────────────────────────────────────────────────── */

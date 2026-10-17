@@ -1422,6 +1422,35 @@ export async function removeLeadUpload(id: string, actor: string): Promise<LeadF
   return file ?? null
 }
 
+/**
+ * Удаляет заявку целиком: историю и файлы менеджера база стирает сама
+ * (ON DELETE CASCADE). Возвращает пути всех файлов заявки — и клиентских,
+ * и менеджерских, — чтобы вызывающий убрал их из хранилища.
+ */
+export async function deleteLead(id: string): Promise<{ lead: Lead; pathnames: string[] } | null> {
+  await ensureSchema()
+  const sql = client()
+  const uploads = (await sql`SELECT pathname FROM lead_files WHERE lead_id = ${id}`) as unknown as Array<{
+    pathname: string
+  }>
+  const rows = (await sql`DELETE FROM leads WHERE id = ${id} RETURNING *`) as unknown as Lead[]
+  const lead = rows[0]
+  if (!lead) return null
+
+  // В квизе ссылка на заявку без внешнего ключа — отвязываем вручную,
+  // сама попытка прохождения остаётся в воронке
+  await sql`UPDATE quiz_sessions SET lead_id = NULL WHERE lead_id = ${id}`
+
+  const clientFiles = (lead.details as Record<string, unknown> | null)?.files
+  const clientPaths = Array.isArray(clientFiles)
+    ? clientFiles
+        .map((file) => (file && typeof file === 'object' ? (file as { pathname?: unknown }).pathname : null))
+        .filter((p): p is string => typeof p === 'string' && p.startsWith('leads/') && !p.includes('..'))
+    : []
+
+  return { lead, pathnames: [...clientPaths, ...uploads.map((u) => u.pathname)] }
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    Портфолио
    ══════════════════════════════════════════════════════════════════════ */
