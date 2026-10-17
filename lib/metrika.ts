@@ -5,7 +5,7 @@
  * прямо здесь. Переменная NEXT_PUBLIC_YANDEX_METRIKA_ID нужна только чтобы
  * подменить его (например, на тестовый) или выключить значением 0.
  */
-export const YANDEX_METRIKA_ID = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID ?? 113203767) || 0
+export const YANDEX_METRIKA_ID = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID ?? 113551158) || 0
 
 /**
  * Цели — их идентификаторы нужно завести в Метрике как «JavaScript-событие»:
