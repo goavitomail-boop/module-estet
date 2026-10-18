@@ -1,0 +1,217 @@
+/*
+ * Раскадровка экрана выбора в квизе (components/quiz-entry.tsx).
+ *
+ * Только CSS-анимации и только transform и opacity: такие браузер считает
+ * на видеокарте, отдельно от основного потока. Пока страница догружается
+ * и React подключается, створки всё равно идут ровно, без пропуска кадров.
+ * Размытие, режимы наложения, межбуквенный интервал и left здесь
+ * намеренно не анимируются — каждый из них перерисовывает кадр целиком.
+ * Внутри поворачивающейся створки во время поворота не анимируется
+ * ничего, а конечные состояния — без translate3d: каждый лишний слой
+ * в 3D пересчитывается на каждом кадре поворота.
+ *
+ * Время задаётся переменными на .qd; .qd--fast — короткая версия
+ * для повторного захода, клика по створкам и «уменьшить движение».
+ */
+
+.qd {
+  --qd-sweep: 0.15s;
+  --qd-logo: 0.3s;
+  --qd-glow: 0.95s;
+  --qd-crack: 1.35s;
+  --qd-door: 1.85s; /* от защёлки до упора */
+  --qd-swing: 1.7s;
+  --qd-swing-dur: 1.5s;
+  --qd-content: 2.25s;
+  --qd-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.qd--fast {
+  --qd-sweep: -10s; /* блик не показываем: он уже «прошёл» */
+  --qd-logo: -10s;
+  --qd-glow: 0s;
+  --qd-crack: 0.05s;
+  --qd-door: 1.25s;
+  --qd-swing: 0.25s;
+  --qd-swing-dur: 1.05s;
+  --qd-content: 0.7s;
+}
+
+/* ── Створки ─────────────────────────────────────────────────────── */
+
+/* Створка — одна текстура: всё её содержимое рисуется в слой один раз,
+   и на каждом кадре видеокарта только поворачивает готовую картинку */
+.qd-door {
+  will-change: transform;
+  animation: qd-door-left var(--qd-door) var(--qd-crack) both;
+}
+.qd-door--right {
+  animation-name: qd-door-right;
+}
+
+/* Защёлка (0–19 %), распахивание с перелётом (до 85 %) и доводчик */
+@keyframes qd-door-left {
+  0% { transform: translate3d(0, 0, 0) rotateY(0deg); animation-timing-function: var(--qd-ease); }
+  19% { transform: translate3d(-7px, 0, 0) rotateY(0deg); animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
+  85% { transform: translate3d(-7px, 0, 0) rotateY(87deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { transform: translate3d(-7px, 0, 0) rotateY(84deg); }
+}
+@keyframes qd-door-right {
+  0% { transform: translate3d(0, 0, 0) rotateY(0deg); animation-timing-function: var(--qd-ease); }
+  19% { transform: translate3d(7px, 0, 0) rotateY(0deg); animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
+  85% { transform: translate3d(7px, 0, 0) rotateY(-87deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { transform: translate3d(7px, 0, 0) rotateY(-84deg); }
+}
+
+/* На узком экране створки распахиваются совсем и тают — места по краям нет */
+@media (max-width: 767px) {
+  .qd-door { animation-name: qd-door-left-narrow; }
+  .qd-door--right { animation-name: qd-door-right-narrow; }
+}
+@keyframes qd-door-left-narrow {
+  0% { transform: translate3d(0, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: var(--qd-ease); }
+  19% { transform: translate3d(-7px, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
+  70% { opacity: 1; }
+  100% { transform: translate3d(-7px, 0, 0) rotateY(96deg); opacity: 0; }
+}
+@keyframes qd-door-right-narrow {
+  0% { transform: translate3d(0, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: var(--qd-ease); }
+  19% { transform: translate3d(7px, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
+  70% { opacity: 1; }
+  100% { transform: translate3d(7px, 0, 0) rotateY(-96deg); opacity: 0; }
+}
+
+/* Блик по рейкам: полоса едет через створку, правая — следом за левой */
+.qd-sweep {
+  animation: qd-sweep 0.9s var(--qd-sweep) cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+.qd-door--right .qd-sweep {
+  animation-delay: calc(var(--qd-sweep) + 0.42s);
+}
+@keyframes qd-sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(250%); }
+}
+
+/* Латунный стык накаляется перед открытием и остывает к началу поворота */
+.qd-profile-glow {
+  animation: qd-profile-glow calc(var(--qd-swing) - var(--qd-glow)) var(--qd-glow) ease-out both;
+}
+@keyframes qd-profile-glow {
+  0% { opacity: 0; }
+  60% { opacity: 0.75; }
+  100% { opacity: 0.2; }
+}
+
+/* Логотип: буквы по одной поднимаются и сходятся к стыку. Сдвиг — transform,
+   а не letter-spacing: интервал заставлял бы пересчитывать текст на каждом кадре */
+.qd-letter {
+  display: inline-block;
+  animation: qd-letter 0.75s calc(var(--qd-logo) + var(--qd-i) * 0.05s) var(--qd-ease) both;
+}
+@keyframes qd-letter {
+  from { opacity: 0; transform: translate(var(--qd-spread), 10px); }
+  to { opacity: 1; transform: none; }
+}
+.qd-underline {
+  animation: qd-scale-x 0.8s calc(var(--qd-logo) + 0.55s) var(--qd-ease) both;
+}
+@keyframes qd-scale-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ── Свет из щели ────────────────────────────────────────────────── */
+
+.qd-halo {
+  animation: qd-halo calc(var(--qd-swing) + var(--qd-swing-dur) - var(--qd-glow)) var(--qd-glow) ease-in-out both;
+}
+@keyframes qd-halo {
+  0% { opacity: 0; transform: translateX(-50%) scaleX(0.15); }
+  18% { opacity: 0.35; transform: translateX(-50%) scaleX(0.3); }
+  50% { opacity: 0.95; transform: translateX(-50%) scaleX(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleX(1.5); }
+}
+.qd-core {
+  animation: qd-core calc(var(--qd-swing) - var(--qd-glow) + 0.7s) var(--qd-glow) ease-out both;
+}
+@keyframes qd-core {
+  0% { opacity: 0; transform: translateX(-50%) scaleY(0); }
+  40% { opacity: 0.8; transform: translateX(-50%) scaleY(1); }
+  75% { opacity: 1; transform: translateX(-50%) scaleY(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleY(1); }
+}
+.qd-dust {
+  animation: qd-dust var(--qd-dur) calc(var(--qd-crack) + var(--qd-delay)) ease-out both;
+}
+@keyframes qd-dust {
+  0% { opacity: 0; transform: none; }
+  35% { opacity: 0.85; }
+  100% { opacity: 0; transform: translateY(var(--qd-drift)); }
+}
+
+/* ── Нутро шкафа ─────────────────────────────────────────────────── */
+
+.qd-dark {
+  animation: qd-dark var(--qd-swing-dur) calc(var(--qd-swing) + 0.15s) var(--qd-ease) both;
+}
+@keyframes qd-dark {
+  from { opacity: 0.85; }
+  to { opacity: 0; }
+}
+.qd-led {
+  animation: qd-led 0.7s calc(var(--qd-swing) + 0.45s) var(--qd-ease) both;
+}
+@keyframes qd-led {
+  from { opacity: 0; transform: scaleX(0.3); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+/* Заголовок выезжает из-под маски, остальное поднимается и проявляется */
+.qd-mask {
+  animation: qd-mask 0.9s calc(var(--qd-content) + 0.08s) var(--qd-ease) both;
+}
+@keyframes qd-mask {
+  from { transform: translateY(110%); }
+  to { transform: none; }
+}
+.qd-rise {
+  animation: qd-rise 0.8s calc(var(--qd-content) + var(--qd-at, 0s)) var(--qd-ease) both;
+}
+@keyframes qd-rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+/* Карточки приходят из глубины: вместо размытия — масштаб и подъём */
+.qd-card {
+  animation: qd-card 0.95s calc(var(--qd-content) + var(--qd-at, 0s)) var(--qd-ease) both;
+}
+@keyframes qd-card {
+  from { opacity: 0; transform: translateY(44px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+.qd-card-led {
+  animation: qd-scale-x 0.8s calc(var(--qd-content) + var(--qd-at, 0s) + 0.45s) var(--qd-ease) both;
+}
+
+/* «Уменьшить движение»: шкаф сразу открыт, содержимое просто проявляется */
+@media (prefers-reduced-motion: reduce) {
+  .qd-doors,
+  .qd-light,
+  .qd-dark {
+    display: none;
+  }
+  .qd-led,
+  .qd-mask,
+  .qd-card-led {
+    animation: none;
+  }
+  .qd-rise,
+  .qd-card {
+    animation: qd-fade 0.4s both;
+  }
+}
+@keyframes qd-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

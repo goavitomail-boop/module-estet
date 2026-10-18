@@ -1,28 +1,24 @@
 'use client'
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import Image from 'next/image'
 import { ArrowRight, Check } from 'lucide-react'
-import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { ProjectQuiz, type QuizProduct } from '@/components/project-quiz'
 import { EASE_OUT, FormMotion } from '@/components/form-motion'
 import { cn } from '@/lib/utils'
+import './quiz-doors.css'
 
 /**
- * Раскадровка экрана выбора, в секундах от начала. Первый заход — полный
- * «фильм»: блик по рейкам, логотип, свет в щели, защёлка, открытие. Повторный
- * заход в этой вкладке, клик по створкам или «уменьшить движение» в системе —
- * короткая версия без вступления.
+ * Экран выбора открывается как шкаф: блик по рейкам, логотип, свет в щели,
+ * защёлка, распахивание с доводчиком. Сама раскадровка — в quiz-doors.css:
+ * CSS-анимации transform и opacity идут на видеокарте и держат 60 кадров,
+ * даже пока страница догружается. Здесь — только разметка.
+ *
+ * Когда створки перестают ловить клики, мс: полная и короткая версии
+ * (синхронизировано с --qd-swing и --qd-swing-dur в quiz-doors.css)
  */
-type Timeline = { sweep: number | null; logo: number; glow: number; crack: number; swing: number; swingDur: number; content: number }
-
-const FULL: Timeline = { sweep: 0.15, logo: 0.3, glow: 0.95, crack: 1.35, swing: 1.7, swingDur: 1.5, content: 2.25 }
-const FAST: Timeline = { sweep: null, logo: 0, glow: 0, crack: 0.05, swing: 0.25, swingDur: 1.05, content: 0.7 }
-
-/** Тяжёлая створка трогается медленно; в конце доводчик мягко дотягивает её до упора */
-const EASE_SWING = [0.55, 0, 0.2, 1] as const
-/** Угол открытых створок: на широком экране они остаются по краям, как стенки шкафа */
-const DOOR_ANGLE = 84
+const DOORS_OPEN_MS = { full: (1.7 + 1.5 * 0.6) * 1000, fast: (0.25 + 1.05 * 0.6) * 1000 }
 /** Пауза между выбором и началом вопросов: карточка успевает откликнуться */
 const PICK_MS = 450
 /** Отметка в sessionStorage: вступление уже показывали в этой вкладке */
@@ -76,136 +72,70 @@ const DUST = Array.from({ length: 16 }, (_, i) => {
   return { x: (r(1) - 0.5) * 180, y: 30 + r(2) * 60, size: 1.5 + r(3) * 2, drift: 50 + r(4) * 90, delay: r(5) * 0.9, dur: 2.2 + r(6) * 1.4 }
 })
 
+/** CSS-переменные в style: TypeScript не знает пользовательских свойств */
+const vars = (values: Record<string, string>) => values as CSSProperties
+
 /**
  * Створка: рифлёный антрацит, латунный профиль LINE у стыка и половина
- * логотипа, проявляющаяся по буквам. У створки есть толщина — торец
- * с латунной кромкой виден, пока она поворачивается
+ * логотипа. Без отдельного объёмного торца: створка остаётся одной
+ * текстурой, которую видеокарта только поворачивает
  */
-function Door({ side, angle, t }: { side: 'left' | 'right'; angle: number; t: Timeline }) {
+function Door({ side }: { side: 'left' | 'right' }) {
   const left = side === 'left'
-  const dir = left ? 1 : -1
-  const word = left ? 'Модуль' : 'Эстет'
-  const letterOffset = left ? 0 : 6
+  const letters = Array.from(left ? 'Модуль' : 'Эстет')
+  const offset = left ? 0 : 6
 
   return (
-    <m.div
-      className={cn('absolute inset-y-0 w-1/2', left ? 'left-0 origin-left' : 'right-0 origin-right')}
-      style={{ transformStyle: 'preserve-3d' }}
-      initial={{ x: 0, rotateY: 0 }}
-      animate={{ x: -7 * dir, rotateY: [0, (angle + 3) * dir, angle * dir] }}
-      transition={{
-        x: { delay: t.crack, duration: 0.35, ease: EASE_OUT },
-        rotateY: { delay: t.swing, duration: t.swingDur, ease: EASE_SWING, times: [0, 0.82, 1] },
-      }}
-    >
-      {/* Лицевая сторона. Отдельный слой с overflow: hidden — на самой
-          створке он сплющил бы торец, которому нужен объём */}
-      <span className="absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div className={cn('qd-door absolute inset-y-0 w-1/2', left ? 'left-0 origin-left' : 'qd-door--right right-0 origin-right')}>
+      <span className="absolute inset-0 overflow-hidden">
         <span className="absolute inset-0" style={FLUTED_FACADE} />
         <span className={cn('absolute inset-0', left ? 'bg-gradient-to-r' : 'bg-gradient-to-l', 'from-black/45 via-black/15 to-transparent')} />
-        {/* Блик скользит по рейкам слева направо, через обе створки */}
-        {t.sweep !== null && (
-          <m.span
-            className="absolute inset-y-0 w-[45%] bg-[linear-gradient(100deg,transparent,rgba(255,236,205,0.16)_50%,transparent)] mix-blend-screen"
-            initial={{ left: '-50%' }}
-            animate={{ left: '110%' }}
-            transition={{ delay: t.sweep + (left ? 0 : 0.42), duration: 0.9, ease: [0.45, 0, 0.55, 1] }}
-          />
-        )}
-        {/* Блик на повороте и тень открытой створки */}
-        <m.span
-          className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,240,215,0.22),transparent)] mix-blend-screen"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.9, 0] }}
-          transition={{ delay: t.swing, duration: t.swingDur * 0.8, times: [0, 0.4, 1] }}
-        />
-        <m.span
-          className="absolute inset-0 bg-black"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
-          transition={{ delay: t.swing + 0.2, duration: t.swingDur, ease: EASE_SWING }}
-        />
+        <span className="qd-sweep absolute inset-y-0 left-0 w-[45%] bg-[linear-gradient(100deg,transparent,rgba(255,236,205,0.13)_50%,transparent)]" />
       </span>
 
-      {/* Латунный профиль LINE у стыка: сначала холодный, перед открытием накаляется */}
-      <span
-        className={cn('absolute inset-y-0 w-2 bg-gradient-to-r from-[#6f5a35] via-[#d8bf8a] to-[#6f5a35]', left ? 'right-0' : 'left-0')}
-        aria-hidden="true"
-      >
-        <m.span
-          className="absolute inset-0 bg-[#ffe3ad] shadow-[0_0_18px_4px_rgba(255,214,150,0.55)]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.75, 0.2] }}
-          transition={{ delay: t.glow, duration: t.swing - t.glow + 0.6, times: [0, 0.55, 1] }}
-        />
+      {/* Латунный профиль LINE у стыка: перед открытием накаляется */}
+      <span className={cn('absolute inset-y-0 w-2 bg-gradient-to-r from-[#6f5a35] via-[#d8bf8a] to-[#6f5a35]', left ? 'right-0' : 'left-0')}>
+        <span className="qd-profile-glow absolute inset-0 bg-[#ffe3ad] shadow-[0_0_18px_4px_rgba(255,214,150,0.55)]" />
       </span>
 
-      {/* Торец толщиной 19 мм — как у фасада Velvet */}
-      <span
-        className={cn('absolute inset-y-0 w-[19px] bg-gradient-to-b from-[#8a7046] via-[#d2b680] to-[#6a5532]', left ? 'right-0' : 'left-0')}
-        style={{ transformOrigin: left ? 'right center' : 'left center', transform: `rotateY(${left ? -90 : 90}deg)` }}
-        aria-hidden="true"
-      />
-
-      <span
-        className={cn('absolute top-1/2 flex -translate-y-1/2 flex-col gap-3 text-[#f4e7cf]', left ? 'right-8 items-end md:right-14' : 'left-8 items-start md:left-14')}
-        aria-hidden="true"
-      >
-        <m.span
-          className="flex text-xl font-semibold uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] md:text-4xl"
-          initial={{ letterSpacing: '0.6em' }}
-          animate={{ letterSpacing: '0.32em' }}
-          transition={{ delay: t.logo, duration: 1.3, ease: EASE_OUT }}
-        >
-          {Array.from(word).map((letter, i) => (
-            <m.span
+      <span className={cn('absolute top-1/2 flex -translate-y-1/2 flex-col gap-3 text-[#f4e7cf]', left ? 'right-8 items-end md:right-14' : 'left-8 items-start md:left-14')}>
+        <span className="flex text-xl font-semibold uppercase tracking-[0.32em] [text-shadow:0_2px_6px_rgba(0,0,0,0.55)] md:text-4xl">
+          {letters.map((letter, i) => (
+            <span
               key={i}
-              className="inline-block"
-              initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ delay: t.logo + (letterOffset + i) * 0.05, duration: 0.6, ease: EASE_OUT }}
+              className="qd-letter"
+              style={vars({ '--qd-i': String(offset + i), '--qd-spread': `${((i - (letters.length - 1) / 2) * 0.14).toFixed(2)}em` })}
             >
               {letter}
-            </m.span>
+            </span>
           ))}
-        </m.span>
-        <m.span
-          className={cn('h-px w-16 bg-primary md:w-28', left ? 'origin-right' : 'origin-left')}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ delay: t.logo + 0.55, duration: 0.8, ease: EASE_OUT }}
-        />
+        </span>
+        <span className={cn('qd-underline h-px w-16 bg-primary md:w-28', left ? 'origin-right' : 'origin-left')} />
       </span>
-    </m.div>
+    </div>
   )
 }
 
 /** Свет изнутри: тонкая нить в стыке, ореол на фасадах и пылинки в луче */
-function SeamLight({ t, particles }: { t: Timeline; particles: boolean }) {
-  const end = t.swing + t.swingDur
+function SeamLight({ particles }: { particles: boolean }) {
   return (
-    <span className="pointer-events-none absolute inset-0 z-30 mix-blend-screen" aria-hidden="true">
-      <m.span
-        className="absolute inset-y-0 left-1/2 w-[340px] -translate-x-1/2 bg-[radial-gradient(ellipse_50%_60%_at_50%_50%,rgba(255,206,140,0.5),transparent_70%)] md:w-[560px]"
-        initial={{ opacity: 0, scaleX: 0.15 }}
-        animate={{ opacity: [0, 0.35, 0.95, 0], scaleX: [0.15, 0.3, 1, 2.6] }}
-        transition={{ delay: t.glow, duration: end - t.glow, times: [0, (t.crack - t.glow) / (end - t.glow), (t.swing + 0.3 - t.glow) / (end - t.glow), 1], ease: 'easeInOut' }}
-      />
-      <m.span
-        className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-[#fff1d6] shadow-[0_0_24px_6px_rgba(255,214,150,0.8)]"
-        initial={{ opacity: 0, scaleY: 0 }}
-        animate={{ opacity: [0, 0.8, 1, 0], scaleY: [0, 1, 1, 1] }}
-        transition={{ delay: t.glow, duration: t.swing - t.glow + 0.7, times: [0, 0.4, 0.75, 1], ease: 'easeOut' }}
-      />
+    <span className="qd-light pointer-events-none absolute inset-0 z-30" aria-hidden="true">
+      <span className="qd-halo absolute inset-y-0 left-1/2 w-[340px] bg-[radial-gradient(ellipse_50%_60%_at_50%_50%,rgba(255,206,140,0.42),transparent_70%)] md:w-[560px]" />
+      <span className="qd-core absolute inset-y-0 left-1/2 w-[2px] bg-[#fff1d6] shadow-[0_0_24px_6px_rgba(255,214,150,0.8)]" />
       {particles &&
         DUST.map((d, i) => (
-          <m.span
+          <span
             key={i}
-            className="absolute rounded-full bg-[#ffeccb]"
-            style={{ left: `calc(50% + ${d.x}px)`, top: `${d.y}%`, width: d.size, height: d.size }}
-            initial={{ opacity: 0, y: 0 }}
-            animate={{ opacity: [0, 0.85, 0], y: -d.drift }}
-            transition={{ delay: t.crack + d.delay, duration: d.dur, ease: 'easeOut' }}
+            className="qd-dust absolute rounded-full bg-[#ffeccb]"
+            style={vars({
+              left: `calc(50% + ${d.x.toFixed(1)}px)`,
+              top: `${d.y.toFixed(1)}%`,
+              width: `${d.size.toFixed(1)}px`,
+              height: `${d.size.toFixed(1)}px`,
+              '--qd-delay': `${d.delay.toFixed(2)}s`,
+              '--qd-dur': `${d.dur.toFixed(2)}s`,
+              '--qd-drift': `${(-d.drift).toFixed(0)}px`,
+            })}
           />
         ))}
     </span>
@@ -230,7 +160,7 @@ function TiltCard({ children }: { children: ReactNode }) {
   }
   return (
     <div className="[perspective:1200px]" onPointerMove={move} onPointerLeave={reset}>
-      <div ref={ref} className="transition-transform duration-300 ease-out will-change-transform">
+      <div ref={ref} className="transition-transform duration-300 ease-out">
         {children}
       </div>
     </div>
@@ -240,21 +170,17 @@ function TiltCard({ children }: { children: ReactNode }) {
 /**
  * Первый экран квиза — закрытый шкаф. Блик пробегает по рейкам, проявляется
  * логотип, в щели загорается свет, створки отходят на защёлке и распахиваются
- * внутрь, камера «въезжает» в шкаф, а в подсвеченном нутре — выбор: кухня
- * или шкаф. На узком экране створки уходят совсем.
+ * внутрь, а в подсвеченном нутре — выбор: кухня или шкаф. На узком экране
+ * створки уходят совсем.
  */
 function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void }) {
-  const reduceMotion = useReducedMotion()
   const [picked, setPicked] = useState<QuizProduct | null>(null)
-  const [narrow, setNarrow] = useState(false)
   const [fast, setFast] = useState(false)
   const doorsRef = useRef<HTMLDivElement>(null)
+  const spotRef = useRef<HTMLSpanElement>(null)
   const pickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const interiorRef = useRef<HTMLDivElement>(null)
-  const t = fast || reduceMotion ? FAST : FULL
 
   useEffect(() => {
-    setNarrow(window.matchMedia('(max-width: 767px)').matches)
     try {
       if (sessionStorage.getItem(SEEN_KEY)) setFast(true)
       sessionStorage.setItem(SEEN_KEY, '1')
@@ -265,8 +191,7 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
   }, [])
 
   // Пока створки закрыты, они ловят клик «открыть сразу»; потом пропускают
-  // нажатия к карточкам. Пишем прямо в style: перерисовка компонента посреди
-  // раскадровки сбросила бы ещё идущие анимации к началу
+  // нажатия к карточкам. Пишем прямо в style, без лишней перерисовки
   useEffect(() => {
     const doors = doorsRef.current
     if (!doors) return
@@ -274,9 +199,9 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
     const timer = setTimeout(() => {
       doors.style.pointerEvents = 'none'
       doors.style.cursor = ''
-    }, (t.swing + t.swingDur * 0.6) * 1000)
+    }, fast ? DOORS_OPEN_MS.fast : DOORS_OPEN_MS.full)
     return () => clearTimeout(timer)
-  }, [t])
+  }, [fast])
 
   const pick = (product: QuizProduct) => {
     if (picked) return
@@ -284,31 +209,25 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
     pickTimer.current = setTimeout(() => onChoose(product), PICK_MS)
   }
 
-  // Мягкий свет внутри шкафа следует за курсором
+  // Мягкий свет внутри шкафа следует за курсором — сдвигом слоя, без перерисовки фона
   const followLight = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== 'mouse' || !interiorRef.current) return
-    const box = interiorRef.current.getBoundingClientRect()
-    interiorRef.current.style.setProperty('--mx', `${event.clientX - box.left}px`)
-    interiorRef.current.style.setProperty('--my', `${event.clientY - box.top}px`)
+    const spot = spotRef.current
+    if (event.pointerType !== 'mouse' || !spot) return
+    const box = event.currentTarget.getBoundingClientRect()
+    spot.style.transform = `translate3d(${event.clientX - box.left - 520}px, ${event.clientY - box.top - 520}px, 0)`
+    spot.style.opacity = '1'
   }
 
-  const reveal = (delay: number) => ({
-    initial: { opacity: 0, y: 28 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.8, ease: EASE_OUT, delay } },
-  })
+  const at = (seconds: number) => vars({ '--qd-at': `${seconds}s` })
 
   return (
     <m.section aria-labelledby="quiz-choose-title" data-own-motion className="bg-[#0b0a09] pt-16 md:pt-20" exit={{ opacity: 0, transition: { duration: 0.3 } }}>
       {/* key: при переходе на короткую версию раскадровка начинается заново —
           створки в этот момент ещё закрыты, так что подмены не видно */}
-      <m.div
-        key={t === FULL ? 'full' : 'fast'}
-        ref={interiorRef}
+      <div
+        key={fast ? 'fast' : 'full'}
         onPointerMove={followLight}
-        className="relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#161412] md:min-h-[calc(100dvh-5rem)]"
-        initial={{ scale: 0.965 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: t.swing, duration: t.swingDur + 0.4, ease: EASE_OUT }}
+        className={cn('qd relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#161412] md:min-h-[calc(100dvh-5rem)]', fast && 'qd--fast')}
       >
         {/* Нутро шкафа: тёплая подсветка сверху, свет за курсором, тень пола */}
         <span
@@ -316,56 +235,40 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
           aria-hidden="true"
         />
         <span
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(520px_circle_at_var(--mx,50%)_var(--my,40%),rgba(255,214,160,0.07),transparent_65%)]"
+          ref={spotRef}
+          className="pointer-events-none absolute left-0 top-0 size-[1040px] rounded-full bg-[radial-gradient(circle,rgba(255,214,160,0.07),transparent_65%)] opacity-0 transition-opacity duration-500"
           aria-hidden="true"
         />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" aria-hidden="true" />
-        <m.span
-          className="pointer-events-none absolute inset-x-[16%] top-0 h-0.5 rounded-full bg-primary shadow-[0_0_48px_14px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
-          initial={{ opacity: 0, scaleX: 0.3 }}
-          animate={{ opacity: 1, scaleX: 1 }}
-          transition={{ duration: 0.7, delay: t.swing + 0.45, ease: EASE_OUT }}
+        <span
+          className="qd-led pointer-events-none absolute inset-x-[16%] top-0 h-0.5 rounded-full bg-primary shadow-[0_0_48px_14px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
           aria-hidden="true"
         />
 
         <div className="relative z-10 mx-auto flex w-full max-w-[min(58rem,100%)] flex-1 flex-col justify-center px-4 py-8 md:w-[58vw] md:py-12">
           <div className="mb-6 text-center text-background md:mb-10">
-            <m.p className="text-[11px] font-bold uppercase tracking-[0.26em] text-primary md:text-xs" {...reveal(t.content)}>
-              Бесплатный расчёт · около минуты
-            </m.p>
+            <p className="qd-rise text-[11px] font-bold uppercase tracking-[0.26em] text-primary md:text-xs">Бесплатный расчёт · около минуты</p>
             <h1 id="quiz-choose-title" className="flyer-title mt-3 overflow-hidden pb-1 text-4xl md:text-6xl">
-              <m.span
-                className="inline-block"
-                initial={{ y: '110%' }}
-                animate={{ y: 0 }}
-                transition={{ delay: t.content + 0.08, duration: 0.9, ease: EASE_OUT }}
-              >
-                Что рассчитываем?
-              </m.span>
+              <span className="qd-mask inline-block">Что рассчитываем?</span>
             </h1>
-            <m.p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-background/60 md:text-base" {...reveal(t.content + 0.2)}>
+            <p className="qd-rise mx-auto mt-3 max-w-md text-sm leading-relaxed text-background/60 md:text-base" style={at(0.2)}>
               Выберите — и вопросы подстроятся под вашу задачу.
-            </m.p>
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 md:gap-6">
             {options.map((option, index) => {
               const isPicked = picked === option.product
               const dimmed = picked !== null && !isPicked
-              const delay = t.content + 0.25 + index * 0.14
+              const delay = at(0.25 + index * 0.14)
               return (
-                <m.div
-                  key={option.product}
-                  initial={{ opacity: 0, y: 40, scale: 0.94, filter: 'blur(10px)' }}
-                  animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                  transition={{ delay, duration: 0.95, ease: EASE_OUT }}
-                >
+                <div key={option.product} className="qd-card" style={delay}>
                   <TiltCard>
                     <button
                       type="button"
                       onClick={() => pick(option.product)}
                       className={cn(
-                        'group relative flex h-[clamp(14rem,34dvh,18rem)] w-full flex-col justify-end overflow-hidden rounded-3xl border border-primary/30 text-left text-background shadow-[0_40px_80px_-30px_rgba(0,0,0,0.9)] outline-none transition duration-500 ease-out md:h-[min(34rem,56dvh)]',
+                        'group relative flex h-[clamp(14rem,34dvh,18rem)] w-full flex-col justify-end overflow-hidden rounded-3xl border border-primary/30 text-left text-background shadow-[0_24px_48px_-24px_rgba(0,0,0,0.9)] outline-none transition duration-500 ease-out md:h-[min(34rem,56dvh)]',
                         'hover:-translate-y-1.5 hover:border-primary focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/40',
                         isPicked && 'scale-[1.02] border-primary',
                         dimmed && 'opacity-30',
@@ -376,21 +279,17 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
                       </span>
                       <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/5" aria-hidden="true" />
                       {/* Подсветка по верхнему краю — включается вслед за LED шкафа */}
-                      <m.span
-                        className="absolute inset-x-6 top-0 h-px bg-primary opacity-60 shadow-[0_0_24px_6px_color-mix(in_oklab,var(--primary)_60%,transparent)] transition-opacity duration-500 group-hover:opacity-100"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ delay: delay + 0.45, duration: 0.8, ease: EASE_OUT }}
-                        aria-hidden="true"
-                      />
+                      <span className="absolute inset-x-6 top-0 h-px opacity-60 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true">
+                        <span className="qd-card-led block h-full bg-primary shadow-[0_0_24px_6px_color-mix(in_oklab,var(--primary)_60%,transparent)]" style={delay} />
+                      </span>
 
                       <span className="relative flex flex-col gap-2.5 p-5 md:gap-3 md:p-8">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)] md:text-xs">{option.meta}</span>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary [text-shadow:0_1px_6px_rgba(0,0,0,0.8)] md:text-xs">{option.meta}</span>
                         <span className="flyer-title text-5xl leading-none md:text-7xl">{option.title}</span>
                         <span className="max-w-sm text-pretty text-sm leading-relaxed text-background/75 max-md:hidden">{option.text}</span>
                         <span className="flex flex-wrap gap-1.5" aria-label="О чём спросим">
                           {option.asks.map((item) => (
-                            <span key={item} className="rounded-full border border-background/25 bg-black/20 px-2.5 py-1 text-[11px] text-background/85 backdrop-blur-sm md:text-xs">
+                            <span key={item} className="rounded-full border border-background/25 bg-black/35 px-2.5 py-1 text-[11px] text-background/85 md:text-xs">
                               {item}
                             </span>
                           ))}
@@ -404,50 +303,39 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
                       </span>
                     </button>
                   </TiltCard>
-                </m.div>
+                </div>
               )
             })}
           </div>
 
-          <m.p className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-background/55 md:mt-8" {...reveal(t.content + 0.75)}>
+          <p className="qd-rise mt-6 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-background/55 md:mt-8" style={at(0.75)}>
             {['Бесплатно', 'Ни к чему не обязывает', 'Ответы сохраняются'].map((item) => (
               <span key={item} className="inline-flex items-center gap-1.5">
                 <Check className="size-3.5 text-primary" aria-hidden="true" />
                 {item}
               </span>
             ))}
-          </m.p>
+          </p>
         </div>
 
         {/* Темнота внутри закрытого шкафа — уходит, когда створки открываются */}
-        <m.span
-          className="pointer-events-none absolute inset-0 z-[15] bg-black"
-          initial={{ opacity: 0.85 }}
-          animate={{ opacity: 0 }}
-          transition={{ delay: t.swing + 0.15, duration: t.swingDur, ease: EASE_OUT }}
-          aria-hidden="true"
-        />
+        <span className="qd-dark pointer-events-none absolute inset-0 z-[15] bg-black" aria-hidden="true" />
 
         {/* Створки. Пока закрыты, клик по ним открывает шкаф сразу */}
         <div
           ref={doorsRef}
-          className="absolute inset-0 z-20 cursor-pointer"
+          className="qd-doors absolute inset-0 z-20 cursor-pointer"
           onClick={() => !fast && setFast(true)}
           aria-hidden="true"
         >
           {/* Перспектива — на прямом родителе створок: на более дальних предков CSS её не распространяет */}
-          <m.div
-            className="absolute inset-0 [perspective:1800px]"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: narrow ? 0 : 1 }}
-            transition={{ duration: 0.45, delay: t.swing + t.swingDur * 0.55 }}
-          >
-            <Door side="left" angle={narrow ? 96 : DOOR_ANGLE} t={t} />
-            <Door side="right" angle={narrow ? 96 : DOOR_ANGLE} t={t} />
-          </m.div>
+          <div className="absolute inset-0 [perspective:1800px]">
+            <Door side="left" />
+            <Door side="right" />
+          </div>
         </div>
-        <SeamLight t={t} particles={t === FULL} />
-      </m.div>
+        <SeamLight particles={!fast} />
+      </div>
     </m.section>
   )
 }
