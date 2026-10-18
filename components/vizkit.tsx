@@ -6,6 +6,7 @@ import { collections as kitchenCollections, handles, bracketHandles, neoclassica
 import { wardrobeCollections } from '@/lib/wardrobes-data'
 import { BookingPlanButton } from '@/components/footer-actions'
 import { PlanLabel } from '@/components/plan'
+import { VizKitIntro } from '@/components/vizkit-intro'
 import { cn } from '@/lib/utils'
 
 /**
@@ -181,6 +182,7 @@ function BeforeAfter({ before, after }: { before: string; after: string }) {
 }
 
 export function VizKit() {
+  const [intro, setIntro] = useState(true)
   const [sel, setSel] = useState<Selection>(EMPTY)
   const [step, setStep] = useState(0)
   const [photo, setPhoto] = useState<string | null>(null)
@@ -276,6 +278,18 @@ export function VizKit() {
     setStep(0)
     setPhase('config')
     setShowPrompt(false)
+  }
+
+  /* ── Вступительный ролик: как это работает и зачем ── */
+  if (intro) {
+    return (
+      <VizKitIntro
+        onStart={() => {
+          setIntro(false)
+          window.scrollTo({ top: 0 })
+        }}
+      />
+    )
   }
 
   /* ── Экран генерации ── */

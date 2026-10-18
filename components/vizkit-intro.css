@@ -1,0 +1,131 @@
+/*
+ * Вступительный ролик визуализатора (components/vizkit-intro.tsx).
+ *
+ * Одна общая шкала времени без JavaScript: у каждого слоя своя задержка
+ * (--d) и длительность (--t), откуда он появляется (--from) и куда уходит
+ * (--to). Анимируются только transform и opacity — их считает видеокарта,
+ * так что ролик идёт ровно и на слабых телефонах.
+ *
+ * Сцены: 0–3,2 с каталог · 3,2–6,4 с фото · 6,4–10,8 с ИИ · дальше — польза.
+ */
+
+.vzi {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Появляется и остаётся */
+.vzi-in {
+  animation: vzi-in var(--t, 0.7s) var(--d, 0s) var(--ease) both;
+}
+@keyframes vzi-in {
+  from { opacity: 0; transform: var(--from, translateY(16px)); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Появляется с «пружинкой» — для бейджей и выгод */
+.vzi-pop {
+  animation: vzi-pop var(--t, 0.6s) var(--d, 0s) var(--pop) both;
+}
+@keyframes vzi-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Появляется, держится и уходит — слои одной сцены */
+.vzi-inout {
+  animation: vzi-inout var(--t, 3s) var(--d, 0s) linear both;
+}
+@keyframes vzi-inout {
+  0% { opacity: 0; transform: var(--from, translateY(16px)); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  18% { opacity: 1; transform: var(--hold, none); }
+  84% { opacity: 1; transform: var(--hold, none); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0); }
+  100% { opacity: 0; transform: var(--to, scale(0.94)); }
+}
+
+/* Вспышка камеры */
+.vzi-flash {
+  animation: vzi-flash 0.7s var(--d, 0s) ease-out both;
+}
+@keyframes vzi-flash {
+  0% { opacity: 0; }
+  15% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* Линия сканирования: слой высотой со сцену едет сверху вниз */
+.vzi-scan {
+  animation: vzi-scan 1.6s var(--d, 0s) cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+@keyframes vzi-scan {
+  0% { opacity: 0; transform: translateY(-4%); }
+  10% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(100%); }
+}
+
+/* Шторка «стало»: контейнер выезжает слева, картинка внутри идёт навстречу
+   и стоит на месте — открывается без перерисовки, одним сдвигом */
+.vzi-wipe {
+  transform: translateX(-100%);
+  animation: vzi-wipe 1.5s var(--d, 0s) cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.vzi-wipe > .vzi-wipe-img {
+  transform: translateX(100%);
+  animation: vzi-wipe-img 1.5s var(--d, 0s) cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+@keyframes vzi-wipe {
+  to { transform: translateX(-45%); }
+}
+@keyframes vzi-wipe-img {
+  to { transform: translateX(45%); }
+}
+.vzi-edge {
+  animation: vzi-edge 1.5s var(--d, 0s) cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+/* Линия стыка: обёртка шириной во всю сцену, линия у её левого края —
+   сдвиг на 55 % ставит её ровно на край шторки */
+@keyframes vzi-edge {
+  from { opacity: 0; transform: translateX(0); }
+  10% { opacity: 1; }
+  to { opacity: 1; transform: translateX(55%); }
+}
+
+/* «Пропустить» исчезает к концу ролика и перестаёт ловить нажатия */
+.vzi-skip {
+  animation: vzi-skip var(--t, 11s) var(--d, 0s) linear both;
+}
+@keyframes vzi-skip {
+  0%, 96% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+/* Деления прогресса заполняются за время своей сцены */
+.vzi-progress {
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: vzi-progress var(--t, 3s) var(--d, 0s) linear both;
+}
+@keyframes vzi-progress {
+  to { transform: scaleX(1); }
+}
+
+/* Кнопка зовёт, когда ролик закончился */
+.vzi-pulse {
+  animation: vzi-pulse 2.2s var(--d, 0s) ease-out infinite both;
+}
+@keyframes vzi-pulse {
+  0% { opacity: 0.55; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vzi *,
+  .vzi *::before,
+  .vzi *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
