@@ -11,6 +11,7 @@ import { FaqSection } from '@/components/faq-section'
 import { CtaSection } from '@/components/cta-section'
 import { SiteFooter } from '@/components/site-footer'
 import { QuizBanner } from '@/components/quiz-banner'
+import { WardrobesBanner } from '@/components/wardrobes-banner'
 import { JsonLd } from '@/components/json-ld'
 import { businessJsonLd, faqJsonLd, websiteJsonLd } from '@/lib/seo'
 
@@ -24,6 +25,7 @@ export default function Page() {
         <QuizBanner />
         <ServicesSection />
         <GallerySection />
+        <WardrobesBanner />
         <AssemblySection />
         <MaterialsSection />
         <FillingSection />

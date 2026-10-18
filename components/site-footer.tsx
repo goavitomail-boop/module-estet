@@ -25,6 +25,7 @@ const columns = [
       { href: '/materials', label: 'Материалы' },
       { href: '/filling', label: 'Наполнение' },
       { href: '/collections', label: 'Коллекции' },
+      { href: '/wardrobes', label: 'Шкафы' },
     ],
   },
 ]

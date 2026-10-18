@@ -31,6 +31,7 @@ const catalogLinks: NavLink[] = [
 const navItems: NavItem[] = [
   { href: '/#services', label: 'Услуги' },
   { href: '/#gallery', label: 'Наши кухни' },
+  { href: '/wardrobes', label: 'Шкафы' },
   { label: 'Каталог', children: catalogLinks },
   { href: '/#process', label: 'Как мы работаем' },
   { href: '/#contacts', label: 'Контакты' },
