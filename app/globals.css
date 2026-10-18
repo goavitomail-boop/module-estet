@@ -1158,12 +1158,14 @@ html[data-preloader='active'] .hero-life * { animation-play-state: paused !impor
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    /* Hero-секция управляет своей анимацией сама (.hero-life__*) */
-    main > section:first-child:not(.hero-life) > div > * {
+    /* Hero-секция управляет своей анимацией сама (.hero-life__*), как
+       и секции с data-own-motion: анимация с fill: both перебила бы их
+       собственную и навсегда закрепила бы стартовые значения */
+    main > section:first-child:not(.hero-life):not([data-own-motion]) > div > * {
       animation: hero-reveal 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
-    main > section:first-child:not(.hero-life) > div > *:nth-child(2) {
+    main > section:first-child:not(.hero-life):not([data-own-motion]) > div > *:nth-child(2) {
       animation-delay: 120ms;
     }
   }
