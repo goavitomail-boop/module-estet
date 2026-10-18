@@ -12,11 +12,12 @@ export const YANDEX_METRIKA_ID = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_I
 /**
  * Цели — их идентификаторы нужно завести в Метрике как «JavaScript-событие»:
  *   lead_measurement — отправлена заявка на замер
- *   lead_project     — отправлен расчёт из квиза
+ *   lead_project     — отправлен расчёт кухни из квиза
+ *   lead_wardrobe    — отправлен расчёт шкафа из квиза
  *   click_phone      — нажат номер телефона
  *   click_max        — нажата ссылка на чат в Максе
  */
-export type MetrikaGoal = 'lead_measurement' | 'lead_project' | 'click_phone' | 'click_max'
+export type MetrikaGoal = 'lead_measurement' | 'lead_project' | 'lead_wardrobe' | 'click_phone' | 'click_max'
 
 /**
  * Отмечает достижение цели. Если счётчик не загружен или выключен (посетитель

@@ -1,17 +1,22 @@
-import { ProjectQuiz } from '@/components/project-quiz'
+import { QuizEntry } from '@/components/quiz-entry'
+import type { QuizProduct } from '@/components/project-quiz'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { JsonLd } from '@/components/json-ld'
 import { breadcrumbJsonLd, pageMetadata, webPageJsonLd } from '@/lib/seo'
 
-const title = 'Рассчитать проект кухни онлайн'
+const title = 'Рассчитать кухню или шкаф онлайн'
 const description =
-  'Пять простых вопросов о будущей кухне — около минуты. Дизайнер предложит идеи и расчёт бесплатно и ни к чему не обязывая.'
+  'Несколько простых вопросов о будущей кухне или шкафе — около минуты. Дизайнер предложит идеи и расчёт бесплатно и ни к чему не обязывая.'
 const path = '/quiz'
 
 export const metadata = pageMetadata({ title, description, path })
 
-export default function QuizPage() {
+export default async function QuizPage({ searchParams }: { searchParams: Promise<{ type?: string | string[] }> }) {
+  // ?type=kitchen|wardrobe — сразу в нужный квиз, без экрана выбора
+  const { type } = await searchParams
+  const initialProduct: QuizProduct | null = type === 'kitchen' || type === 'wardrobe' ? type : null
+
   return (
     <>
       <JsonLd
@@ -26,7 +31,7 @@ export default function QuizPage() {
       <SiteHeader />
       {/* «Чертёжная бумага» под анкетой — как светлые секции главной */}
       <main className="paper">
-        <ProjectQuiz />
+        <QuizEntry initialProduct={initialProduct} />
       </main>
       <SiteFooter />
     </>

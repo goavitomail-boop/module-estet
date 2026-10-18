@@ -142,6 +142,10 @@ export interface DetailSection {
 
 const LABELS: Record<string, string> = {
   projectType: 'Тип проекта',
+  room: 'Где будет шкаф',
+  wardrobeType: 'Тип шкафа',
+  wardrobeWidth: 'Ширина шкафа',
+  wardrobeWidthCm: 'Ширина стены, см',
   layout: 'Планировка',
   kitchenSize: 'Размер кухни',
   location: 'Где находится кухня',
@@ -172,7 +176,7 @@ const LABELS: Record<string, string> = {
 
 const SECTIONS: Array<{ title: string; keys: string[] }> = [
   { title: 'Задача', keys: ['projectType', 'timeline', 'renovationStage', 'budget'] },
-  { title: 'Помещение', keys: ['layout', 'kitchenSize', 'location', 'wallA', 'wallB', 'wallC', 'roomArea', 'ceilingHeight', 'noMeasurements'] },
+  { title: 'Помещение', keys: ['room', 'wardrobeType', 'wardrobeWidth', 'wardrobeWidthCm', 'layout', 'kitchenSize', 'location', 'wallA', 'wallB', 'wallC', 'roomArea', 'ceilingHeight', 'noMeasurements'] },
   { title: 'Стиль и материалы', keys: ['style', 'palette', 'facades', 'countertop', 'hardware'] },
   { title: 'Техника и функции', keys: ['appliances', 'features'] },
   { title: 'Связь', keys: ['contactMethod', 'contactTime', 'comment'] },

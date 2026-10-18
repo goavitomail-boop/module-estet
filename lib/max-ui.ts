@@ -263,6 +263,12 @@ function detailLines(lead: Lead): string[] {
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 30).map((x) => plain(x).slice(0, 80)).join(', ') : ''
 
   if (str(a.projectType)) lines.push(`• Тип проекта: **${str(a.projectType)}**`)
+  // Квиз шкафов
+  if (str(a.room)) lines.push(`• Где будет шкаф: **${str(a.room)}**`)
+  if (str(a.wardrobeType)) lines.push(`• Тип шкафа: **${str(a.wardrobeType)}**`)
+  if (str(a.wardrobeWidth)) lines.push(`• Ширина: **${str(a.wardrobeWidth)}**`)
+  if (str(a.wardrobeWidthCm)) lines.push(`• Ширина стены: **${str(a.wardrobeWidthCm)} см**`)
+  if (str(a.ceilingHeight)) lines.push(`• Высота потолка: **${str(a.ceilingHeight)} см**`)
   if (str(a.layout)) lines.push(`• Конфигурация: **${str(a.layout)}**`)
   if (str(a.kitchenSize)) lines.push(`• Размер кухни: **${str(a.kitchenSize)}**`)
   if (str(a.location)) lines.push(`• Локация: **${str(a.location)}**`)
@@ -395,7 +401,13 @@ export function statsCard(stats: {
 export function newLeadNotification(lead: Lead, baseUrl: string): { text: string; attachments: MaxAttachment[] } {
   const phone = formatRussianPhone(lead.phone) || lead.phone
   const digits = lead.phone.replace(/\D/g, '')
-  const title = lead.type === 'measurement' ? '📐 **НОВАЯ ЗАЯВКА НА ЗАМЕР**' : '✨ **НОВЫЙ РАСЧЁТ ДИЗАЙН-ПРОЕКТА**'
+  const isWardrobe = (lead.details as Record<string, unknown> | null)?.product === 'wardrobe'
+  const title =
+    lead.type === 'measurement'
+      ? '📐 **НОВАЯ ЗАЯВКА НА ЗАМЕР**'
+      : isWardrobe
+        ? '🚪 **НОВЫЙ РАСЧЁТ ШКАФА**'
+        : '✨ **НОВЫЙ РАСЧЁТ ДИЗАЙН-ПРОЕКТА**'
 
   const text = [
     '━━━━━━━━━━━━━━━━━━━━━',

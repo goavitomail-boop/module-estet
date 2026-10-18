@@ -486,14 +486,24 @@ export async function countUpcomingMeasurements(phone: string, from: string): Pr
   return rows[0]?.n ?? 0
 }
 
-/** Ищет такую же заявку за последние минуты — чтобы двойной клик не плодил дубли */
-export async function findRecentDuplicate(phone: string, type: LeadType, minutes = 10): Promise<Lead | null> {
+/**
+ * Ищет такую же заявку за последние минуты — чтобы двойной клик не плодил дубли.
+ * product различает расчёт кухни и шкафа: оба идут типом 'project', и второй
+ * квиз сразу после первого — новая заявка, а не повтор
+ */
+export async function findRecentDuplicate(
+  phone: string,
+  type: LeadType,
+  minutes = 10,
+  product = 'kitchen'
+): Promise<Lead | null> {
   await ensureSchema()
   const sql = client()
   const rows = (await sql`
     SELECT * FROM leads
      WHERE phone = ${phone}
        AND type = ${type}
+       AND COALESCE(details->>'product', 'kitchen') = ${product}
        AND created_at >= now() - make_interval(mins => ${minutes})
      ORDER BY created_at DESC
      LIMIT 1
@@ -887,6 +897,7 @@ export async function getQuizAnswerStats(
     SELECT details->'answers'->>${key} AS value, count(*)::int AS total
       FROM leads
      WHERE type = 'project'
+       AND COALESCE(details->>'product', 'kitchen') = 'kitchen'
        AND created_at >= now() - make_interval(days => ${days})
        AND NULLIF(details->'answers'->>${key}, '') IS NOT NULL
      GROUP BY 1

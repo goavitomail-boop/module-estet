@@ -3,7 +3,7 @@ import { Check } from 'lucide-react'
 import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { FacadePalette } from '@/components/facade-palette'
 import { BookingPlanButton } from '@/components/footer-actions'
-import { CropMarks, PlanLabel, PlanTag } from '@/components/plan'
+import { CropMarks, PlanButton, PlanLabel, PlanTag } from '@/components/plan'
 import { COMPANY } from '@/lib/company'
 import {
   vetrine,
@@ -157,7 +157,11 @@ export function WardrobesPage() {
         eyebrow="Шкафы"
         title="Модульные шкафы"
         intro="Гардеробные, шкафы для гостиной, спальни и прихожей. Семь коллекций фасадов, стеклянные витрины и наполнение под ваши вещи — по размерам вашего помещения."
-        action={<BookingPlanButton onDark />}
+        action={
+          <PlanButton href="/quiz?type=wardrobe" onDark>
+            Рассчитать шкаф онлайн
+          </PlanButton>
+        }
         sections={sections}
         sectionsLabel="Разделы страницы"
       />
@@ -351,11 +355,14 @@ export function WardrobesPage() {
                   Рассчитаем шкаф под вашу нишу
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-background/65 md:text-base">
-                  Приедем на замер, подберём коллекцию, цвета и наполнение. Можно заказать шкафы вместе с кухней — в
-                  едином стиле.
+                  Ответьте на шесть коротких вопросов или запишитесь на замер — подберём коллекцию, цвета и наполнение.
+                  Можно заказать шкафы вместе с кухней — в едином стиле.
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap [&>*]:whitespace-nowrap">
+              <div className="grid shrink-0 gap-3 sm:grid-cols-2 lg:w-[30rem] [&>*]:whitespace-nowrap">
+                <PlanButton href="/quiz?type=wardrobe" onDark>
+                  Рассчитать онлайн
+                </PlanButton>
                 <BookingPlanButton onDark />
                 <a
                   href={MAX_URL}

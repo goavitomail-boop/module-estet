@@ -22,7 +22,9 @@ import { PlanLabel } from '@/components/plan'
 import { AutoHeight, EASE_OUT, FormMotion, SuccessMark, itemVariants, maskVariants, riseVariants, staggerVariants, stepVariants, successVariants } from '@/components/form-motion'
 
 /**
- * Квиз «Рассчитать кухню» — лёгкая версия.
+ * Квиз «Рассчитать кухню» — лёгкая версия. Тот же квиз считает и шкафы:
+ * product='wardrobe' подставляет свои вопросы, а контакты, файлы, черновик
+ * и отправка остаются общими.
  *
  * Пять простых вопросов и контакты. Ни один вопрос не обязателен: у каждого
  * есть «Не знаю» или «Пропустить», а материалы, фурнитуру и стадию ремонта
@@ -32,9 +34,20 @@ import { AutoHeight, EASE_OUT, FormMotion, SuccessMark, itemVariants, maskVarian
  * в панели (lib/admin-format.ts) и сообщение в Max (lib/max-ui.ts) читают
  * их без изменений. Значения сроков, бюджета, стиля и планировки тоже
  * прежние — по ним строятся графики в аналитике.
+ *
+ * Заявка на шкаф уходит тем же типом 'project' с details.product='wardrobe'
+ * и answers.projectType='Шкаф': так её видно в Max и в карточке, а графики
+ * аналитики, построенные на ответах о кухне, её не учитывают.
  */
 
+export type QuizProduct = 'kitchen' | 'wardrobe'
+
 type Answers = {
+  room: string
+  wardrobeType: string
+  wardrobeWidth: string
+  wardrobeWidthCm: string
+  facades: string
   layout: string
   kitchenSize: string
   wallA: string
@@ -60,13 +73,14 @@ type Answers = {
 type UploadedFile = { id: string; file: File; url?: string }
 
 const initialAnswers: Answers = {
+  room: '', wardrobeType: '', wardrobeWidth: '', wardrobeWidthCm: '', facades: '',
   layout: '', kitchenSize: '', wallA: '', wallB: '', wallC: '', roomArea: '', ceilingHeight: '', noMeasurements: false,
   style: '', appliances: [], features: [], timeline: '', budget: '',
   name: '', phone: '', contactMethod: '', contactTime: '', location: '', comment: '', consent: false,
 }
 
 /** Названия шагов синхронизированы с QUIZ_STEP_NAMES в lib/admin-format.ts */
-const steps = [
+const kitchenSteps = [
   { eyebrow: 'Планировка', title: 'Какую кухню планируете?', hint: 'Не уверены — выберите «Пока не знаю», это нормально: с планировкой поможет дизайнер.' },
   { eyebrow: 'Размер', title: 'Какого она примерно размера?', hint: 'Достаточно на глаз — по длине кухни вдоль стен. Точные размеры снимем на бесплатном замере.' },
   { eyebrow: 'Стиль', title: 'Какой стиль вам ближе?', hint: 'Выберите то, что нравится. Если сомневаетесь — подскажем.' },
@@ -74,8 +88,18 @@ const steps = [
   { eyebrow: 'Сроки', title: 'Когда хотите новую кухню?', hint: '' },
   { eyebrow: 'Контакты', title: 'Куда прислать идеи и расчёт?', hint: 'Дизайнер свяжется один раз, чтобы уточнить детали. Без спама и навязчивых звонков.' },
 ]
-const QUESTIONS = steps.length - 1
-const CONTACTS_STEP = steps.length - 1
+
+const wardrobeSteps = [
+  { eyebrow: 'Помещение', title: 'Где будет шкаф?', hint: 'От комнаты зависят глубина, наполнение и фасады. Не уверены — выберите «Пока не знаю».' },
+  { eyebrow: 'Тип', title: 'Какой шкаф нужен?', hint: 'Если сомневаетесь — дизайнер предложит варианты под ваше помещение.' },
+  { eyebrow: 'Размер', title: 'Какой он примерно ширины?', hint: 'Достаточно на глаз — по стене, где встанет шкаф. Точные размеры снимем на бесплатном замере.' },
+  { eyebrow: 'Фасады', title: 'Какие фасады нравятся?', hint: 'Коллекции из нашего каталога шкафов. Их можно сочетать в одном шкафу — обсудим с дизайнером.' },
+  { eyebrow: 'Наполнение', title: 'Что должно быть внутри?', hint: 'Отметьте всё, что важно, или пропустите — подберём под ваши вещи.' },
+  { eyebrow: 'Сроки', title: 'Когда нужен шкаф?', hint: '' },
+  kitchenSteps[kitchenSteps.length - 1],
+]
+
+const STEPS: Record<QuizProduct, typeof kitchenSteps> = { kitchen: kitchenSteps, wardrobe: wardrobeSteps }
 
 type ChoiceOption = string | {
   label: string
@@ -119,7 +143,39 @@ const optionSets = {
   contactTime: ['9:00–12:00', '12:00–15:00', '15:00–18:00', '18:00–21:00'],
 }
 
-const DRAFT_KEY = 'modul-estet-quiz-draft-v2'
+const photo = (label: string, image: string, alt: string): ChoiceOption => ({ label, image, imageIndex: 0, imageCount: 1, alt })
+
+const wardrobeOptions = {
+  room: [
+    photo('Прихожая', '/quiz-options/wardrobe-room-hall.webp', 'Шкаф в прихожей с рамочными фасадами'),
+    photo('Спальня', '/quiz-options/wardrobe-room-bedroom.webp', 'Шкаф до потолка в спальне'),
+    photo('Гостиная', '/quiz-options/wardrobe-room-living.webp', 'Шкаф-стеллаж в гостиной'),
+    photo('Гардеробная', '/quiz-options/wardrobe-room-dressing.webp', 'Открытая гардеробная с ящиками и штангами'),
+    photo('Детская или кабинет', '/quiz-options/wardrobe-room-kids.webp', 'Шкаф с полками и ящиками'),
+    photo('Пока не знаю', '/quiz-options/style-recommendation.webp', 'Консультация с дизайнером'),
+  ],
+  wardrobeType: ['Распашной шкаф', 'Шкаф до потолка с антресолями', 'Встроенный в нишу', 'Гардеробная система', 'Стеллаж или витрина', 'Нужна рекомендация'],
+  wardrobeWidth: ['До 1,5 м', '1,5–2,5 м', '2,5–3,5 м', 'Больше 3,5 м', SIZE_UNKNOWN],
+  facades: [
+    photo('Soft & Wood — дерево', '/quiz-options/wardrobe-facade-soft-wood.webp', 'Шкаф с фасадами под дуб'),
+    photo('Touch — Soft Touch', '/quiz-options/wardrobe-facade-touch.webp', 'Шкаф с однотонными фасадами Soft Touch'),
+    photo('Touch Ultra — «камень»', '/quiz-options/wardrobe-facade-touch-ultra.webp', 'Шкаф с фасадами Touch Ultra и витриной'),
+    photo('Рамочные — Arco, Garda, Como', '/quiz-options/wardrobe-facade-frame.webp', 'Шкаф с рамочными фасадами'),
+    photo('Flat & Velvet — гладкие или рифлёные', '/quiz-options/wardrobe-facade-flat-velvet.webp', 'Шкаф с гладкими фасадами и витриной'),
+    photo('Нужна рекомендация', '/quiz-options/style-recommendation.webp', 'Консультация с дизайнером по выбору фасадов'),
+  ],
+  features: ['Штанги для одежды', 'Выдвижные ящики', 'Полки', 'Брючница', 'Сетка для обуви', 'Стеклянная витрина', 'LED-подсветка', 'Антресоли до потолка'],
+  budget: ['До 150 000 ₽', '150 000–300 000 ₽', '300 000–500 000 ₽', 'От 500 000 ₽', 'Нужна консультация'],
+}
+
+/** Ответы, которые относятся только к одному квизу: в заявку другого они не попадают */
+const KITCHEN_ONLY: Array<keyof Answers> = ['layout', 'kitchenSize', 'wallA', 'wallB', 'wallC', 'roomArea', 'style', 'appliances']
+const WARDROBE_ONLY: Array<keyof Answers> = ['room', 'wardrobeType', 'wardrobeWidth', 'wardrobeWidthCm', 'facades']
+
+const DRAFT_KEYS: Record<QuizProduct, string> = {
+  kitchen: 'modul-estet-quiz-draft-v2',
+  wardrobe: 'modul-estet-wardrobe-draft-v1',
+}
 const MAX_CHAT_URL = process.env.NEXT_PUBLIC_MAX_CHAT_URL ?? 'https://web.max.ru/93711404'
 /** Пауза перед переходом после выбора: человек успевает увидеть, что ответ отмечен */
 const AUTO_ADVANCE_MS = 280
@@ -133,10 +189,10 @@ function plural(n: number, one: string, few: string, many: string): string {
 }
 
 /** «Осталось 3 вопроса · ~30 сек» — видно, что это ненадолго */
-function progressLabel(step: number): string {
-  if (step >= QUESTIONS) return 'Остался последний шаг'
-  const left = QUESTIONS - step
-  if (step === 0) return `${QUESTIONS} коротких вопросов · около минуты`
+function progressLabel(step: number, questions: number): string {
+  if (step >= questions) return 'Остался последний шаг'
+  const left = questions - step
+  if (step === 0) return `${questions} коротких вопросов · около минуты`
   if (left === 1) return 'Последний вопрос'
   return `Осталось ${left} ${plural(left, 'вопрос', 'вопроса', 'вопросов')} · ~${left * 10} сек`
 }
@@ -275,7 +331,13 @@ function Optional({ open, onToggle, label, children }: { open: boolean; onToggle
   )
 }
 
-export function ProjectQuiz() {
+export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?: QuizProduct; onChangeProduct?: () => void }) {
+  const isKitchen = product === 'kitchen'
+  const steps = STEPS[product]
+  const QUESTIONS = steps.length - 1
+  const CONTACTS_STEP = steps.length - 1
+  const TIMELINE_STEP = steps.length - 2
+  const DRAFT_KEY = DRAFT_KEYS[product]
   const [answers, setAnswers] = useState<Answers>(initialAnswers)
   const [step, setStep] = useState(0)
   const [files, setFiles] = useState<UploadedFile[]>([])
@@ -313,11 +375,11 @@ export function ProjectQuiz() {
           Array.isArray(value) ? value.length > 0 : Boolean(value),
         )
         setRestored(hasProgress)
-        if (draft.answers?.wallA || draft.answers?.roomArea) setExactOpen(true)
+        if (draft.answers?.wallA || draft.answers?.roomArea || draft.answers?.wardrobeWidthCm) setExactOpen(true)
       } catch { localStorage.removeItem(DRAFT_KEY) }
     }
     setDraftLoaded(true)
-  }, [])
+  }, [DRAFT_KEY, steps.length])
 
   // Пока черновик не прочитан, не пишем: иначе первый же проход эффекта
   // затирает его пустыми ответами (в dev StrictMode прогоняет эффекты
@@ -325,14 +387,15 @@ export function ProjectQuiz() {
   useEffect(() => {
     if (!draftLoaded || completed) return
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ answers, step }))
-  }, [answers, step, completed, draftLoaded])
+  }, [answers, step, completed, draftLoaded, DRAFT_KEY])
 
   // Учёт дальнего достигнутого шага — показывает в панели, где бросают квиз.
   // Зависит только от step: при возврате назад максимум на сервере не понижается.
+  // Воронка в панели построена по шагам кухонного квиза — шкафы её не трогают
   useEffect(() => {
-    if (completed) return
+    if (completed || !isKitchen) return
     trackQuizStep(step + 1)
-  }, [step, completed])
+  }, [step, completed, isKitchen])
 
   useEffect(() => () => files.forEach((item) => item.url && URL.revokeObjectURL(item.url)), [files])
   useEffect(() => () => clearTimeout(advanceTimer.current), [])
@@ -364,18 +427,40 @@ export function ProjectQuiz() {
     if (!exactOpen) answerAndGo('kitchenSize', value)
   }
 
+  const chooseWidth = (value: string) => {
+    const unknown = value === SIZE_UNKNOWN
+    setAnswers((current) => ({ ...current, wardrobeWidth: value, noMeasurements: unknown }))
+    if (!exactOpen) answerAndGo('wardrobeWidth', value)
+  }
+
   const toggleWish = (option: string) => {
-    const key = applianceWishes.includes(option) ? 'appliances' : 'features'
+    const key = isKitchen && applianceWishes.includes(option) ? 'appliances' : 'features'
     update(key, answers[key].includes(option) ? answers[key].filter((item) => item !== option) : [...answers[key], option])
   }
 
-  const answered = [
-    Boolean(answers.layout),
-    Boolean(answers.kitchenSize || answers.wallA || answers.roomArea),
-    Boolean(answers.style),
-    answers.appliances.length + answers.features.length > 0,
-    Boolean(answers.timeline || answers.budget),
-  ]
+  const answered = isKitchen
+    ? [
+        Boolean(answers.layout),
+        Boolean(answers.kitchenSize || answers.wallA || answers.roomArea),
+        Boolean(answers.style),
+        answers.appliances.length + answers.features.length > 0,
+        Boolean(answers.timeline || answers.budget),
+      ]
+    : [
+        Boolean(answers.room),
+        Boolean(answers.wardrobeType),
+        Boolean(answers.wardrobeWidth || answers.wardrobeWidthCm),
+        Boolean(answers.facades),
+        answers.features.length > 0,
+        Boolean(answers.timeline || answers.budget),
+      ]
+
+  /** Ответы для заявки: без согласия и без полей другого квиза */
+  const answersForLead = () => {
+    const omit = new Set<keyof Answers>(['consent', ...(isKitchen ? WARDROBE_ONLY : KITCHEN_ONLY)])
+    const picked = Object.fromEntries(Object.entries(answers).filter(([key]) => !omit.has(key as keyof Answers)))
+    return isKitchen ? picked : { projectType: 'Шкаф', ...picked }
+  }
 
   const contactProblem = () => {
     if (!isValidRussianPhone(answers.phone)) return `Проверьте номер телефона — например, ${PHONE_PLACEHOLDER}.`
@@ -433,7 +518,8 @@ export function ProjectQuiz() {
           startedAt,
           attribution: getAttribution(),
           details: {
-            answers: { ...answers, consent: undefined },
+            ...(isKitchen ? {} : { product }),
+            answers: answersForLead(),
             files: uploaded,
           },
         }),
@@ -444,8 +530,8 @@ export function ProjectQuiz() {
       }
       const result = (await response.json()) as { id?: string }
       setApplicationId(result.id || `ПР-${new Date().getFullYear()}`)
-      if (result.id) trackQuizCompleted(result.id)
-      reachGoal('lead_project')
+      if (result.id && isKitchen) trackQuizCompleted(result.id)
+      reachGoal(isKitchen ? 'lead_project' : 'lead_wardrobe')
       setCompleted(true)
       localStorage.removeItem(DRAFT_KEY)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -470,7 +556,7 @@ export function ProjectQuiz() {
           <m.p variants={riseVariants} className="mt-8 text-xs font-bold uppercase tracking-[0.28em] text-primary">Заявка {applicationId}</m.p>
           <m.h1 variants={riseVariants} className="flyer-title mt-3 text-balance text-4xl text-foreground md:text-6xl">{name ? `Спасибо, ${name}!` : 'Спасибо!'}</m.h1>
           <m.p variants={riseVariants} className="mt-5 max-w-xl text-pretty leading-relaxed text-muted-foreground">
-            Ответы уже у дизайнера. Он {viaMax ? 'напишет вам в Max' : 'позвонит'}, уточнит детали и предложит идеи и расчёт для вашей кухни.
+            Ответы уже у дизайнера. Он {viaMax ? 'напишет вам в Max' : 'позвонит'}, уточнит детали и предложит идеи и расчёт для {isKitchen ? 'вашей кухни' : 'вашего шкафа'}.
           </m.p>
           {filesFailed > 0 && (
             <m.p variants={riseVariants} className="mt-5 max-w-xl rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-sm leading-relaxed text-muted-foreground">
@@ -485,7 +571,7 @@ export function ProjectQuiz() {
   )
 
   const isContacts = step === CONTACTS_STEP
-  const progress = progressLabel(step)
+  const progress = progressLabel(step, QUESTIONS)
 
   return (
     <FormMotion>
@@ -502,7 +588,15 @@ export function ProjectQuiz() {
           transition={{ duration: 0.6, ease: EASE_OUT }}
         >
           <a href="/" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground transition-colors hover:text-primary"><ArrowLeft className="size-4" />На главную</a>
-          <div className="mt-8 h-5 overflow-hidden" aria-live="polite">
+          <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{isKitchen ? 'Расчёт кухни' : 'Расчёт шкафа'}</p>
+            {onChangeProduct && (
+              <button type="button" onClick={onChangeProduct} className="text-xs font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-primary">
+                {isKitchen ? 'Нужен шкаф?' : 'Нужна кухня?'}
+              </button>
+            )}
+          </div>
+          <div className="mt-3 h-5 overflow-hidden" aria-live="polite">
             <AnimatePresence mode="wait" initial={false}>
               <m.p
                 key={progress}
@@ -524,7 +618,7 @@ export function ProjectQuiz() {
             ))}
           </div>
           <ol className="mt-8 hidden flex-col gap-4 text-sm leading-relaxed text-muted-foreground lg:flex">
-            {['Ответьте на пять простых вопросов — можно «не знаю»', 'Дизайнер подберёт идеи и посчитает стоимость', 'Созвонимся, когда вам удобно, и всё обсудим'].map((text, index) => (
+            {[`Ответьте на ${isKitchen ? 'пять' : 'шесть'} простых вопросов — можно «не знаю»`, 'Дизайнер подберёт идеи и посчитает стоимость', 'Созвонимся, когда вам удобно, и всё обсудим'].map((text, index) => (
               <li key={text} className="flex gap-3">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-primary/50 font-mono text-xs text-primary">{index + 1}</span>
                 <span>{text}</span>
@@ -554,9 +648,9 @@ export function ProjectQuiz() {
           </div>
           {steps[step].hint && <m.p variants={itemVariants} className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{steps[step].hint}</m.p>}
           <m.div variants={itemVariants} className="mt-8">
-            {step === 0 && <ChoiceGrid options={optionSets.layout} value={answers.layout} onChange={(value) => answerAndGo('layout', value)} />}
+            {isKitchen && step === 0 && <ChoiceGrid options={optionSets.layout} value={answers.layout} onChange={(value) => answerAndGo('layout', value)} />}
 
-            {step === 1 && (
+            {isKitchen && step === 1 && (
               <div className="flex flex-col gap-5">
                 <ChoiceGrid options={optionSets.kitchenSize} value={answers.kitchenSize} onChange={chooseSize} />
                 <Optional open={exactOpen} onToggle={() => setExactOpen((open) => !open)} label="Знаете точные размеры? Укажите — по желанию">
@@ -575,17 +669,37 @@ export function ProjectQuiz() {
               </div>
             )}
 
-            {step === 2 && <ChoiceGrid options={optionSets.style} value={answers.style} onChange={(value) => answerAndGo('style', value)} />}
+            {isKitchen && step === 2 && <ChoiceGrid options={optionSets.style} value={answers.style} onChange={(value) => answerAndGo('style', value)} />}
 
-            {step === 3 && <ChoiceGrid multiple options={optionSets.wishes} value={[...answers.appliances, ...answers.features]} onChange={toggleWish} />}
+            {isKitchen && step === 3 && <ChoiceGrid multiple options={optionSets.wishes} value={[...answers.appliances, ...answers.features]} onChange={toggleWish} />}
 
-            {step === 4 && (
+            {!isKitchen && step === 0 && <ChoiceGrid options={wardrobeOptions.room} value={answers.room} onChange={(value) => answerAndGo('room', value)} />}
+
+            {!isKitchen && step === 1 && <ChoiceGrid options={wardrobeOptions.wardrobeType} value={answers.wardrobeType} onChange={(value) => answerAndGo('wardrobeType', value)} />}
+
+            {!isKitchen && step === 2 && (
+              <div className="flex flex-col gap-5">
+                <ChoiceGrid options={wardrobeOptions.wardrobeWidth} value={answers.wardrobeWidth} onChange={chooseWidth} />
+                <Optional open={exactOpen} onToggle={() => setExactOpen((open) => !open)} label="Знаете точные размеры? Укажите — по желанию">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Ширина стены под шкаф, см" value={answers.wardrobeWidthCm} onChange={(v) => update('wardrobeWidthCm', v)} placeholder="Например, 240" inputMode="decimal" />
+                    <Field label="Высота потолка, см" value={answers.ceilingHeight} onChange={(v) => update('ceilingHeight', v)} placeholder="Например, 270" inputMode="decimal" />
+                  </div>
+                </Optional>
+              </div>
+            )}
+
+            {!isKitchen && step === 3 && <ChoiceGrid options={wardrobeOptions.facades} value={answers.facades} onChange={(value) => answerAndGo('facades', value)} />}
+
+            {!isKitchen && step === 4 && <ChoiceGrid multiple options={wardrobeOptions.features} value={answers.features} onChange={toggleWish} />}
+
+            {step === TIMELINE_STEP && (
               <div className="flex flex-col gap-8">
                 <ChoiceGrid options={optionSets.timeline} value={answers.timeline} onChange={(v) => update('timeline', v)} />
                 <div>
                   <h2 className="font-bold">Есть ориентир по бюджету?</h2>
                   <p className="mb-4 mt-1 text-sm text-muted-foreground">Необязательно — это помогает сразу предложить подходящие материалы.</p>
-                  <ChoiceGrid options={optionSets.budget} value={answers.budget} onChange={(v) => update('budget', answers.budget === v ? '' : v)} />
+                  <ChoiceGrid options={isKitchen ? optionSets.budget : wardrobeOptions.budget} value={answers.budget} onChange={(v) => update('budget', answers.budget === v ? '' : v)} />
                 </div>
               </div>
             )}
@@ -618,7 +732,7 @@ export function ProjectQuiz() {
                       onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files) }}
                       className="flex flex-col items-start gap-3 rounded-2xl bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <p className="text-sm text-muted-foreground">План квартиры или фото кухни помогут точнее посчитать. JPG, PNG или PDF.</p>
+                      <p className="text-sm text-muted-foreground">{isKitchen ? 'План квартиры или фото кухни' : 'План квартиры или фото стены под шкаф'} помогут точнее посчитать. JPG, PNG или PDF.</p>
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-bold text-background"><Paperclip className="size-4" />Прикрепить</button>
                       <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => e.target.files && addFiles(e.target.files)} className="sr-only" />
                     </div>

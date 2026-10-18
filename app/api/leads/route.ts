@@ -217,7 +217,8 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const duplicate = await findRecentDuplicate(phone, type, DEDUPE_MINUTES)
+      const product = details.product === 'wardrobe' ? 'wardrobe' : 'kitchen'
+      const duplicate = await findRecentDuplicate(phone, type, DEDUPE_MINUTES, product)
       if (duplicate) {
         console.log(`[Leads] Дубль заявки ${duplicate.id}, повторное уведомление не отправляем`)
         return NextResponse.json({ ok: true, id: duplicate.id, saved: true, delivered: true, duplicate: true })
