@@ -137,7 +137,9 @@ export function SiteHeader({ overHero = false }: { overHero?: boolean }) {
               : 'bg-background/90 shadow-[0_1px_0_0_color-mix(in_oklab,var(--border)_75%,transparent)] backdrop-blur-md'
       )}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:h-20 md:px-6">
+      {/* На широком экране шапка шире контента: в 6xl семь пунктов меню
+          с кнопками упирались в логотип */}
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:h-20 md:px-6 xl:max-w-7xl xl:px-8">
         <a
           href="/#top"
           className={cn(
@@ -167,7 +169,7 @@ export function SiteHeader({ overHero = false }: { overHero?: boolean }) {
           </span>
         </a>
 
-        <nav className="hidden items-center gap-6 xl:flex" aria-label="Основная навигация">
+        <nav className="hidden flex-1 items-center justify-center gap-6 px-8 xl:flex 2xl:gap-8" aria-label="Основная навигация">
           {navItems.map((item) =>
             isGroup(item) ? (
               <div
