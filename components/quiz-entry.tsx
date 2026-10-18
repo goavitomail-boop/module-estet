@@ -51,7 +51,17 @@ const options: Array<{
 ]
 
 /**
- * Створка шкафа: шпон дуба «в книжку», чёрный профиль LINE у стыка и половина
+ * Рифлёный фасад Velvet в цвете «Пула»: тёмная основа и вертикальные рейки —
+ * блик на грани, тень в желобке
+ */
+const FLUTED_FACADE = {
+  backgroundColor: '#33302e',
+  backgroundImage:
+    'repeating-linear-gradient(90deg, rgba(255,255,255,0.09) 0 2px, rgba(0,0,0,0.28) 2px 10px, rgba(255,255,255,0.02) 10px 13px)',
+}
+
+/**
+ * Створка шкафа: рифлёный антрацит, латунный профиль LINE у стыка и половина
  * логотипа. Пока створка поворачивается, на неё ложится тень
  */
 function Door({ side, angle }: { side: 'left' | 'right'; angle: number }) {
@@ -63,14 +73,10 @@ function Door({ side, angle }: { side: 'left' | 'right'; angle: number }) {
       animate={{ rotateY: left ? angle : -angle }}
       transition={{ duration: DOOR_SWING, ease: EASE_DOOR, delay: DOOR_DELAY }}
     >
-      <span
-        className={cn('absolute inset-0 bg-cover bg-center', !left && '-scale-x-100')}
-        style={{ backgroundImage: 'url(/quiz-options/door-oak.webp)' }}
-        aria-hidden="true"
-      />
+      <span className="absolute inset-0" style={FLUTED_FACADE} aria-hidden="true" />
       {/* Объём: свет падает к стыку, края уходят в тень */}
       <span
-        className={cn('absolute inset-0', left ? 'bg-gradient-to-r' : 'bg-gradient-to-l', 'from-black/55 via-black/25 to-black/10')}
+        className={cn('absolute inset-0', left ? 'bg-gradient-to-r' : 'bg-gradient-to-l', 'from-black/45 via-black/15 to-transparent')}
         aria-hidden="true"
       />
       <m.span
@@ -80,10 +86,10 @@ function Door({ side, angle }: { side: 'left' | 'right'; angle: number }) {
         transition={{ duration: DOOR_SWING, ease: EASE_DOOR, delay: DOOR_DELAY }}
         aria-hidden="true"
       />
-      {/* Профиль LINE — ручка вдоль всего стыка */}
+      {/* Латунный профиль LINE — ручка вдоль всего стыка */}
       <span
         className={cn(
-          'absolute inset-y-0 w-2 bg-gradient-to-r from-neutral-950 via-neutral-700 to-neutral-950 shadow-[0_0_12px_rgba(0,0,0,0.6)]',
+          'absolute inset-y-0 w-2 bg-gradient-to-r from-[#6f5a35] via-[#d8bf8a] to-[#6f5a35] shadow-[0_0_14px_rgba(168,138,92,0.45)]',
           left ? 'right-0' : 'left-0',
         )}
         aria-hidden="true"
