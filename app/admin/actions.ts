@@ -311,6 +311,8 @@ export async function deleteLeadAction(formData: FormData) {
   revalidatePath('/admin/calendar')
   revalidatePath('/admin/analytics')
   revalidatePath('/admin')
+  // Из календаря удаляют прямо в карточке замера — там и остаёмся
+  if (formData.get('stay') === '1') return
   redirect('/admin/leads')
 }
 

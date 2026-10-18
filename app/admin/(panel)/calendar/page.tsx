@@ -5,6 +5,8 @@ import { prettyPhone, telHref } from '@/lib/admin-format'
 import { MEASUREMENT_SLOTS, slotCapacity } from '@/lib/measurement-slots'
 import { EmptyState, Panel, StatusBadge } from '../../_components/ui'
 import { cn } from '@/lib/utils'
+import { deleteLeadAction } from '@/app/admin/actions'
+import { DeleteLeadButton } from '../leads/[id]/delete-button'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Календарь замеров' }
@@ -300,6 +302,11 @@ function SlotCard({
           {slotFull ? 'Перенести' : 'Подтвердить'}
         </Link>
       )}
+      <form action={deleteLeadAction}>
+        <input type="hidden" name="id" value={measurement.id} />
+        <input type="hidden" name="stay" value="1" />
+        <DeleteLeadButton leadId={measurement.id} compact />
+      </form>
     </div>
   )
 }
