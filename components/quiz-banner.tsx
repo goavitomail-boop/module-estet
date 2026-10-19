@@ -1,11 +1,20 @@
+import type { CSSProperties } from 'react'
 import { ArrowRight, Check, Clock3 } from 'lucide-react'
 import { CropMarks } from '@/components/plan'
+import { PlayWhenSeen } from '@/components/play-when-seen'
+import { enter, Finger } from '@/components/scene-kit'
 
 const highlights = [
   'Около минуты',
   'Можно отвечать «не знаю»',
   'Бесплатно и без обязательств',
 ]
+
+// Строки сводки влетают по одной, как ответы на экране «спасибо»,
+// затем палец нажимает кнопку: видно, что получится и где начать
+const ROW_AT = 0.25
+const ROW_STEP = 0.14
+const TAP_AT = 2.05
 
 // Значения взяты из вариантов ответа квиза, чтобы образец совпадал с тем,
 // что человек увидит внутри
@@ -51,15 +60,19 @@ export function QuizBanner() {
           </ul>
         </div>
 
-        <div className="flex shrink-0 flex-col justify-between gap-8 border-t border-background/15 bg-primary p-6 text-primary-foreground md:w-72 md:border-l md:border-t-0 md:p-8 lg:w-80">
+        <PlayWhenSeen className="flex shrink-0 flex-col justify-between gap-8 border-t border-background/15 bg-primary p-6 text-primary-foreground md:w-72 md:border-l md:border-t-0 md:p-8 lg:w-80">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary-foreground/65">Что получит дизайнер</p>
             <p className="flyer-title mt-3 text-2xl leading-tight">Коротко о вашей кухне</p>
             {/* Образец того, что получит дизайнер: без него панель пустая
                 и непонятно, что значит «сводка» */}
             <dl className="mt-5 rounded-2xl bg-foreground/10 p-4 text-sm" aria-label="Пример сводки">
-              {sampleSummary.map(([term, value]) => (
-                <div key={term} className="flex items-baseline justify-between gap-3 border-b border-dotted border-primary-foreground/25 py-1.5 last:border-b-0">
+              {sampleSummary.map(([term, value], i) => (
+                <div
+                  key={term}
+                  className="hs-in flex items-baseline justify-between gap-3 border-b border-dotted border-primary-foreground/25 py-1.5 last:border-b-0"
+                  style={enter(ROW_AT + i * ROW_STEP, { t: 0.55, from: 'translateX(-12px)', ease: 'var(--out)' })}
+                >
                   <dt className="text-primary-foreground/65">{term}</dt>
                   <dd className="text-right font-semibold">{value}</dd>
                 </div>
@@ -68,12 +81,14 @@ export function QuizBanner() {
           </div>
           <a
             href="/quiz"
-            className="group inline-flex min-h-14 items-center justify-between rounded-full bg-foreground px-6 font-bold text-background transition-colors hover:bg-background hover:text-foreground"
+            className="hs-press group relative inline-flex min-h-14 items-center justify-between rounded-full bg-foreground px-6 font-bold text-background transition-colors hover:bg-background hover:text-foreground"
+            style={{ '--d': `${TAP_AT}s`, '--press': 0.96 } as CSSProperties}
           >
+            <Finger d={TAP_AT - 0.55} tap={TAP_AT} out={TAP_AT + 0.55} />
             Ответить на вопросы
             <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
           </a>
-        </div>
+        </PlayWhenSeen>
       </div>
       </div>
     </section>

@@ -99,7 +99,7 @@ import { enter, leave, POP, Finger } from '@/components/scene-kit'
 | `hs-fade` | только проявление, без сдвига (смена фото поверх фото) |
 | `hs-wipe` + дочерний `hs-wipe-img` | шторка справа налево: слой едет, содержимое стоит; `hs-wipe--back` — слева направо |
 | `hs-draw-x`, `hs-draw-y` | линия прочерчивается; `--origin` — откуда растёт |
-| `hs-press` | короткое нажатие кнопки в момент `--d` |
+| `hs-press` | короткое нажатие кнопки в момент `--d`; `--press` — насколько вдавливается (по умолчанию 0,8, широкой кнопке 0,96) |
 | `hs-tick` | галочка прочерчивается (у пути `pathLength={1}`) |
 | `hs-finger` (компонент `Finger`) | палец: прилетает, нажимает, уходит |
 
@@ -119,6 +119,19 @@ import { enter, leave, POP, Finger } from '@/components/scene-kit'
 наклон — классом Tailwind (`-rotate-12`). Классы `rotate`/`translate`/`scale`
 в Tailwind 4 — отдельные CSS-свойства и складываются с анимацией `transform`.
 
+### Сцена ниже первого экрана: `PlayWhenSeen`
+
+`components/play-when-seen.tsx` — корень сцены (`hs`), который держит все
+её CSS-анимации на первом кадре, пока блок не войдёт в экран (и пока идёт
+заставка), а потом отпускает один раз. Время слоёв внутри считается
+от этого момента. При «уменьшить движение» и без JavaScript не ждёт.
+
+```tsx
+<PlayWhenSeen className="…">
+  <div className="hs-in" style={enter(0.3)}>…</div>
+</PlayWhenSeen>
+```
+
 ### Экраны «спасибо»: `components/thanks-scene.tsx`
 
 - `CheckBadge` — латунный кружок выпрыгивает, галочка прочерчивается.
@@ -137,6 +150,7 @@ import { enter, leave, POP, Finger } from '@/components/scene-kit'
 | Вход в квиз: створки шкафа | `components/quiz-entry.tsx`, `quiz-doors.css` | Одна CSS-раскадровка на `--qd-*`, 3D-поворот створок. Повторный заход в той же вкладке — короткая версия; клик по створкам открывает сразу |
 | «Как мы работаем» | `components/process-section.tsx` | История при прокрутке: шаг, дошедший до полосы 55 % экрана (`IntersectionObserver`), меняет сцену шторкой по направлению прокрутки |
 | Экраны «спасибо» | `components/project-quiz.tsx`, `measurement-booking.tsx`, `thanks-scene.tsx` | Одноразовые входы при появлении экрана |
+| Баннер квиза на главной | `components/quiz-banner.tsx`, `play-when-seen.tsx` | Когда баннер вошёл в экран: строки образца сводки влетают по одной, палец нажимает «Ответить на вопросы». Время — константы `ROW_AT`, `ROW_STEP`, `TAP_AT` |
 | Ролик визуализатора | `components/vizkit-intro.tsx`, `vizkit-intro.css` | Вся раскадровка — объект `TL` в секундах; пути пальца и шторки собираются из него в `@keyframes`. В конце шторку «было / станет» можно тянуть |
 | Остальные блоки главной | `components/site-animations.tsx`, `lib/gsap.ts` | Появление при прокрутке через GSAP по атрибуту `data-anim` |
 | Формы (шаги квиза, окно записи) | `components/form-motion.tsx` | framer-motion |
