@@ -16,3 +16,6 @@ node_modules
 # Local artifacts
 local-run.log
 *.tsbuildinfo
+
+# Видео и кадры инструментов tools/motion
+/out/
