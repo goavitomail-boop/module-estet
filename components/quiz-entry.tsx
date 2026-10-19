@@ -169,9 +169,11 @@ function TiltCard({ children }: { children: ReactNode }) {
 
 /**
  * Первый экран квиза — закрытый шкаф. Блик пробегает по рейкам, проявляется
- * логотип, в щели загорается свет, створки отходят на защёлке и распахиваются
- * внутрь, а в подсвеченном нутре — выбор: кухня или шкаф. На узком экране
- * створки уходят совсем.
+ * логотип, в щели загорается свет, створки отходят на защёлке, распахиваются
+ * до конца и тают, а в подсвеченном нутре — выбор: кухня или шкаф.
+ *
+ * Высоты — в svh, а не в dvh: dvh меняется, когда на телефоне при прокрутке
+ * прячется адресная строка, и карточки росли и сжимались прямо под пальцем.
  */
 function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void }) {
   const [picked, setPicked] = useState<QuizProduct | null>(null)
@@ -227,7 +229,7 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
       <div
         key={fast ? 'fast' : 'full'}
         onPointerMove={followLight}
-        className={cn('qd relative flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#161412] md:min-h-[calc(100dvh-5rem)]', fast && 'qd--fast')}
+        className={cn('qd relative flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden bg-[#161412] md:min-h-[calc(100svh-5rem)]', fast && 'qd--fast')}
       >
         {/* Нутро шкафа: тёплая подсветка сверху, свет за курсором, тень пола */}
         <span
@@ -268,7 +270,7 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
                       type="button"
                       onClick={() => pick(option.product)}
                       className={cn(
-                        'group relative flex h-[clamp(14rem,34dvh,18rem)] w-full flex-col justify-end overflow-hidden rounded-3xl border border-primary/30 text-left text-background shadow-[0_24px_48px_-24px_rgba(0,0,0,0.9)] outline-none transition duration-500 ease-out md:h-[min(34rem,56dvh)]',
+                        'group relative flex h-[clamp(14rem,34svh,18rem)] w-full flex-col justify-end overflow-hidden rounded-3xl border border-primary/30 text-left text-background shadow-[0_24px_48px_-24px_rgba(0,0,0,0.9)] outline-none transition duration-500 ease-out md:h-[min(34rem,56svh)]',
                         'hover:-translate-y-1.5 hover:border-primary focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/40',
                         isPicked && 'scale-[1.02] border-primary',
                         dimmed && 'opacity-30',

@@ -550,7 +550,7 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
 
   if (completed) return (
     <FormMotion>
-      <section className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-3xl flex-col items-center justify-center px-4 py-20 text-center md:px-6">
+      <section className="mx-auto flex min-h-[calc(100svh-5rem)] max-w-3xl flex-col items-center justify-center px-4 py-20 text-center md:px-6">
         <SuccessMark className="size-20" />
         <m.div initial="enter" animate="center" variants={successVariants} className="flex flex-col items-center">
           <m.p variants={riseVariants} className="mt-8 text-xs font-bold uppercase tracking-[0.28em] text-primary">Заявка {applicationId}</m.p>
@@ -575,7 +575,7 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
 
   return (
     <FormMotion>
-    <section className="mx-auto min-h-[calc(100dvh-5rem)] max-w-6xl px-4 pb-16 pt-24 md:px-6 md:pb-24 md:pt-32">
+    <section className="mx-auto min-h-[calc(100svh-5rem)] max-w-6xl px-4 pb-16 pt-24 md:px-6 md:pb-24 md:pt-32">
       <div className="sr-only" aria-hidden="true">
         <label htmlFor="project-website">Ваш сайт</label>
         <input id="project-website" name="website" type="text" value={website} onChange={(event) => setWebsite(event.target.value)} autoComplete="off" tabIndex={-1} />

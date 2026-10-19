@@ -7,8 +7,7 @@
  * Размытие, режимы наложения, межбуквенный интервал и left здесь
  * намеренно не анимируются — каждый из них перерисовывает кадр целиком.
  * Внутри поворачивающейся створки во время поворота не анимируется
- * ничего, а конечные состояния — без translate3d: каждый лишний слой
- * в 3D пересчитывается на каждом кадре поворота.
+ * ничего: каждый лишний слой в 3D пересчитывается на каждом кадре поворота.
  *
  * Время задаётся переменными на .qd; .qd--fast — короткая версия
  * для повторного захода, клика по створкам и «уменьшить движение».
@@ -49,36 +48,20 @@
   animation-name: qd-door-right;
 }
 
-/* Защёлка (0–19 %), распахивание с перелётом (до 85 %) и доводчик */
+/* Защёлка (0–19 %), распахивание до конца и растворение: к последнему кадру
+   створки повёрнуты за 90°, прозрачны и скрыты совсем — ничего не остаётся
+   ни по краям экрана, ни в слоях видеокарты */
 @keyframes qd-door-left {
-  0% { transform: translate3d(0, 0, 0) rotateY(0deg); animation-timing-function: var(--qd-ease); }
-  19% { transform: translate3d(-7px, 0, 0) rotateY(0deg); animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
-  85% { transform: translate3d(-7px, 0, 0) rotateY(87deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
-  100% { transform: translate3d(-7px, 0, 0) rotateY(84deg); }
-}
-@keyframes qd-door-right {
-  0% { transform: translate3d(0, 0, 0) rotateY(0deg); animation-timing-function: var(--qd-ease); }
-  19% { transform: translate3d(7px, 0, 0) rotateY(0deg); animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
-  85% { transform: translate3d(7px, 0, 0) rotateY(-87deg); animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
-  100% { transform: translate3d(7px, 0, 0) rotateY(-84deg); }
-}
-
-/* На узком экране створки распахиваются совсем и тают — места по краям нет */
-@media (max-width: 767px) {
-  .qd-door { animation-name: qd-door-left-narrow; }
-  .qd-door--right { animation-name: qd-door-right-narrow; }
-}
-@keyframes qd-door-left-narrow {
   0% { transform: translate3d(0, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: var(--qd-ease); }
   19% { transform: translate3d(-7px, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
-  70% { opacity: 1; }
-  100% { transform: translate3d(-7px, 0, 0) rotateY(96deg); opacity: 0; }
+  62% { opacity: 1; }
+  100% { transform: translate3d(-7px, 0, 0) rotateY(100deg); opacity: 0; visibility: hidden; }
 }
-@keyframes qd-door-right-narrow {
+@keyframes qd-door-right {
   0% { transform: translate3d(0, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: var(--qd-ease); }
   19% { transform: translate3d(7px, 0, 0) rotateY(0deg); opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
-  70% { opacity: 1; }
-  100% { transform: translate3d(7px, 0, 0) rotateY(-96deg); opacity: 0; }
+  62% { opacity: 1; }
+  100% { transform: translate3d(7px, 0, 0) rotateY(-100deg); opacity: 0; visibility: hidden; }
 }
 
 /* Блик по рейкам: полоса едет через створку, правая — следом за левой */
