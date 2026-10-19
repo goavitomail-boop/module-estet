@@ -1,5 +1,5 @@
 import { SiteHeader } from '@/components/site-header'
-import { HeroSection } from '@/components/hero-section'
+import { HeroShowcase } from '@/components/hero-showcase'
 import { ServicesSection } from '@/components/services-section'
 import { GallerySection } from '@/components/gallery-section'
 import { AssemblySection } from '@/components/assembly-section'
@@ -21,7 +21,7 @@ export default function Page() {
       <JsonLd data={[websiteJsonLd, businessJsonLd, faqJsonLd]} />
       <SiteHeader overHero />
       <main>
-        <HeroSection />
+        <HeroShowcase />
         <QuizBanner />
         <ServicesSection />
         <GallerySection />
