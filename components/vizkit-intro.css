@@ -1,51 +1,103 @@
 /*
  * Вступительный ролик визуализатора (components/vizkit-intro.tsx).
  *
- * Одна общая шкала времени без JavaScript: у каждого слоя своя задержка
- * (--d) и длительность (--t), откуда он появляется (--from) и куда уходит
- * (--to). Анимируются только transform и opacity — их считает видеокарта,
- * так что ролик идёт ровно и на слабых телефонах.
+ * Раскадровка целиком — в TL в vizkit-intro.tsx: здесь только «как»
+ * движется слой, а «когда» каждому слою передаётся переменными:
+ * вход — --d, --t, --from, --e; уход — --od, --ot, --to. Путь пальца
+ * и шторки «было / станет» собираются из той же TL в @keyframes.
  *
- * Сцены: 0–3,2 с каталог · 3,2–6,4 с фото · 6,4–10,8 с ИИ · дальше — польза.
+ * Анимируются только transform и opacity — их считает видеокарта,
+ * так что ролик идёт ровно и на слабых телефонах. Уход вдвое короче
+ * входа и разгоняется, а не тормозит: уходящее не задерживает взгляд.
  */
 
 .vzi {
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --out: cubic-bezier(0.16, 1, 0.3, 1);
+  --in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --leave: cubic-bezier(0.55, 0, 0.75, 0);
+  /* Пружины — запасной вариант для браузеров без linear() */
+  --spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --pop: cubic-bezier(0.34, 1.3, 0.64, 1);
 }
 
-/* Появляется и остаётся */
+/* Настоящие пружины: затухание 0,82 (перелёт ~1 %) и 0,62 (~8 %, для значков) */
+@supports (animation-timing-function: linear(0, 1)) {
+  .vzi {
+    --spring: linear(0, 0.017, 0.061, 0.124, 0.198, 0.278, 0.359, 0.439, 0.515, 0.586, 0.652, 0.71, 0.762, 0.807, 0.847, 0.88, 0.908, 0.932, 0.951, 0.967, 0.979, 0.989, 0.996, 1.002, 1.006, 1.008, 1.01, 1.011, 1.011, 1.011, 1.01, 1.01, 1.009, 1.008, 1.007, 1.006, 1.005, 1.005, 1.004, 1.003, 1);
+    --pop: linear(0, 0.03, 0.107, 0.213, 0.335, 0.461, 0.583, 0.695, 0.794, 0.878, 0.945, 0.997, 1.035, 1.061, 1.076, 1.083, 1.083, 1.078, 1.071, 1.061, 1.05, 1.04, 1.03, 1.021, 1.014, 1.007, 1.002, 0.999, 0.996, 0.994, 0.993, 0.993, 0.993, 0.994, 0.994, 0.995, 0.996, 0.997, 0.998, 0.999, 1);
+  }
+}
+
+/* Вход: проявляется и встаёт на место */
 .vzi-in {
-  animation: vzi-in var(--t, 0.7s) var(--d, 0s) var(--ease) both;
+  animation: vzi-in var(--t) var(--d) var(--e) both;
 }
 @keyframes vzi-in {
-  from { opacity: 0; transform: var(--from, translateY(16px)); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: var(--from); }
 }
 
-/* Появляется с «пружинкой» — для бейджей и выгод */
-.vzi-pop {
-  animation: vzi-pop var(--t, 0.6s) var(--d, 0s) var(--pop) both;
+/* Уход: коротко и с разгоном */
+.vzi-out {
+  animation: vzi-out var(--ot) var(--od) var(--leave) both;
 }
-@keyframes vzi-pop {
-  from { opacity: 0; transform: scale(0.6); }
-  to { opacity: 1; transform: none; }
+@keyframes vzi-out {
+  to { opacity: 0; transform: var(--to); }
 }
 
-/* Появляется, держится и уходит — слои одной сцены */
-.vzi-inout {
-  animation: vzi-inout var(--t, 3s) var(--d, 0s) linear both;
+/* Карточка выбора улетает в угол и становится плашкой «Ваш выбор» */
+.vzi-fly {
+  animation: vzi-fly var(--ot) var(--od) var(--in-out) both;
 }
-@keyframes vzi-inout {
-  0% { opacity: 0; transform: var(--from, translateY(16px)); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  18% { opacity: 1; transform: var(--hold, none); }
-  84% { opacity: 1; transform: var(--hold, none); animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0); }
-  100% { opacity: 0; transform: var(--to, scale(0.94)); }
+@keyframes vzi-fly {
+  0% { opacity: 1; transform: none; }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: var(--to); }
+}
+
+/* Слово за словом поднимается из-под маски */
+.vzi-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.vzi-word {
+  display: inline-block;
+  transform-origin: 0 100%;
+  animation: vzi-word 0.85s var(--d) var(--out) both;
+}
+@keyframes vzi-word {
+  from { transform: translateY(112%) rotate(5deg); }
+}
+
+/* Видоискатель «в руке» — лёгкий дрейф, замирает в момент снимка */
+.vzi-drift {
+  animation: vzi-drift var(--t) var(--d) var(--in-out) both;
+}
+@keyframes vzi-drift {
+  from { transform: translate(-3%, 2%) scale(1.06); }
+}
+
+/* Нажатие: кнопка затвора или образец под пальцем */
+.vzi-press {
+  animation: vzi-press 0.28s var(--d) ease-out both;
+}
+@keyframes vzi-press {
+  45% { transform: scale(0.84); }
+}
+
+/* Выбранный образец приподнимается */
+.vzi-lift {
+  animation: vzi-lift 0.6s var(--d) var(--pop) both;
+}
+@keyframes vzi-lift {
+  to { transform: translateY(-16%) scale(1.14); }
 }
 
 /* Вспышка камеры */
 .vzi-flash {
-  animation: vzi-flash 0.7s var(--d, 0s) ease-out both;
+  animation: vzi-flash 0.7s var(--d) ease-out both;
 }
 @keyframes vzi-flash {
   0% { opacity: 0; }
@@ -55,7 +107,7 @@
 
 /* Линия сканирования: слой высотой со сцену едет сверху вниз */
 .vzi-scan {
-  animation: vzi-scan 1.6s var(--d, 0s) cubic-bezier(0.45, 0, 0.55, 1) both;
+  animation: vzi-scan 1.6s var(--d) var(--in-out) both;
 }
 @keyframes vzi-scan {
   0% { opacity: 0; transform: translateY(-4%); }
@@ -64,39 +116,64 @@
   100% { opacity: 0; transform: translateY(100%); }
 }
 
-/* Шторка «стало»: контейнер выезжает слева, картинка внутри идёт навстречу
-   и стоит на месте — открывается без перерисовки, одним сдвигом */
-.vzi-wipe {
-  transform: translateX(-100%);
-  animation: vzi-wipe 1.5s var(--d, 0s) cubic-bezier(0.65, 0, 0.35, 1) both;
+/* Кольцо от плашки выбора. Кольца и пульсации до своего момента
+   невидимы (opacity-0 на элементе), поэтому без заполнения назад */
+.vzi-ring {
+  animation: vzi-ring 0.75s var(--d) var(--out) forwards;
 }
-.vzi-wipe > .vzi-wipe-img {
-  transform: translateX(100%);
-  animation: vzi-wipe-img 1.5s var(--d, 0s) cubic-bezier(0.65, 0, 0.35, 1) both;
+@keyframes vzi-ring {
+  0% { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.35); }
 }
-@keyframes vzi-wipe {
-  to { transform: translateX(-45%); }
+
+/* Блик по новой кухне — один раз, сразу после раскрытия */
+.vzi-sheen {
+  animation: vzi-sheen 1s var(--d) var(--in-out) both;
 }
-@keyframes vzi-wipe-img {
-  to { transform: translateX(45%); }
+@keyframes vzi-sheen {
+  0% { opacity: 0; transform: translateX(0); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(420%); }
 }
-.vzi-edge {
-  animation: vzi-edge 1.5s var(--d, 0s) cubic-bezier(0.65, 0, 0.35, 1) both;
+
+/* Камера подходит ближе в момент раскрытия. До него не анимируется вовсе */
+.vzi-camera {
+  animation: vzi-camera var(--t) var(--d) var(--in-out) forwards;
 }
-/* Линия стыка: обёртка шириной во всю сцену, линия у её левого края —
-   сдвиг на 55 % ставит её ровно на край шторки */
-@keyframes vzi-edge {
-  from { opacity: 0; transform: translateX(0); }
-  10% { opacity: 1; }
-  to { opacity: 1; transform: translateX(55%); }
+@keyframes vzi-camera {
+  to { transform: scale(1.035); }
+}
+
+/* Шторка «было / станет» и палец — путь из TL (@keyframes в vizkit-intro.tsx).
+   Шторка до раскрытия стоит без анимации: слой во всю сцену не тикает зря */
+.vzi-seam-clip { animation: vzi-seam-clip var(--seam-t) var(--seam-d) linear forwards; }
+.vzi-seam-img { animation: vzi-seam-img var(--seam-t) var(--seam-d) linear forwards; }
+.vzi-seam-line { animation: vzi-seam-line var(--seam-t) var(--seam-d) linear forwards; }
+.vzi-finger { animation: vzi-finger var(--total) linear both; }
+.vzi-finger-dot { animation: vzi-finger-dot var(--total) linear both; }
+.vzi-finger-ring { animation: vzi-finger-ring var(--total) linear both; }
+
+/* После ролика шторку двигает сам человек */
+.vzi-live .vzi-seam-clip { animation: none; transform: translateX(calc(var(--pos, 50%) - 100%)); }
+.vzi-live .vzi-seam-img { animation: none; transform: translateX(calc(100% - var(--pos, 50%))); }
+.vzi-live .vzi-seam-line { animation: none; transform: translateX(var(--pos, 50%)); }
+
+/* Ручка шторки зовёт потянуть */
+.vzi-breathe {
+  animation: vzi-breathe 2.4s var(--d) ease-out infinite;
+}
+@keyframes vzi-breathe {
+  0% { opacity: 0.6; transform: scale(1); }
+  60%, 100% { opacity: 0; transform: scale(1.6); }
 }
 
 /* «Пропустить» исчезает к концу ролика и перестаёт ловить нажатия */
 .vzi-skip {
-  animation: vzi-skip var(--t, 11s) var(--d, 0s) linear both;
+  animation: vzi-skip var(--total) linear both;
 }
 @keyframes vzi-skip {
-  0%, 96% { opacity: 1; visibility: visible; }
+  0%, 97% { opacity: 1; visibility: visible; }
   100% { opacity: 0; visibility: hidden; }
 }
 
@@ -104,7 +181,7 @@
 .vzi-progress {
   transform: scaleX(0);
   transform-origin: left;
-  animation: vzi-progress var(--t, 3s) var(--d, 0s) linear both;
+  animation: vzi-progress var(--t) var(--d) linear both;
 }
 @keyframes vzi-progress {
   to { transform: scaleX(1); }
@@ -112,12 +189,11 @@
 
 /* Кнопка зовёт, когда ролик закончился */
 .vzi-pulse {
-  animation: vzi-pulse 2.2s var(--d, 0s) ease-out infinite both;
+  animation: vzi-pulse 2.2s var(--d) ease-out infinite;
 }
 @keyframes vzi-pulse {
   0% { opacity: 0.55; transform: scale(1); }
-  70% { opacity: 0; transform: scale(1.35); }
-  100% { opacity: 0; transform: scale(1.35); }
+  70%, 100% { opacity: 0; transform: scale(1.35); }
 }
 
 @media (prefers-reduced-motion: reduce) {
