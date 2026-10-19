@@ -1,10 +1,12 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type PointerEvent, type RefObject } from 'react'
 import { Grid2X2, Grid3X3, Images, Maximize2 } from 'lucide-react'
 import { type PortfolioProject } from '@/lib/portfolio-data'
 import { PortfolioImage } from '@/components/portfolio-image'
+import { CardPreview, previewSlides } from '@/components/portfolio-card-preview'
+import { visibleCardPhoto } from '@/components/portfolio-flight'
 import { PlanButton, PlanTag } from '@/components/plan'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
@@ -19,13 +21,59 @@ const filters = [
   { id: 'compact', label: 'Небольшие', matches: (p: PortfolioProject) => parseFloat(p.area) <= 10 },
 ]
 
-function ProjectCard({ project, index, onOpen }: { project: PortfolioProject; index: number; onOpen: (trigger: HTMLButtonElement) => void }) {
+const preload = (src: string) => { new window.Image().src = src }
+
+const COVER_SIZES = '(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 640px'
+
+/**
+ * Когда карточка «смотрится»: курсор на ней или фокус с клавиатуры, а на
+ * сенсорном экране — пока она пересекает узкую полосу посередине экрана
+ */
+function useCardActive(ref: RefObject<HTMLElement | null>) {
+  const [active, setActive] = useState(false)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element || window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+    const observer = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { rootMargin: '-45% 0px -45% 0px' })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [ref])
+
+  const handlers = {
+    onPointerEnter: (event: PointerEvent) => { if (event.pointerType === 'mouse') setActive(true) },
+    onPointerLeave: (event: PointerEvent) => { if (event.pointerType === 'mouse') setActive(false) },
+    // Только фокус с клавиатуры: после закрытия просмотра фокус возвращается
+    // на карточку, и показ не должен начинаться заново сам
+    onFocus: (event: FocusEvent<HTMLElement>) => { if (event.currentTarget.matches(':focus-visible')) setActive(true) },
+    onBlur: () => setActive(false),
+  }
+  return [active, handlers] as const
+}
+
+function ProjectCard({ project, index, onOpen }: { project: PortfolioProject; index: number; onOpen: (trigger: HTMLButtonElement, photo: number) => void }) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const [active, handlers] = useCardActive(ref)
+  const slides = useMemo(() => previewSlides(project), [project])
+
+  // Раз человек смотрит на проект, заранее грузим первое фото просмотра:
+  // к клику оно уже в кеше, и обложке есть куда прилететь
+  useEffect(() => {
+    if (active && project.photos[0]) preload(project.photos[0].src)
+  }, [active, project.photos])
+
   return (
     <article className="group flex min-w-0 flex-col gap-4">
       <button
+        ref={ref}
+        {...handlers}
         type="button"
+        data-portfolio-card={project.id}
         className="portfolio-card relative block aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-        onClick={(event) => onOpen(event.currentTarget)}
+        // Просмотр откроется на фото, которое видно в карточке, — грузим его,
+        // пока палец или кнопка мыши ещё нажаты
+        onPointerDown={() => { const photo = project.photos[visibleCardPhoto(ref.current)]; if (photo) preload(photo.src) }}
+        onClick={(event) => onOpen(event.currentTarget, visibleCardPhoto(event.currentTarget))}
         aria-label={`Смотреть проект «${project.title}»`}
         aria-haspopup="dialog"
       >
@@ -33,9 +81,10 @@ function ProjectCard({ project, index, onOpen }: { project: PortfolioProject; in
           src={project.coverSrc}
           alt={project.alt}
           fill
-          sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 640px"
+          sizes={COVER_SIZES}
           className="motion-safe:transition-transform motion-safe:duration-700 group-hover:scale-[1.035]"
         />
+        <CardPreview slides={slides} active={active} sizes={COVER_SIZES} />
         {project.isPlaceholder ? (
           <span className="plan-tag absolute left-3 top-3">
             <span className="plan-tag__value">Скоро фотоотчёт</span>
@@ -80,6 +129,8 @@ export function PortfolioGrid({ projects: allProjects }: { projects: PortfolioPr
   const [filter, setFilter] = useState('all')
   const [density, setDensity] = useState('large')
   const [selected, setSelected] = useState<string | null>(null)
+  const [origin, setOrigin] = useState<HTMLButtonElement | null>(null)
+  const [photo, setPhoto] = useState(0)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const projects = useMemo(() => {
     const active = filters.find((item) => item.id === filter) ?? filters[0]
@@ -125,7 +176,7 @@ export function PortfolioGrid({ projects: allProjects }: { projects: PortfolioPr
         <p className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">Готовим фотоотчёты новых проектов — покажем совсем скоро.</p>
       ) : (
         <ul data-anim="stagger" className={cn('grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10', density === 'compact' && 'portfolio-grid--compact sm:grid-cols-3')}>
-          {projects.map((project, index) => <li key={project.id} className="min-w-0"><ProjectCard project={project} index={index} onOpen={(trigger) => { triggerRef.current = trigger; setSelected(project.id) }} /></li>)}
+          {projects.map((project, index) => <li key={project.id} className="min-w-0"><ProjectCard project={project} index={index} onOpen={(trigger, photo) => { triggerRef.current = trigger; setOrigin(trigger); setPhoto(photo); setSelected(project.id) }} /></li>)}
         </ul>
       )}
 
@@ -134,7 +185,7 @@ export function PortfolioGrid({ projects: allProjects }: { projects: PortfolioPr
         <PlanButton href="/quiz" className="shrink-0">Хочу свою кухню</PlanButton>
       </div>
 
-      {selected && <PortfolioModal projects={projects} initialProjectId={selected} onClose={() => { setSelected(null); requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true })) }} />}
+      {selected && <PortfolioModal projects={projects} initialProjectId={selected} initialPhoto={photo} origin={origin} onClose={() => { setSelected(null); requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true })) }} />}
     </div>
   )
 }

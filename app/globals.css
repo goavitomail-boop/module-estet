@@ -163,6 +163,11 @@
   color: var(--background);
 }
 .portfolio-viewer .yarl__carousel { position: absolute; top: 5.5rem; height: calc(100% - 10.5rem); }
+/* Перелёт снимка из карточки (components/portfolio-flight.ts): пока летит
+   призрак, настоящее фото и обложка в карточке спрятаны, потом фото проявляется */
+.portfolio-viewer .yarl__slide_image { transition: opacity 0.25s ease-out; }
+.portfolio-viewer--flying .yarl__slide_current .yarl__slide_image { opacity: 0; transition: none; }
+[data-portfolio-card][data-flying] img { opacity: 0; }
 .portfolio-viewer .yarl__toolbar { top: max(1rem, env(safe-area-inset-top)); right: max(1rem, env(safe-area-inset-right)); padding: 0; gap: 0.25rem; }
 .portfolio-viewer .yarl__button { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0.75rem; border-radius: 50%; }
 .portfolio-viewer .yarl__button:hover, .portfolio-viewer .yarl__button[aria-expanded='true'] { background: color-mix(in oklab, var(--background) 10%, transparent); }

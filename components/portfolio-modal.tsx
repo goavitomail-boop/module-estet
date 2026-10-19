@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useReducedMotion } from 'framer-motion'
 import Lightbox from 'yet-another-react-lightbox'
@@ -8,6 +8,7 @@ import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import { ArrowUpRight, ChevronLeft, ChevronRight, Info, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { PortfolioProject } from '@/lib/portfolio-data'
+import { flyClose, flyOpen } from '@/components/portfolio-flight'
 import { cn } from '@/lib/utils'
 
 const labels = {
@@ -38,15 +39,28 @@ function ProjectDetails({ project }: { project: PortfolioProject }) {
   )
 }
 
-export function PortfolioModal({ projects, initialProjectId, onClose }: { projects: PortfolioProject[]; initialProjectId: string; onClose: () => void }) {
+export function PortfolioModal({ projects, initialProjectId, initialPhoto = 0, origin, onClose }: { projects: PortfolioProject[]; initialProjectId: string; initialPhoto?: number; origin?: HTMLElement | null; onClose: () => void }) {
   const slides = useMemo(() => projects.flatMap((project, projectIndex) => project.photos.map((photo, photoIndex) => ({ ...photo, projectIndex, photoIndex }))), [projects])
-  const [index, setIndex] = useState(() => Math.max(0, slides.findIndex((slide) => projects[slide.projectIndex].id === initialProjectId)))
+  const [index, setIndex] = useState(() => {
+    const ofProject = (slide: (typeof slides)[number]) => projects[slide.projectIndex].id === initialProjectId
+    const exact = slides.findIndex((slide) => ofProject(slide) && slide.photoIndex === initialPhoto)
+    return Math.max(0, exact >= 0 ? exact : slides.findIndex(ofProject))
+  })
   const [open, setOpen] = useState(true)
   const [details, setDetails] = useState(false)
   const infoButton = useRef<HTMLButtonElement>(null)
   const reducedMotion = useReducedMotion()
   const current = slides[index]
   const project = projects[current.projectIndex]
+  // Пока летит снимок из карточки, настоящее фото спрятано под ним
+  const [flying, setFlying] = useState(() => Boolean(origin) && !reducedMotion)
+
+  useEffect(() => {
+    if (!origin) return
+    let alive = true
+    void flyOpen(origin, setFlying, () => alive)
+    return () => { alive = false }
+  }, [origin])
 
   function changeProject(direction: number) {
     const nextProject = (current.projectIndex + direction + projects.length) % projects.length
@@ -56,10 +70,10 @@ export function PortfolioModal({ projects, initialProjectId, onClose }: { projec
   return (
     <Lightbox
       open={open}
-      close={() => setOpen(false)}
+      close={() => { flyClose(project.id, setFlying); setOpen(false) }}
       index={index}
       slides={slides}
-      className={cn('portfolio-viewer font-sans', details && 'portfolio-viewer--details')}
+      className={cn('portfolio-viewer font-sans', details && 'portfolio-viewer--details', flying && 'portfolio-viewer--flying')}
       plugins={[Thumbnails, Zoom]}
       labels={labels}
       controller={{ aria: true, closeOnPullDown: true }}
