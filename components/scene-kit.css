@@ -1,0 +1,174 @@
+/*
+ * Общие приёмы сцен (components/scene-kit.tsx): первый экран главной,
+ * «Как мы работаем» и всё, что сделано в том же стиле.
+ *
+ * Корень сцены — класс .hs: на нём кривые и пружины. Когда и откуда
+ * двигается слой, передают переменные: вход — --d, --t, --from, --e;
+ * уход — --od, --ot, --to. Анимируются только transform и opacity.
+ */
+
+.hs {
+  --out: cubic-bezier(0.16, 1, 0.3, 1);
+  --in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --leave: cubic-bezier(0.55, 0, 0.75, 0);
+  --spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --pop: cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+/* Пружины: затухание 0,82 (перелёт ~1 %) и 0,62 (~8 %, для значков) — как в vizkit-intro.css */
+@supports (animation-timing-function: linear(0, 1)) {
+  .hs {
+    --spring: linear(0, 0.017, 0.061, 0.124, 0.198, 0.278, 0.359, 0.439, 0.515, 0.586, 0.652, 0.71, 0.762, 0.807, 0.847, 0.88, 0.908, 0.932, 0.951, 0.967, 0.979, 0.989, 0.996, 1.002, 1.006, 1.008, 1.01, 1.011, 1.011, 1.011, 1.01, 1.01, 1.009, 1.008, 1.007, 1.006, 1.005, 1.005, 1.004, 1.003, 1);
+    --pop: linear(0, 0.03, 0.107, 0.213, 0.335, 0.461, 0.583, 0.695, 0.794, 0.878, 0.945, 0.997, 1.035, 1.061, 1.076, 1.083, 1.083, 1.078, 1.071, 1.061, 1.05, 1.04, 1.03, 1.021, 1.014, 1.007, 1.002, 0.999, 0.996, 0.994, 0.993, 0.993, 0.993, 0.994, 0.994, 0.995, 0.996, 0.997, 0.998, 0.999, 1);
+  }
+}
+
+/* ── Входы и уходы ────────────────────────────────────────────────── */
+
+.hs-in {
+  animation: hs-in var(--t, 0.8s) var(--d, 0s) var(--e, var(--spring)) both;
+}
+@keyframes hs-in {
+  from { opacity: 0; transform: var(--from, translateY(14px)); }
+}
+
+/* Уход в нужный момент сцены; до него не действует */
+.hs-out {
+  animation: hs-out var(--ot, 0.3s) var(--od) var(--leave) forwards;
+}
+@keyframes hs-out {
+  to { opacity: 0; transform: var(--to, translateY(-8px)); }
+}
+
+/* Уходящая сцена гаснет целиком, сразу как сменилась */
+.hs-leave {
+  animation: hs-leave 0.32s var(--leave) forwards;
+}
+@keyframes hs-leave {
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Строка выезжает из-под маски */
+.hs-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+.hs-mask > span {
+  display: inline-block;
+  animation: hs-rise 0.75s var(--d, 0s) var(--out) both;
+}
+@keyframes hs-rise {
+  from { transform: translateY(115%) rotate(4deg); }
+}
+
+/* Плавная смена: элемент проявляется поверх предыдущего, без сдвига */
+.hs-fade {
+  animation: hs-fade var(--t, 0.6s) var(--d, 0s) ease-out both;
+}
+@keyframes hs-fade {
+  from { opacity: 0; }
+}
+
+/* ── Шторка ───────────────────────────────────────────────────────── */
+
+/* Слой едет внутрь, содержимое в нём — навстречу и стоит на месте.
+   Латунная кромка едет вместе с краем слоя. --back — слева направо,
+   когда листают назад */
+.hs-wipe {
+  animation: hs-wipe 1s var(--in-out) both;
+}
+.hs-wipe > .hs-wipe-img {
+  animation: hs-wipe-img 1s var(--in-out) both;
+}
+.hs-wipe--back {
+  animation-name: hs-wipe-back;
+}
+.hs-wipe--back > .hs-wipe-img {
+  animation-name: hs-wipe-img-back;
+}
+@keyframes hs-wipe {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+@keyframes hs-wipe-img {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes hs-wipe-back {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes hs-wipe-img-back {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+
+/* ── Палец ────────────────────────────────────────────────────────── */
+
+/* Палец живёт внутри того, на что нажимает: прилетает со стороны
+   (--from), нажимает в --tap и уходит в --o. Так он попадает в цель
+   на любом экране, без пересчёта координат */
+.hs-finger {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--fs, 2.25rem);
+  height: var(--fs, 2.25rem);
+  margin: calc(var(--fs, 2.25rem) / -2) 0 0 calc(var(--fs, 2.25rem) / -2);
+  pointer-events: none;
+  animation:
+    hs-finger-in 0.6s var(--d) var(--in-out) both,
+    hs-finger-out 0.35s var(--o) var(--leave) forwards;
+}
+@keyframes hs-finger-in {
+  from { opacity: 0; transform: var(--from); }
+}
+@keyframes hs-finger-out {
+  to { opacity: 0; transform: var(--to, translate(30%, 60%)); }
+}
+.hs-finger-dot {
+  animation: hs-press 0.28s var(--tap) ease-out both;
+}
+@keyframes hs-press {
+  45% { transform: scale(0.8); }
+}
+.hs-finger-ring {
+  animation: hs-ripple 0.6s var(--tap) var(--out) forwards;
+}
+@keyframes hs-ripple {
+  0% { opacity: 0.75; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+
+/* Нажатие кнопки */
+.hs-press {
+  animation: hs-press 0.28s var(--d) ease-out both;
+}
+
+/* Линия прочерчивается: --origin — откуда растёт (left, center, top) */
+.hs-draw-x,
+.hs-draw-y {
+  animation: hs-draw-x var(--t, 0.8s) var(--d, 0s) var(--in-out) both;
+  transform-origin: var(--origin, left);
+}
+.hs-draw-y {
+  animation-name: hs-draw-y;
+}
+@keyframes hs-draw-x {
+  from { transform: scaleX(0); }
+}
+@keyframes hs-draw-y {
+  from { transform: scaleY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Без движения: всё сразу на месте */
+  .hs *,
+  .hs *::before,
+  .hs *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+  }
+}

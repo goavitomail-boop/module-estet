@@ -9,6 +9,7 @@ import { COMPANY } from '@/lib/company'
 import { facadeCollections } from '@/lib/catalog-data'
 import { wardrobeCollections, wardrobeCover } from '@/lib/wardrobes-data'
 import { MEASUREMENT_SLOTS } from '@/lib/measurement-slots'
+import { enter, Finger, leave, POP } from '@/components/scene-kit'
 import './hero-showcase.css'
 
 /**
@@ -16,8 +17,8 @@ import './hero-showcase.css'
  * неподвижны, их видно сразу и их читают поисковики. Справа — сцена,
  * которая по кругу показывает, что есть на сайте: кухни, шкафы, квиз,
  * материалы и замер. Вкладки под сценой переключают главы, кнопка
- * ставит показ на паузу. Стиль и приёмы — как у ролика визуализатора
- * (components/vizkit-intro.tsx).
+ * ставит показ на паузу. Стиль — как у ролика визуализатора
+ * (components/vizkit-intro.tsx), общие приёмы — components/scene-kit.tsx.
  */
 
 /** 90 000 — с неразрывным пробелом, одинаково на сервере и в браузере */
@@ -37,35 +38,6 @@ type Chapter = {
   /** Сколько глава на экране, с */
   dur: number
   Scene: () => ReactNode
-}
-
-/** Вход слоя: когда, сколько, откуда и с какой кривой */
-function enter(d: number, { t = 0.8, from = 'translateY(14px)', ease = 'var(--spring)' } = {}) {
-  return { '--d': `${d}s`, '--t': `${t}s`, '--from': from, '--e': ease } as CSSProperties
-}
-
-/** Уход слоя в момент od главы */
-function leave(od: number, { t = 0.3, to = 'translateY(-8px)' } = {}) {
-  return { '--od': `${od}s`, '--ot': `${t}s`, '--to': to } as CSSProperties
-}
-
-const POP = { t: 0.6, from: 'translateY(10px) scale(0.85)', ease: 'var(--pop)' }
-
-/**
- * Палец внутри того, на что нажимает: прилетает (d), нажимает (tap),
- * уходит (out). Тёмный с белым кантом — виден и на белой кнопке
- */
-function Finger({ d, tap, out, from = 'translate(70%, 110%)', to = 'translate(30%, 60%)' }: { d: number; tap: number; out: number; from?: string; to?: string }) {
-  return (
-    <span
-      className="hs-finger [--fs:1.75rem] md:[--fs:2.25rem]"
-      style={{ '--d': `${d}s`, '--tap': `${tap}s`, '--o': `${out}s`, '--from': from, '--to': to } as CSSProperties}
-      aria-hidden="true"
-    >
-      <span className="hs-finger-ring absolute inset-0 rounded-full border-2 border-white opacity-0" />
-      <span className="hs-finger-dot block size-full rounded-full border-2 border-white bg-[rgba(20,18,16,0.4)] shadow-[0_6px_18px_rgba(0,0,0,0.45)]" />
-    </span>
-  )
 }
 
 /** Плашка поверх фото */
