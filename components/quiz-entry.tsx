@@ -7,6 +7,9 @@ import { AnimatePresence, m } from 'framer-motion'
 import { ProjectQuiz, type QuizProduct } from '@/components/project-quiz'
 import { EASE_OUT, FormMotion } from '@/components/form-motion'
 import { cn } from '@/lib/utils'
+import { KITCHEN_PRICE } from '@/lib/company'
+import { facadeCollections } from '@/lib/catalog-data'
+import { wardrobeCollections } from '@/lib/wardrobes-data'
 import './quiz-doors.css'
 
 /**
@@ -24,37 +27,43 @@ const PICK_MS = 450
 /** Отметка в sessionStorage: вступление уже показывали в этой вкладке */
 const SEEN_KEY = 'me-quiz-doors-seen'
 
+/**
+ * Карточки выбора. Фото — тёмные и тёплые, как нутро шкафа, без людей
+ * в кадре. Под фото — одна строка и одна деталь: у кухни цвета палитры,
+ * у шкафа комнаты. Вопросы квиза здесь не перечисляем — это и был шум
+ */
 const options: Array<{
   product: QuizProduct
   image: string
   alt: string
-  meta: string
+  badge: string
   title: string
   text: string
-  asks: string[]
   cta: string
 }> = [
   {
     product: 'kitchen',
-    image: '/quiz-options/choose-kitchen.webp',
-    alt: 'Кухня с фасадами под дерево и чёрным мраморным фартуком',
-    meta: '5 вопросов · около минуты',
+    image: '/images/hero-kitchen-night.webp',
+    alt: 'Кухня с островом из камня и подсветкой в вечернем свете',
+    badge: KITCHEN_PRICE,
     title: 'Кухня',
     text: 'Дизайнер предложит планировку, материалы и посчитает стоимость.',
-    asks: ['Планировка', 'Размер', 'Стиль', 'Техника', 'Сроки'],
     cta: 'Рассчитать кухню',
   },
   {
     product: 'wardrobe',
-    image: '/quiz-options/choose-wardrobe.webp',
-    alt: 'Шкаф до потолка с подсвеченной нишей',
-    meta: '6 вопросов · около минуты',
+    image: '/catalog/wardrobes/photos/room-living.webp',
+    alt: 'Шкаф из ореха с чёрными открытыми полками в гостиной',
+    badge: 'Новое направление',
     title: 'Шкаф',
-    text: 'Гардеробная, прихожая, спальня или гостиная — фасады и наполнение под ваши вещи.',
-    asks: ['Комната', 'Тип шкафа', 'Ширина', 'Фасады', 'Наполнение'],
+    text: `Фасады и наполнение под ваши вещи — ${wardrobeCollections.length} коллекций.`,
     cta: 'Рассчитать шкаф',
   },
 ]
+
+/** Цвета палитры Soft & Wood — те же, что в каталоге */
+const PALETTE = facadeCollections[0].colors.slice(0, 6)
+const ROOMS = ['Гардеробная', 'Прихожая', 'Спальня', 'Гостиная']
 
 /**
  * Рифлёный фасад Velvet в цвете «Пула»: тёмная основа и вертикальные рейки —
@@ -159,8 +168,8 @@ function TiltCard({ children }: { children: ReactNode }) {
     if (ref.current) ref.current.style.transform = ''
   }
   return (
-    <div className="[perspective:1200px]" onPointerMove={move} onPointerLeave={reset}>
-      <div ref={ref} className="transition-transform duration-300 ease-out">
+    <div className="h-full [perspective:1200px]" onPointerMove={move} onPointerLeave={reset}>
+      <div ref={ref} className="h-full transition-transform duration-300 ease-out">
         {children}
       </div>
     </div>
@@ -247,7 +256,7 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
           aria-hidden="true"
         />
 
-        <div className="relative z-10 mx-auto flex w-full max-w-[min(58rem,100%)] flex-1 flex-col justify-center px-4 py-8 md:w-[58vw] md:py-12">
+        <div className="relative z-10 mx-auto flex w-full max-w-[min(58rem,100%)] flex-1 flex-col justify-center px-4 py-8 md:py-12 lg:w-[min(58rem,80vw)] xl:w-[58vw]">
           <div className="mb-6 text-center text-background md:mb-10">
             <p className="qd-rise text-[11px] font-bold uppercase tracking-[0.26em] text-primary md:text-xs">Бесплатный расчёт · около минуты</p>
             <h1 id="quiz-choose-title" className="flyer-title mt-3 overflow-hidden pb-1 text-4xl md:text-6xl">
@@ -264,44 +273,67 @@ function QuizChooser({ onChoose }: { onChoose: (product: QuizProduct) => void })
               const dimmed = picked !== null && !isPicked
               const delay = at(0.25 + index * 0.14)
               return (
-                <div key={option.product} className="qd-card" style={delay}>
+                <div key={option.product} className="qd-card h-full" style={delay}>
                   <TiltCard>
                     <button
                       type="button"
                       onClick={() => pick(option.product)}
+                      aria-label={option.cta}
                       className={cn(
-                        'group relative flex h-[clamp(14rem,34svh,18rem)] w-full flex-col justify-end overflow-hidden rounded-3xl border border-primary/30 text-left text-background shadow-[0_24px_48px_-24px_rgba(0,0,0,0.9)] outline-none transition duration-500 ease-out md:h-[min(34rem,56svh)]',
-                        'hover:-translate-y-1.5 hover:border-primary focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/40',
+                        'group relative flex h-full w-full flex-col gap-3 overflow-hidden rounded-[1.6rem] border border-primary/25 bg-[#1b1916] p-2.5 text-left text-background shadow-[0_30px_60px_-30px_rgba(0,0,0,0.9)] outline-none transition duration-500 ease-out md:gap-4 md:p-3.5',
+                        'hover:-translate-y-1.5 hover:border-primary/70 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/40',
                         isPicked && 'scale-[1.02] border-primary',
                         dimmed && 'opacity-30',
                       )}
                     >
-                      <span className="absolute inset-0 transition-transform duration-[1200ms] ease-out group-hover:scale-105">
-                        <Image src={option.image} alt={option.alt} fill priority sizes="(max-width: 768px) 100vw, 32vw" className="object-cover" />
-                      </span>
-                      <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/5" aria-hidden="true" />
                       {/* Подсветка по верхнему краю — включается вслед за LED шкафа */}
-                      <span className="absolute inset-x-6 top-0 h-px opacity-60 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true">
+                      <span className="absolute inset-x-10 top-0 z-10 h-px opacity-70 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true">
                         <span className="qd-card-led block h-full bg-primary shadow-[0_0_24px_6px_color-mix(in_oklab,var(--primary)_60%,transparent)]" style={delay} />
                       </span>
 
-                      <span className="relative flex flex-col gap-2.5 p-5 md:gap-3 md:p-8">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary [text-shadow:0_1px_6px_rgba(0,0,0,0.8)] md:text-xs">{option.meta}</span>
-                        <span className="flyer-title text-5xl leading-none md:text-7xl">{option.title}</span>
-                        <span className="max-w-sm text-pretty text-sm leading-relaxed text-background/75 max-md:hidden">{option.text}</span>
-                        <span className="flex flex-wrap gap-1.5" aria-label="О чём спросим">
-                          {option.asks.map((item) => (
-                            <span key={item} className="rounded-full border border-background/25 bg-black/35 px-2.5 py-1 text-[11px] text-background/85 md:text-xs">
-                              {item}
-                            </span>
-                          ))}
+                      <span className="relative block aspect-[16/9] overflow-hidden rounded-[1.1rem] md:aspect-[16/11]">
+                        <span className="absolute inset-0 transition-transform duration-[1200ms] ease-out group-hover:scale-105">
+                          <Image src={option.image} alt={option.alt} fill priority sizes="(max-width: 768px) 100vw, 30vw" className="object-cover" />
                         </span>
-                        <span className="mt-1.5 inline-flex min-h-12 w-fit items-center gap-3 rounded-full bg-primary pl-6 pr-1.5 text-sm font-bold text-primary-foreground transition-colors duration-300 group-hover:bg-background group-hover:text-foreground md:mt-3 md:text-base">
-                          {option.cta}
-                          <span className="flex size-9 items-center justify-center rounded-full bg-foreground/15">
-                            <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
+                        <span className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" aria-hidden="true" />
+                        <span
+                          className={cn(
+                            'absolute left-3 top-3 rounded-full px-3 py-1.5 shadow-lg',
+                            option.product === 'kitchen'
+                              ? 'flyer-title bg-primary text-base leading-none text-primary-foreground'
+                              : 'border border-primary/50 bg-[#161412]/85 text-[11px] font-extrabold uppercase tracking-[0.12em] text-primary',
+                          )}
+                        >
+                          {option.badge}
+                        </span>
+                      </span>
+
+                      <span className="flex flex-1 flex-col gap-2 px-1.5 pb-1.5 md:gap-3 md:px-2.5 md:pb-2.5">
+                        <span className="flex items-center justify-between gap-3">
+                          <span className="flyer-title min-w-0 text-4xl leading-none md:text-5xl">{option.title}</span>
+                          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors duration-300 group-hover:bg-background group-hover:text-foreground md:size-12">
+                            <ArrowRight className="size-5 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden="true" />
                           </span>
                         </span>
+                        <span className="text-pretty text-sm leading-relaxed text-background/65">{option.text}</span>
+                        {option.product === 'kitchen' ? (
+                          <span className="mt-auto flex items-center gap-2.5" aria-hidden="true">
+                            <span className="flex">
+                              {PALETTE.map((c, i) => (
+                                <span key={c.name} className={cn('size-4 rounded-full border-2 border-[#1b1916] md:size-5', i > 0 && '-ml-1.5')} style={{ background: c.hex }} />
+                              ))}
+                            </span>
+                            <span className="text-xs text-background/60 md:text-sm">{facadeCollections.length} коллекций фасадов</span>
+                          </span>
+                        ) : (
+                          <span className="mt-auto flex flex-wrap gap-1.5" aria-hidden="true">
+                            {ROOMS.map((room) => (
+                              <span key={room} className="rounded-full border border-background/20 px-2.5 py-1 text-[11px] text-background/75 md:text-xs">
+                                {room}
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </span>
                     </button>
                   </TiltCard>

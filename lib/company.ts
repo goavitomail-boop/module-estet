@@ -35,6 +35,12 @@ export const COMPANY = {
   kitchenPriceFrom: 90_000,
 } as const
 
+/** 90 000 — с неразрывным пробелом, одинаково на сервере и в браузере */
+export const rub = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')
+
+/** «от 90 000 ₽» — первый экран главной и выбор в квизе */
+export const KITCHEN_PRICE = `от ${rub(COMPANY.kitchenPriceFrom)} ₽`
+
 /** Строка реквизитов для подвала — пропускает незаполненные поля */
 export function legalLine(): string {
   return [

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { ArrowRight, ArrowUpRight, CalendarDays, Check, Factory, MapPin, Pause, Play, Ruler, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { COMPANY } from '@/lib/company'
+import { COMPANY, KITCHEN_PRICE } from '@/lib/company'
 import { facadeCollections } from '@/lib/catalog-data'
 import { wardrobeCollections, wardrobeCover } from '@/lib/wardrobes-data'
 import { MEASUREMENT_SLOTS } from '@/lib/measurement-slots'
@@ -21,9 +21,7 @@ import './hero-showcase.css'
  * (components/vizkit-intro.tsx), общие приёмы — components/scene-kit.tsx.
  */
 
-/** 90 000 — с неразрывным пробелом, одинаково на сервере и в браузере */
-const rub = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-const PRICE = `от ${rub(COMPANY.kitchenPriceFrom)} ₽`
+const PRICE = KITCHEN_PRICE
 
 type Chapter = {
   tab: string
