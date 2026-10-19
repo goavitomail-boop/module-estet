@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -8,8 +8,12 @@ import {
   CheckCircle2,
   ChevronDown,
   FileText,
+  MessageCircle,
   Paperclip,
+  PencilRuler,
+  Phone,
   RotateCcw,
+  Ruler,
   Trash2,
 } from 'lucide-react'
 import { AnimatePresence, m } from 'framer-motion'
@@ -19,7 +23,10 @@ import { trackQuizCompleted, trackQuizStep } from '@/lib/quiz-tracking'
 import { reachGoal } from '@/lib/metrika'
 import { cn } from '@/lib/utils'
 import { PlanLabel } from '@/components/plan'
-import { AutoHeight, EASE_OUT, FormMotion, SuccessMark, itemVariants, maskVariants, riseVariants, staggerVariants, stepVariants, successVariants } from '@/components/form-motion'
+import { AutoHeight, EASE_OUT, FormMotion, itemVariants, maskVariants, staggerVariants, stepVariants } from '@/components/form-motion'
+import { enter } from '@/components/scene-kit'
+import { CheckBadge, NextSteps, SummaryCard } from '@/components/thanks-scene'
+import { COMPANY } from '@/lib/company'
 
 /**
  * Квиз «Рассчитать кухню» — лёгкая версия. Тот же квиз считает и шкафы:
@@ -177,6 +184,39 @@ const DRAFT_KEYS: Record<QuizProduct, string> = {
   wardrobe: 'modul-estet-wardrobe-draft-v1',
 }
 const MAX_CHAT_URL = process.env.NEXT_PUBLIC_MAX_CHAT_URL ?? 'https://web.max.ru/93711404'
+
+/** Несколько пунктов одной строкой: два первых и «ещё N» */
+const listShort = (items: string[]) => (items.length > 2 ? `${items.slice(0, 2).join(', ')} и ещё ${items.length - 2}` : items.join(', '))
+const sizeShort = (value: string) => (value === SIZE_UNKNOWN ? 'Нужен замер' : value)
+
+/**
+ * Строки сводки на экране «спасибо» — то, что ушло дизайнеру. Пропущенные
+ * вопросы не показываем: на них ответит звонок
+ */
+function summaryRows(answers: Answers, isKitchen: boolean, files: number): Array<[string, string]> {
+  const walls = [answers.wallA, answers.wallB, answers.wallC].map((w) => w.trim()).filter(Boolean)
+  const rows: Array<[string, string]> = isKitchen
+    ? [
+        ['Планировка', answers.layout],
+        ['Размер', walls.length ? `${walls.join(' × ')} см` : answers.roomArea.trim() ? `${answers.roomArea.trim()} м²` : sizeShort(answers.kitchenSize)],
+        ['Стиль', answers.style],
+        ['Пожелания', listShort([...answers.appliances, ...answers.features])],
+        ['Сроки', answers.timeline],
+        ['Бюджет', answers.budget],
+      ]
+    : [
+        ['Помещение', answers.room],
+        ['Тип', answers.wardrobeType],
+        ['Ширина', answers.wardrobeWidthCm.trim() ? `${answers.wardrobeWidthCm.trim()} см` : sizeShort(answers.wardrobeWidth)],
+        ['Фасады', answers.facades],
+        ['Наполнение', listShort(answers.features)],
+        ['Сроки', answers.timeline],
+        ['Бюджет', answers.budget],
+      ]
+  if (files > 0) rows.push(['Файлы', `${files} шт.`])
+  const filled = rows.filter(([, value]) => value)
+  return filled.length ? filled : [['Ответы', 'Обсудим на звонке']]
+}
 /** Пауза перед переходом после выбора: человек успевает увидеть, что ответ отмечен */
 const AUTO_ADVANCE_MS = 280
 
@@ -548,27 +588,74 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
   const name = answers.name.trim()
   const viaMax = answers.contactMethod === CONTACT_MAX
 
-  if (completed) return (
-    <FormMotion>
-      <section className="mx-auto flex min-h-[calc(100svh-5rem)] max-w-3xl flex-col items-center justify-center px-4 py-20 text-center md:px-6">
-        <SuccessMark className="size-20" />
-        <m.div initial="enter" animate="center" variants={successVariants} className="flex flex-col items-center">
-          <m.p variants={riseVariants} className="mt-8 text-xs font-bold uppercase tracking-[0.28em] text-primary">Заявка {applicationId}</m.p>
-          <m.h1 variants={riseVariants} className="flyer-title mt-3 text-balance text-4xl text-foreground md:text-6xl">{name ? `Спасибо, ${name}!` : 'Спасибо!'}</m.h1>
-          <m.p variants={riseVariants} className="mt-5 max-w-xl text-pretty leading-relaxed text-muted-foreground">
-            Ответы уже у дизайнера. Он {viaMax ? 'напишет вам в Max' : 'позвонит'}, уточнит детали и предложит идеи и расчёт для {isKitchen ? 'вашей кухни' : 'вашего шкафа'}.
-          </m.p>
-          {filesFailed > 0 && (
-            <m.p variants={riseVariants} className="mt-5 max-w-xl rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-sm leading-relaxed text-muted-foreground">
-              {filesFailed === 1 ? 'Один файл не удалось приложить' : `Файлов не удалось приложить: ${filesFailed}`} — сама заявка принята. Дизайнер попросит план и фото при разговоре.
-            </m.p>
-          )}
-          {MAX_CHAT_URL && <m.a variants={riseVariants} href={MAX_CHAT_URL} target="_blank" rel="noopener noreferrer" className="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-7 font-bold text-primary-foreground">Написать нам в Max</m.a>}
-          <m.div variants={riseVariants} className="mt-8 flex flex-col gap-3 sm:flex-row"><a href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border-2 border-primary px-7 font-bold text-foreground">Вернуться на сайт</a><button type="button" onClick={startAgain} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-foreground px-7 font-bold text-background"><RotateCcw className="size-4" />Пройти ещё раз</button></m.div>
-        </m.div>
-      </section>
-    </FormMotion>
-  )
+  if (completed) {
+    const rise = (d: number) => enter(d, { t: 0.7, from: 'translateY(12px)', ease: 'var(--out)' })
+    return (
+      <FormMotion>
+        {/* Финал квиза — тёмная сцена, как экран выбора: слева спасибо и что дальше,
+            справа сводка, в которую влетают ответы, со штампом «Передано дизайнеру» */}
+        <section className="hs bg-[#161412] text-background">
+          <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl content-center gap-10 px-4 pb-16 pt-24 md:min-h-[calc(100svh-5rem)] md:px-6 md:pt-32 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-10">
+            <div className="flex flex-col items-start lg:col-start-1 lg:row-start-1">
+              <CheckBadge className="size-16 md:size-20" d={0.1} />
+              <p className="hs-in mt-7 text-xs font-bold uppercase tracking-[0.28em] text-primary" style={rise(0.35)}>
+                Заявка {applicationId}
+              </p>
+              <h1 className="flyer-title mt-3 text-balance text-4xl md:text-6xl">
+                <span className="hs-mask">
+                  <span style={{ '--d': '0.45s' } as CSSProperties}>{name ? `Спасибо, ${name}!` : 'Спасибо!'}</span>
+                </span>
+              </h1>
+              <p className="hs-in mt-5 max-w-xl text-pretty leading-relaxed text-background/70" style={rise(0.65)}>
+                Ответы уже у дизайнера. Он {viaMax ? 'напишет вам в Max' : 'позвонит'}, уточнит детали и предложит идеи и расчёт для {isKitchen ? 'вашей кухни' : 'вашего шкафа'}.
+              </p>
+              {filesFailed > 0 && (
+                <p className="hs-in mt-5 max-w-xl rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 text-sm leading-relaxed text-background/75" style={rise(0.8)}>
+                  {filesFailed === 1 ? 'Один файл не удалось приложить' : `Файлов не удалось приложить: ${filesFailed}`} — сама заявка принята. Дизайнер попросит план и фото при разговоре.
+                </p>
+              )}
+            </div>
+
+            <SummaryCard
+              className="w-full max-w-lg justify-self-center lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center"
+              eyebrow="Что получил дизайнер"
+              title={isKitchen ? 'Коротко о вашей кухне' : 'Коротко о вашем шкафе'}
+              rows={summaryRows(answers, isKitchen, files.length - filesFailed)}
+              stamp="Передано дизайнеру"
+              d={0.5}
+            />
+
+            <div className="flex flex-col items-start gap-8 lg:col-start-1 lg:row-start-2">
+              <NextSteps
+                d={1.1}
+                steps={[
+                  viaMax
+                    ? { icon: MessageCircle, title: 'Дизайнер напишет в Max', text: `Уточнит детали и предложит идеи. ${COMPANY.schedule}.` }
+                    : { icon: Phone, title: 'Дизайнер позвонит', text: `Уточнит детали и предложит идеи. ${COMPANY.schedule}.` },
+                  { icon: Ruler, title: 'Бесплатный замер', text: 'Приедем в удобное время, привезём образцы материалов.' },
+                  { icon: PencilRuler, title: 'Проект и расчёт', text: '3D-проект и смета, стоимость фиксируем в договоре.' },
+                ]}
+              />
+              <div className="hs-in flex flex-wrap gap-3" style={rise(2)}>
+                {MAX_CHAT_URL && (
+                  <a href={MAX_CHAT_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-7 font-bold text-primary-foreground transition-colors hover:bg-background hover:text-foreground">
+                    Написать нам в Max
+                  </a>
+                )}
+                <a href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border border-background/30 px-7 font-bold text-background transition-colors hover:border-primary hover:text-primary">
+                  Вернуться на сайт
+                </a>
+                <button type="button" onClick={startAgain} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 font-semibold text-background/70 transition-colors hover:text-primary">
+                  <RotateCcw className="size-4" />
+                  Пройти ещё раз
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </FormMotion>
+    )
+  }
 
   const isContacts = step === CONTACTS_STEP
   const progress = progressLabel(step, QUESTIONS)

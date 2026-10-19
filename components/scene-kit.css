@@ -163,6 +163,16 @@
   from { transform: scaleY(0); }
 }
 
+/* Галочка прочерчивается: у пути pathLength=1 */
+.hs-tick {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: hs-tick 0.45s var(--d, 0s) var(--out) forwards;
+}
+@keyframes hs-tick {
+  to { stroke-dashoffset: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* Без движения: всё сразу на месте */
   .hs *,

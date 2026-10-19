@@ -4,7 +4,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, m } from 'framer-motion'
 import { useFloatingHidden } from '@/lib/use-floating-hidden'
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock, MapPin, Sparkles, UserCheck } from 'lucide-react'
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock, Info, MapPin, PencilRuler, Phone, Ruler, Sparkles, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatRussianPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
 import { reachGoal } from '@/lib/metrika'
@@ -18,7 +18,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { MaxSocialIcon } from '@/components/max-social-icon'
 import { PlanLabel } from '@/components/plan'
-import { FormMotion, SuccessMark, itemVariants, riseVariants, stepVariants, successVariants } from '@/components/form-motion'
+import { FormMotion, itemVariants, riseVariants, stepVariants, successVariants } from '@/components/form-motion'
+import { enter } from '@/components/scene-kit'
+import { CheckBadge, NextSteps } from '@/components/thanks-scene'
 
 export const MEASUREMENT_BOOKING_EVENT = 'open-measurement-booking'
 export const MEASUREMENT_BOOKING_ALT_EVENT = 'measurement-booking:open'
@@ -347,9 +349,9 @@ export function MeasurementBooking() {
               initial="enter"
               animate="center"
               variants={successVariants}
-              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))] text-center sm:min-h-[600px] sm:px-12"
+              className="flex min-h-0 flex-1 flex-col items-center justify-center-safe gap-6 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))] text-center sm:min-h-[600px] sm:px-12"
             >
-              <SuccessMark className="size-20 sm:size-24" />
+              <CheckBadge className="size-20 sm:size-24" d={0.1} />
               <m.div variants={riseVariants} className="flex w-full justify-center">
               <DialogHeader className="max-w-md items-center gap-3 text-center">
                 {/* Время закрепляется за клиентом только после подтверждения
@@ -360,32 +362,54 @@ export function MeasurementBooking() {
                 </DialogDescription>
               </DialogHeader>
               </m.div>
-              <m.div variants={riseVariants} className="flex w-full max-w-md flex-col gap-3 rounded-2xl bg-muted p-4 text-left sm:flex-row sm:items-center sm:p-5">
-                <CalendarDays className="size-6 shrink-0 text-primary" aria-hidden="true" />
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Вы выбрали</span>
-                  <span className="text-pretty font-medium">{formatBookingDate(data.date)} · {timeSlots.find((slot) => slot.value === time)?.detail}</span>
-                  <span className="truncate text-sm text-muted-foreground">
-                    {data.address.trim() ? `${data.city}, ${data.address}` : `${data.city}, адрес уточним по телефону`}
+              {/* Выбранное время — билетом. Штамп честный: до звонка менеджера
+                  время ещё не закреплено, поэтому «ждёт подтверждения» */}
+              <m.div variants={riseVariants} className="hs w-full max-w-md">
+                <div className="relative">
+                  <div
+                    className="hs-in overflow-hidden rounded-2xl bg-foreground text-left text-background shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]"
+                    style={enter(0.35, { t: 0.8, from: 'translateY(12%) rotate(-1.5deg)' })}
+                  >
+                    <div className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-primary/50 text-primary">
+                        <CalendarDays className="size-5" aria-hidden="true" />
+                      </span>
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Замер · бесплатно</span>
+                        <span className="flyer-title text-pretty text-xl leading-tight sm:text-2xl">{formatBookingDate(data.date)}</span>
+                        <span className="text-sm text-background/70">{timeSlots.find((slot) => slot.value === time)?.detail}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 border-t border-dashed border-background/20 px-4 py-3 text-sm text-background/65 sm:px-5">
+                      <MapPin className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <span className="truncate">{data.address.trim() ? `${data.city}, ${data.address}` : `${data.city}, адрес уточним по телефону`}</span>
+                    </div>
+                  </div>
+                  <span
+                    className="hs-in absolute -right-2 -top-3 rotate-6 rounded-md border-2 border-primary bg-background px-2 py-1 text-[10px] font-black uppercase tracking-wider text-primary shadow-md sm:-right-4 sm:text-xs"
+                    style={enter(0.95, { t: 0.5, from: 'scale(1.8)', ease: 'var(--pop)' })}
+                  >
+                    Ждёт подтверждения
                   </span>
                 </div>
               </m.div>
-              {/* Памятка: что будет дальше и что подготовить. Снимает половину
-                  вопросов, с которыми клиент потом звонит менеджеру */}
-              <m.ul variants={riseVariants} className="w-full max-w-md space-y-2 text-left text-sm text-muted-foreground">
-                <li className="flex gap-2.5">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-                  Замер занимает от 40 до 90 минут.
-                </li>
-                <li className="flex gap-2.5">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-                  Мастер привезёт образцы материалов, лазерный инструмент и каталоги фурнитуры.
-                </li>
-                <li className="flex gap-2.5">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+              {/* Что будет дальше и что подготовить. Снимает половину вопросов,
+                  с которыми клиент потом звонит менеджеру */}
+              <m.div variants={riseVariants} className="w-full max-w-md text-left">
+                <NextSteps
+                  tone="light"
+                  d={1.1}
+                  steps={[
+                    { icon: Phone, title: 'Менеджер перезвонит', text: 'Подтвердит время — после этого оно закреплено за вами.' },
+                    { icon: Ruler, title: 'Замер у вас дома', text: 'От 40 до 90 минут. Мастер привезёт образцы материалов, лазерный инструмент и каталоги фурнитуры.' },
+                    { icon: PencilRuler, title: 'Проект и расчёт', text: '3D-проект и смета, стоимость фиксируем в договоре.' },
+                  ]}
+                />
+                <p className="hs hs-in mt-5 flex gap-2.5 rounded-xl bg-muted p-3 text-sm leading-relaxed text-muted-foreground" style={enter(2, { t: 0.6, from: 'translateY(8px)', ease: 'var(--out)' })}>
+                  <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                   Освободите доступ к стенам, где встанет кухня, — так замер будет точнее.
-                </li>
-              </m.ul>
+                </p>
+              </m.div>
 
               <m.div variants={riseVariants} className="flex w-full max-w-md flex-col gap-2.5">
                 <Button type="button" size="lg" className="h-12 w-full rounded-full" onClick={() => handleOpenChange(false)}>
