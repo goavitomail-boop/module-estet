@@ -66,9 +66,10 @@ jobs:
           } > "$log" 2>&1
           status=$?
 
-          # Всё, что пришло в .env.local, — скрыть в журнале, пароль отдельно
+          # Всё, что пришло в .env.local, — скрыть в журнале, пароль отдельно.
+          # Имя ветки не секрет: его оставляем видимым
           if [ -f .env.local ]; then
-            for key in $(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env.local | tr -d =); do
+            for key in $(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env.local | tr -d = | grep -vx NEON_BRANCH); do
               node --env-file=.env.local -e '
                 const value = process.env[process.argv[1]] || ""
                 if (!value) process.exit(0)
@@ -100,6 +101,13 @@ jobs:
           db=$(node --env-file=.env.local -e 'console.log(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "")')
           [ -n "$db" ] || { echo "::error::В .env.local нет DATABASE_URL"; exit 1; }
 
+          # 0. Что уже было в production до проверки (ветка — его копия):
+          #    таблицы и число позиций каталога по разделам, без данных
+          echo "Таблицы в production: $(psql "$db" -tAc "SELECT coalesce(string_agg(table_name, ', ' ORDER BY table_name), 'нет') FROM information_schema.tables WHERE table_schema = 'public'")"
+          if [ "$(psql "$db" -tAc "SELECT to_regclass('public.catalog_items') IS NOT NULL")" = t ]; then
+            echo "Каталог в production: $(psql "$db" -tAc "SELECT coalesce(string_agg(section || ' — ' || n, ', '), 'пусто') FROM (SELECT section, count(*) AS n FROM catalog_items GROUP BY section ORDER BY section) s")"
+          fi
+
           # 1. Заявка из формы сайта сохраняется в базе
           started=$(( $(date +%s%3N) - 10000 ))
           body=$(curl -sS -X POST http://localhost:3000/api/leads -H 'content-type: application/json' \
@@ -111,8 +119,8 @@ jobs:
           echo "В базе: $id → $row"
           [ "$row" = "project | Проверка CI | new" ]
 
-          # 2. Таблицы, которые сайт создаёт сам при первом обращении
-          echo "Таблицы: $(psql "$db" -tAc "SELECT string_agg(table_name, ', ' ORDER BY table_name) FROM information_schema.tables WHERE table_schema = 'public'")"
+          # 2. Таблицы после первого обращения сайта (недостающие он создаёт сам)
+          echo "Таблицы после проверки: $(psql "$db" -tAc "SELECT string_agg(table_name, ', ' ORDER BY table_name) FROM information_schema.tables WHERE table_schema = 'public'")"
 
           # 3. Страницы и маршруты, которые читают базу
           for path in /api/availability /facades /countertops /filling; do
@@ -130,7 +138,9 @@ jobs:
         if: always() && github.event_name != 'pull_request'
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-        run: $NEON branches delete "$BRANCH" --project-id "$NEON_PROJECT_ID" 2>&1 | sed -E 's#postgres(ql)?://[^ "]+#postgres://***#g'
+        run: |
+          set -o pipefail
+          $NEON branches delete "$BRANCH" --project-id "$NEON_PROJECT_ID" 2>&1 | sed -E 's#postgres(ql)?://[^ "]+#postgres://***#g'
 
   cleanup:
     name: Удалить ветку базы закрытого PR
