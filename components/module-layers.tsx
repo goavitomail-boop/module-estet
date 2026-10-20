@@ -1,20 +1,25 @@
 'use client'
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowUpRight, Pause, Play } from 'lucide-react'
 import { FAINT, INK, K, fitTo, line, moduleView, type Pt, type Range } from '@/components/axo'
-import { mdfFrameDecors } from '@/lib/catalog-data'
+import { facadeCollections, mdfFrameDecors } from '@/lib/catalog-data'
+import { slotexDecors } from '@/lib/pdf-catalog-data'
 import { cn } from '@/lib/utils'
 import './module-layers.css'
 
 /**
  * Нижний модуль кухни в разрезе: столешница, каркас из МДФ, задняя стенка
  * и фасад. Когда блок виден, модуль разбирается на слои и по очереди
- * показывает каждый; кнопкой слой выбирают сами, кружками — декор каркаса.
+ * показывает каждый; кнопкой слой выбирают сами. Под описанием — декоры
+ * выбранного слоя: у столешницы — образцы SLOTEX (на схеме встаёт сама
+ * текстура), у фасада — коллекция и цвет (фасад принимает форму коллекции),
+ * у каркаса — десять декоров МДФ.
  *
  * Все числа — из каталога производства: высота и глубина каркаса —
- * constructionSpecs, столешница и свес — countertopSpecs, толщина фасадов —
+ * constructionSpecs, столешница и свес — countertopSpecs, фасады —
  * facadeCollections (lib/catalog-data.ts), кромка каркаса — раздел «Корпус
  * МДФ» (lib/pdf-catalog-data.ts). Ширины модуля и толщины плит в каталоге
  * нет, поэтому на схеме они не подписаны. Миллиметры и оси — как в axo.ts.
@@ -32,50 +37,53 @@ const T = 16
 /** Столешница 40 мм, свес 30 мм за каркас, глубина 600 */
 const TOP_Y: Range = [H, H + 40]
 const TOP_Z: Range = [-30, 570]
-/** Фасад перед каркасом, задняя стенка ХДФ в пазу у задней кромки */
-const FACADE_Z: Range = [-18, -2]
+/** Фасад перед каркасом с зазором 2 мм, задняя стенка ХДФ в пазу у задней кромки */
+const FACADE_GAP = 2
 const BACK_Z: Range = [D - 22, D - 18]
 
 /** Насколько слои разъезжаются, мм: столешница вверх, фасад к зрителю, стенка назад */
 const APART = { top: 300, facade: 380, back: 300 }
 
 const PARTS = [
-  {
-    id: 'top',
-    label: 'Столешница',
-    title: 'Столешница SLOTEX',
-    text: 'Толщина 40 мм, свес спереди за каркасами — 30 мм, одинаковый для кухонь с ручками и с профилем LINE. Декоры однотонные, под камень и мрамор, под дерево.',
-  },
-  {
-    id: 'carcass',
-    label: 'Каркас МДФ',
-    title: 'Каркас из МДФ',
-    text: 'Высота каркаса — 720 мм, глубина — 530 мм. Торцы деталей закрыты кромкой 0,4 мм на клее PUR со всех сторон. Декор — один из десяти, его можно выбрать ниже.',
-  },
-  {
-    id: 'back',
-    label: 'Задняя стенка',
-    title: 'Задняя стенка из ХДФ',
-    text: 'Стенка ставится в паз каркаса.',
-  },
-  {
-    id: 'facade',
-    label: 'Фасад',
-    title: 'Фасад',
-    text: 'Толщина 16 мм у Soft & Wood и 18 мм у Touch. Торцы закрыты кромкой ПВХ 0,8 мм на клее PUR со всех сторон.',
-  },
+  { id: 'top', label: 'Столешница' },
+  { id: 'carcass', label: 'Каркас МДФ' },
+  { id: 'back', label: 'Задняя стенка' },
+  { id: 'facade', label: 'Фасад' },
 ] as const
 type PartId = (typeof PARTS)[number]['id']
 
 /** Сколько автопоказ держит каждый слой: разъезд, подписи и время прочитать */
 const AUTO_STEP = 3
 
-const COUNTERTOP = 'color-mix(in oklab, var(--foreground) 22%, var(--card))'
-const COUNTERTOP_TOP = 'color-mix(in oklab, var(--foreground) 12%, var(--card))'
 const HDF = 'color-mix(in oklab, var(--foreground) 9%, var(--card))'
-const FACADE = 'var(--card)'
 const SHADE = 'color-mix(in oklab, var(--foreground) 7%, var(--card))'
 const BRASS = 'var(--primary)'
+
+/* ── Фасады: коллекции каталога ─────────────────────────────────────── */
+
+type FacadeForm = 'flat' | 'ribbed' | 'frame' | 'thin-frame'
+
+/** Форма полотна по коллекции: Velvet рифлёный, Como с филёнкой, Garda с тонкой рамкой */
+const FORMS: Record<string, FacadeForm> = { velvet: 'ribbed', como: 'frame', garda: 'thin-frame' }
+
+/** «SOFT & WOOD» → «Soft & Wood»: в кнопках названия читаются спокойнее */
+const titleCase = (name: string) => name.toLowerCase().replace(/(^|\s)\S/g, (char) => char.toUpperCase())
+
+const FACADES = facadeCollections.map((collection) => {
+  const thickness = Number(collection.spec.match(/Толщина (\d+) мм/)?.[1]) || null
+  return {
+    id: collection.id,
+    label: titleCase(collection.name),
+    colors: collection.colors,
+    spec: collection.spec,
+    thickness,
+    /** Кромка подписывается только там, где о ней говорит каталог */
+    edge: collection.spec.includes('0,8 мм'),
+    form: FORMS[collection.id] ?? 'flat',
+  }
+})
+
+/* ── Детали ─────────────────────────────────────────────────────────── */
 
 /** Тона декора для граней: лицо — сам декор, верх светлее, бок темнее */
 function tones(hex: string) {
@@ -86,8 +94,6 @@ function tones(hex: string) {
   }
 }
 
-/* ── Детали ─────────────────────────────────────────────────────────── */
-
 /** Плита: видны лицо, верх и правый бок */
 function Slab({ x, y, z, face, topTone, sideTone, width = 0.8 }: { x: Range; y: Range; z: Range; face: string; topTone: string; sideTone: string; width?: number }) {
   return (
@@ -96,6 +102,32 @@ function Slab({ x, y, z, face, topTone, sideTone, width = 0.8 }: { x: Range; y: 
       <path d={top(x, y[1], z)} fill={topTone} />
       <path d={front(x, y, z[0])} fill={face} />
     </g>
+  )
+}
+
+/**
+ * Фото образца, натянутое на грань: узор в плоскости грани, плитка ровно по
+ * её размеру. Плоскость front — x и y (z = at), top — x и z (y = at),
+ * side — z и y (x = at). Оси грани на экране берутся из самой проекции
+ */
+function Texture({ id, href, plane, u, v, at }: { id: string; href: string; plane: 'front' | 'top' | 'side'; u: Range; v: Range; at: number }) {
+  const [ox, oy] = P(0, 0, 0)
+  const axis = (x: number, y: number, z: number) => {
+    const [px, py] = P(x, y, z)
+    return [px - ox, py - oy]
+  }
+  const [ex, ey, ez] = [axis(1, 0, 0), axis(0, 1, 0), axis(0, 0, 1)]
+  // Первая ось узора, вторая и сдвиг плоскости. Высота идёт вниз по картинке, поэтому -y
+  const [a, c, shift] =
+    plane === 'front' ? [ex, [-ey[0], -ey[1]], ez.map((value) => value * at)]
+    : plane === 'top' ? [ex, ez, ey.map((value) => value * at)]
+    : [ez, [-ey[0], -ey[1]], ex.map((value) => value * at)]
+  const matrix = [...a, ...c, ...shift].map((value) => value.toFixed(4)).join(' ')
+  const [w, h] = [u[1] - u[0], v[1] - v[0]]
+  return (
+    <pattern id={id} patternUnits="userSpaceOnUse" x={u[0]} y={v[0]} width={w} height={h} patternTransform={`matrix(${matrix})`}>
+      <image href={href} width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+    </pattern>
   )
 }
 
@@ -141,7 +173,7 @@ const far = (x: number, y: number, z: number) => P(x, y, z + APART.back)
 const FRAME = fitTo(
   [
     P(0, 0, 0), P(W, 0, 0), P(W, 0, D), up(0, TOP_Y[1], TOP_Z[1]), up(W, TOP_Y[1], TOP_Z[0]), up(W, TOP_Y[0], TOP_Z[0]),
-    near(0, 0, FACADE_Z[0]), near(W, 0, FACADE_Z[0]), near(0, H, FACADE_Z[0]),
+    near(0, 0, -20), near(W, 0, -20), near(0, H, -20),
     far(W, H, BACK_Z[1]), far(0, H, BACK_Z[1]),
     P(W + 140, 0, 0), P(W + 140, 0, D),
   ],
@@ -151,15 +183,57 @@ const FRAME = fitTo(
 
 /* ── Схема ──────────────────────────────────────────────────────────── */
 
-function Scheme({ active, open, decor }: { active: PartId | null; open: boolean; decor: string }) {
+type Look = {
+  carcass: string
+  countertop: string
+  facade: { hex: string; form: FacadeForm; thickness: number | null }
+}
+
+/** Полотно фасада: рифление, филёнка или тонкая рамка — по коллекции */
+function FacadeRelief({ form, x, y, z, hex }: { form: FacadeForm; x: Range; y: Range; z: number; hex: string }) {
+  const ink = `color-mix(in oklab, ${hex} 62%, var(--foreground))`
+  if (form === 'ribbed') {
+    const ribs = Array.from({ length: Math.floor((x[1] - x[0] - 40) / 24) }, (_, i) => x[0] + 20 + 12 + i * 24)
+    return (
+      <g stroke={ink} strokeWidth={0.6} opacity={0.8}>
+        {ribs.map((rx) => (
+          <path key={rx} d={line([P(rx, y[0] + 14, z), P(rx, y[1] - 14, z)])} />
+        ))}
+      </g>
+    )
+  }
+  if (form === 'frame') {
+    return (
+      <g fill="none" stroke={ink} strokeWidth={0.8}>
+        <path d={front([x[0] + 70, x[1] - 70], [y[0] + 70, y[1] - 70], z)} />
+        <path d={front([x[0] + 84, x[1] - 84], [y[0] + 84, y[1] - 84], z)} opacity={0.7} />
+      </g>
+    )
+  }
+  if (form === 'thin-frame') {
+    return <path d={front([x[0] + 28, x[1] - 28], [y[0] + 28, y[1] - 28], z)} fill="none" stroke={ink} strokeWidth={0.8} />
+  }
+  return null
+}
+
+function Scheme({ active, open, look, uid }: { active: PartId | null; open: boolean; look: Look; uid: string }) {
   const { fit, tx, ty } = FRAME
   const size = 14 / fit
-  const tone = tones(decor)
+  const carcass = tones(look.carcass)
+  const facade = tones(look.facade.hex)
+  const facadeZ: Range = [-FACADE_GAP - (look.facade.thickness ?? 16), -FACADE_GAP]
   const on = (id: PartId) => open && active === id
   const show = (id: PartId, d: number) => ({ className: 'ml-show', 'data-on': on(id) || undefined, style: { '--d': `${d}s` } as CSSProperties })
+  const tex = (face: string) => `url(#${uid}-top-${face})`
 
   return (
     <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="absolute inset-0 size-full" aria-hidden="true">
+      <defs>
+        {/* Образец SLOTEX на верхе, переднем торце и боку столешницы */}
+        <Texture id={`${uid}-top-top`} href={look.countertop} plane="top" u={[0, W]} v={TOP_Z} at={TOP_Y[1]} />
+        <Texture id={`${uid}-top-front`} href={look.countertop} plane="front" u={[0, W]} v={[-TOP_Y[1], -TOP_Y[0]]} at={TOP_Z[0]} />
+        <Texture id={`${uid}-top-side`} href={look.countertop} plane="side" u={TOP_Z} v={[-TOP_Y[1], -TOP_Y[0]]} at={W} />
+      </defs>
       <g transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${fit.toFixed(3)})`}>
         <path d={line([P(-300, 0, 0), P(W + 400, 0, 0)])} stroke={FAINT} strokeWidth={0.8} strokeDasharray="4 4" />
 
@@ -173,11 +247,11 @@ function Scheme({ active, open, decor }: { active: PartId | null; open: boolean;
 
         {/* Каркас: левая боковина, дно, задняя и передняя царги, правая боковина */}
         <Part id="carcass" active={active} explode="none" d={0}>
-          <Slab x={[0, T]} y={[0, H]} z={[0, D]} face={tone.face} topTone={tone.top} sideTone={tone.side} />
-          <Slab x={[T, W - T]} y={[0, T]} z={[0, D]} face={tone.face} topTone={tone.top} sideTone={tone.side} />
-          <Slab x={[T, W - T]} y={[H - T, H]} z={[D - 118, D - 18]} face={tone.face} topTone={tone.top} sideTone={tone.side} />
-          <Slab x={[T, W - T]} y={[H - T, H]} z={[0, 100]} face={tone.face} topTone={tone.top} sideTone={tone.side} />
-          <Slab x={[W - T, W]} y={[0, H]} z={[0, D]} face={tone.face} topTone={tone.top} sideTone={tone.side} width={1} />
+          <Slab x={[0, T]} y={[0, H]} z={[0, D]} face={carcass.face} topTone={carcass.top} sideTone={carcass.side} />
+          <Slab x={[T, W - T]} y={[0, T]} z={[0, D]} face={carcass.face} topTone={carcass.top} sideTone={carcass.side} />
+          <Slab x={[T, W - T]} y={[H - T, H]} z={[D - 118, D - 18]} face={carcass.face} topTone={carcass.top} sideTone={carcass.side} />
+          <Slab x={[T, W - T]} y={[H - T, H]} z={[0, 100]} face={carcass.face} topTone={carcass.top} sideTone={carcass.side} />
+          <Slab x={[W - T, W]} y={[0, H]} z={[0, D]} face={carcass.face} topTone={carcass.top} sideTone={carcass.side} width={1} />
           {/* Кромка: торцы деталей спереди загораются латунью */}
           <g {...show('carcass', 0.5)} fill={BRASS} stroke="none">
             <path d={front([0, T], [0, H], 0)} />
@@ -189,17 +263,18 @@ function Scheme({ active, open, decor }: { active: PartId | null; open: boolean;
 
         {/* Фасад с ручкой: ближе всех к зрителю */}
         <Part id="facade" active={active} explode={pullOut(APART.facade)} d={0.08}>
-          <Slab x={[2, W - 2]} y={[3, H - 3]} z={FACADE_Z} face={FACADE} topTone={SHADE} sideTone={SHADE} width={1} />
-          <path d={line([P(W / 2 - 90, H - 70, FACADE_Z[0] - 8), P(W / 2 + 90, H - 70, FACADE_Z[0] - 8)])} stroke={INK} strokeWidth={3} strokeLinecap="round" />
+          <Slab x={[2, W - 2]} y={[3, H - 3]} z={facadeZ} face={facade.face} topTone={facade.top} sideTone={facade.side} width={1} />
+          <FacadeRelief form={look.facade.form} x={[2, W - 2]} y={[3, H - 3]} z={facadeZ[0]} hex={look.facade.hex} />
+          <path d={line([P(W / 2 - 90, H - 70, facadeZ[0] - 8), P(W / 2 + 90, H - 70, facadeZ[0] - 8)])} stroke={INK} strokeWidth={3} strokeLinecap="round" />
           <g {...show('facade', 0.9)} fill={BRASS} stroke="none">
-            <path d={side(W - 2, [3, H - 3], FACADE_Z)} />
-            <path d={top([2, W - 2], H - 3, FACADE_Z)} />
+            <path d={side(W - 2, [3, H - 3], facadeZ)} />
+            <path d={top([2, W - 2], H - 3, facadeZ)} />
           </g>
         </Part>
 
         {/* Столешница: выше всех, рисуется последней */}
         <Part id="top" active={active} explode={lift(APART.top)} d={0}>
-          <Slab x={[0, W]} y={TOP_Y} z={TOP_Z} face={COUNTERTOP} topTone={COUNTERTOP_TOP} sideTone={COUNTERTOP} width={1} />
+          <Slab x={[0, W]} y={TOP_Y} z={TOP_Z} face={tex('front')} topTone={tex('top')} sideTone={tex('side')} width={1} />
           <g {...show('top', 0.9)}>
             <path d={front([0, W], TOP_Y, TOP_Z[0])} fill="none" stroke={BRASS} strokeWidth={1.6} />
           </g>
@@ -249,19 +324,22 @@ function Scheme({ active, open, decor }: { active: PartId | null; open: boolean;
         >
           40 мм
         </text>
-        <text
-          {...show('facade', 1)}
-          x={near(W + 30, H / 2, FACADE_Z[0])[0].toFixed(1)}
-          y={near(W + 30, H / 2, FACADE_Z[0])[1].toFixed(1)}
-          fontSize={size.toFixed(1)}
-          fontWeight={600}
-          fill="var(--foreground)"
-          dominantBaseline="middle"
-          transform={`rotate(${AX_ANGLE.toFixed(1)} ${near(W + 30, H / 2, FACADE_Z[0])[0].toFixed(1)} ${near(W + 30, H / 2, FACADE_Z[0])[1].toFixed(1)})`}
-          style={{ ...show('facade', 1).style, fontFamily: 'var(--font-roboto), sans-serif' }}
-        >
-          16 / 18 мм
-        </text>
+        {/* Толщина фасада — только у коллекций, где каталог её называет */}
+        {look.facade.thickness && (
+          <text
+            {...show('facade', 1)}
+            x={near(W + 30, H / 2, facadeZ[0])[0].toFixed(1)}
+            y={near(W + 30, H / 2, facadeZ[0])[1].toFixed(1)}
+            fontSize={size.toFixed(1)}
+            fontWeight={600}
+            fill="var(--foreground)"
+            dominantBaseline="middle"
+            transform={`rotate(${AX_ANGLE.toFixed(1)} ${near(W + 30, H / 2, facadeZ[0])[0].toFixed(1)} ${near(W + 30, H / 2, facadeZ[0])[1].toFixed(1)})`}
+            style={{ ...show('facade', 1).style, fontFamily: 'var(--font-roboto), sans-serif' }}
+          >
+            {look.facade.thickness} мм
+          </text>
+        )}
       </g>
     </svg>
   )
@@ -286,14 +364,50 @@ function Tag({ at, on, d, title, children }: { at: Pt; on: boolean; d: number; t
   )
 }
 
+/* ── Выбор декора ───────────────────────────────────────────────────── */
+
+/** Кружок образца: цвет или уменьшенное фото, выбранный — с латунным кольцом */
+function Swatch({ name, on, onClick, hex, image }: { name: string; on: boolean; onClick: () => void; hex?: string; image?: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={name}
+      title={name}
+      onClick={onClick}
+      className={cn(
+        'relative size-8 shrink-0 overflow-hidden rounded-full border transition-transform hover:scale-110',
+        on ? 'border-foreground ring-2 ring-primary ring-offset-2 ring-offset-background' : 'border-border',
+      )}
+      style={hex ? { backgroundColor: hex } : undefined}
+    >
+      {image && <Image src={image} alt="" fill sizes="32px" className="object-cover" />}
+    </button>
+  )
+}
+
+function PickerLabel({ title, value }: { title: string; value: string }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      {title} · <span className="normal-case tracking-normal text-foreground">{value}</span>
+    </p>
+  )
+}
+
 /* ── Блок целиком ───────────────────────────────────────────────────── */
 
+const indexOf = <T extends { name: string }>(list: T[], name: string) => Math.max(0, list.findIndex((item) => item.name === name))
+
 export function ModuleLayers() {
+  const uid = useId().replace(/:/g, '')
   const rootRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<PartId | null>(null)
-  // Древесный декор по умолчанию: на нём каркас сразу отличается от белого фасада
-  const [decor, setDecor] = useState(() => Math.max(0, mdfFrameDecors.findIndex((item) => item.name === 'Дуб Каселла Натуральный')))
+  // Сразу видно три разных материала: древесный каркас, белый фасад, тёмный мрамор
+  const [decor, setDecor] = useState(() => indexOf(mdfFrameDecors, 'Дуб Каселла Натуральный'))
+  const [countertop, setCountertop] = useState(() => indexOf(slotexDecors, 'Ankara Marble'))
+  const [facadeSet, setFacadeSet] = useState(0)
+  const [facadeColor, setFacadeColor] = useState(0)
   // Автопоказ идёт, пока человек сам ничего не выбрал
   const [auto, setAuto] = useState(true)
   const [paused, setPaused] = useState(false)
@@ -334,16 +448,40 @@ export function ModuleLayers() {
     setActive(null)
     setOpen((value) => !value)
   }
-  const pickDecor = (index: number) => {
+  /** Выбор декора останавливает показ и выделяет свой слой */
+  const pick = (id: PartId, apply: () => void) => {
     setAuto(false)
-    setDecor(index)
     setOpen(true)
-    setActive('carcass')
+    setActive(id)
+    apply()
   }
 
-  const part = PARTS.find((entry) => entry.id === active)
+  const set = FACADES[facadeSet]
+  const color = set.colors[Math.min(facadeColor, set.colors.length - 1)]
+  const slotex = slotexDecors[countertop]
+  const look: Look = {
+    carcass: mdfFrameDecors[decor].hex,
+    countertop: slotex.image,
+    facade: { hex: color.hex, form: set.form, thickness: set.thickness },
+  }
+
+  const texts: Record<PartId, { title: string; text: string }> = {
+    top: {
+      title: 'Столешница SLOTEX',
+      text: 'Толщина 40 мм, свес спереди за каркасами — 30 мм, одинаковый для кухонь с ручками и с профилем LINE. Декоры однотонные, под камень и мрамор, под дерево.',
+    },
+    carcass: {
+      title: 'Каркас из МДФ',
+      text: 'Высота каркаса — 720 мм, глубина — 530 мм. Торцы деталей закрыты кромкой 0,4 мм на клее PUR со всех сторон. Декор — один из десяти.',
+    },
+    back: { title: 'Задняя стенка из ХДФ', text: 'Стенка ставится в паз каркаса.' },
+    facade: { title: `Фасад ${set.label}`, text: `${set.spec}.` },
+  }
+
+  const part = active && open ? texts[active] : null
   const running = auto && visible && !paused
   const focus = open && active !== null
+  const picker = active === 'top' || active === 'facade' ? active : 'carcass'
 
   return (
     <div
@@ -355,7 +493,7 @@ export function ModuleLayers() {
       <div className="lg:col-start-2">
         <p className="flyer-title text-2xl md:text-3xl">Каркасы из МДФ, а не ДСП</p>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Нижний модуль кухни по слоям. Нажмите на слой — он выделится на схеме, рядом встанут размеры из каталога.
+          Нижний модуль кухни по слоям. Нажмите на слой — он выделится на схеме, рядом встанут размеры из каталога, а ниже — его декоры.
         </p>
       </div>
 
@@ -399,7 +537,7 @@ export function ModuleLayers() {
       </div>
 
       <div className="paper relative aspect-[52/44] w-full overflow-hidden rounded-2xl border border-primary/35 lg:col-start-1 lg:row-span-5 lg:row-start-1 lg:self-start">
-        <Scheme active={active} open={open} decor={mdfFrameDecors[decor].hex} />
+        <Scheme active={active} open={open} look={look} uid={uid} />
         <Tag at={up(W * 0.35, TOP_Y[1], TOP_Z[1])} on={open && active === 'top'} d={1.1} title="Свес спереди">
           30 мм за каркас
         </Tag>
@@ -409,7 +547,7 @@ export function ModuleLayers() {
         <Tag at={far(W * 0.62, H - 40, BACK_Z[0])} on={open && active === 'back'} d={1} title="ХДФ">
           в паз каркаса
         </Tag>
-        <Tag at={near(W * 0.3, H * 0.32, FACADE_Z[0])} on={open && active === 'facade'} d={1.1} title="Кромка">
+        <Tag at={near(W * 0.3, H * 0.32, -20)} on={open && active === 'facade' && set.edge} d={1.1} title="Кромка">
           ПВХ 0,8 мм на PUR
         </Tag>
         <button
@@ -422,7 +560,7 @@ export function ModuleLayers() {
       </div>
 
       <div className="min-h-[7.5rem] rounded-2xl border border-border bg-card p-5 lg:col-start-2" aria-live="polite">
-        {part && open ? (
+        {part ? (
           <>
             <p className="flyer-title text-xl md:text-2xl">{part.title}</p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{part.text}</p>
@@ -434,27 +572,66 @@ export function ModuleLayers() {
         )}
       </div>
 
-      <div className="lg:col-start-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Декор каркаса · <span className="normal-case tracking-normal text-foreground">{mdfFrameDecors[decor].name}</span>
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Декор каркаса">
-          {mdfFrameDecors.map((item, index) => (
-            <button
-              key={item.name}
-              type="button"
-              aria-pressed={decor === index}
-              aria-label={item.name}
-              title={item.name}
-              onClick={() => pickDecor(index)}
-              className={cn(
-                'size-9 rounded-full border transition-transform hover:scale-110',
-                decor === index ? 'border-foreground ring-2 ring-primary ring-offset-2 ring-offset-background' : 'border-border',
-              )}
-              style={{ backgroundColor: item.hex }}
-            />
-          ))}
-        </div>
+      {/* Декоры выбранного слоя. Высота с запасом под самый длинный список — при смене слоя ничего не прыгает */}
+      <div className="min-h-[11.5rem] lg:col-start-2 lg:min-h-[6.5rem]">
+        {picker === 'top' && (
+          <>
+            <PickerLabel title="Декор столешницы" value={`${slotex.name} · ${slotex.meta}`} />
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Декор столешницы">
+              {slotexDecors.map((item, index) => (
+                <Swatch
+                  key={item.name}
+                  name={`${item.name}, ${item.meta}`}
+                  on={countertop === index}
+                  onClick={() => pick('top', () => setCountertop(index))}
+                  image={item.image}
+                />
+              ))}
+            </div>
+          </>
+        )}
+        {picker === 'facade' && (
+          <>
+            <PickerLabel title="Фасад" value={`${set.label} · ${color.name}`} />
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Коллекция фасадов">
+              {FACADES.map((entry, index) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-pressed={facadeSet === index}
+                  onClick={() =>
+                    pick('facade', () => {
+                      // У PVC-коллекций палитра общая: тот же цвет остаётся выбранным
+                      setFacadeSet(index)
+                      setFacadeColor(Math.max(0, entry.colors.findIndex((item) => item.name === color.name)))
+                    })
+                  }
+                  className={cn(
+                    'min-h-8 rounded-full border px-3 text-xs font-semibold transition-colors',
+                    facadeSet === index ? 'border-foreground bg-foreground text-background' : 'border-primary/35 bg-card text-foreground hover:border-primary',
+                  )}
+                >
+                  {entry.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Цвет фасада ${set.label}`}>
+              {set.colors.map((item, index) => (
+                <Swatch key={item.name} name={item.name} on={color.name === item.name} onClick={() => pick('facade', () => setFacadeColor(index))} hex={item.hex} />
+              ))}
+            </div>
+          </>
+        )}
+        {picker === 'carcass' && (
+          <>
+            <PickerLabel title="Декор каркаса" value={mdfFrameDecors[decor].name} />
+            <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Декор каркаса">
+              {mdfFrameDecors.map((item, index) => (
+                <Swatch key={item.name} name={item.name} on={decor === index} onClick={() => pick('carcass', () => setDecor(index))} hex={item.hex} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <Link

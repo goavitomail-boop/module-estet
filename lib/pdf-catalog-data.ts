@@ -166,6 +166,9 @@ export function facadeOptionsFor(name: string): FacadeOptions | null {
   return null
 }
 
+/** Декоры SLOTEX: название, артикул и фото образца — для схем, где нужен только этот список */
+export const slotexDecors: CatalogItem[] = slotexNames.map(([name, meta, slug]) => ({ name, meta, image: `/catalog/materials/slotex/${slug}.webp` }))
+
 const mdfBodyDecors = [
   'Белый',
   'Кашемир',
