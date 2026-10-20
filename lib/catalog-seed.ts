@@ -1,24 +1,28 @@
-import type { CatalogInput, CatalogSection } from '@/lib/db'
+import type { CatalogInput, CatalogRow, CatalogSection } from '@/lib/db'
 import { fillingHiddenSections, fillingSections } from '@/lib/pdf-catalog-data'
 
 /**
  * Стартовое наполнение разделов «Фасады» и «Столешницы».
  *
- * Позиции заведены с заглушкой вместо фотографии: страницы уже показывают
- * структуру и тексты, а снимки владелец заменит из панели — там фото сразу
- * приводится к нужному размеру.
+ * Фото — из каталога производства: у коллекций фасадов это обложка
+ * коллекции, у столешниц — образец декора. Где снимка в каталоге нет
+ * (витрина, профиль LINE), стоит заглушка; владелец заменит её из панели —
+ * там фото сразу приводится к нужному размеру.
  *
  * Названия и характеристики взяты из каталога производства, чтобы это был
  * рабочий черновик, а не «Позиция 1, Позиция 2».
  */
 export const CATALOG_PLACEHOLDER = '/images/catalog-placeholder.svg'
 
-type Draft = { group: string; name: string; meta: string; description?: string; slug?: string }
+type Draft = { group: string; name: string; meta: string; description?: string; slug?: string; image?: string }
+
+const cover = (slug: string) => `/catalog/collections/${slug}-hero.webp`
 
 const facades: Draft[] = [
   {
     group: 'Soft & Wood и Touch',
     name: 'SOFT & WOOD',
+    image: cover('soft-wood'),
     meta: 'Однотонные цвета и дуб · фасад 16 мм',
     description:
       'Пять однотонных цветов и пять декоров дуба — их можно собрать в одной композиции. Торцы закрыты кромкой ПВХ 0,8 мм на PUR со всех сторон.',
@@ -26,6 +30,7 @@ const facades: Draft[] = [
   {
     group: 'Soft & Wood и Touch',
     name: 'TOUCH',
+    image: cover('touch'),
     meta: 'Soft Touch · фасад 18 мм · 10 цветов',
     description:
       'Однотонные фасады с покрытием Soft Touch — поверхность приятна на ощупь. В палитре есть белый глянец. Торцы: кромка ПВХ 0,8 мм на PUR, тыльная сторона белая.',
@@ -33,24 +38,28 @@ const facades: Draft[] = [
   {
     group: 'Однотонные PVC',
     name: 'FLAT',
+    image: cover('flat'),
     meta: 'Однотонный PVC · 12 цветов',
     description: 'Лаконичная гладкая плоскость без рельефа и рамок. Тыльная сторона фасада белая.',
   },
   {
     group: 'Однотонные PVC',
     name: 'VELVET',
+    image: cover('velvet'),
     meta: 'Рельефный PVC · 12 цветов',
     description: 'Рельефная поверхность с вертикальными линиями — цвет выглядит глубже и объёмнее. Тыльная сторона белая.',
   },
   {
     group: 'Однотонные PVC',
     name: 'COMO',
+    image: cover('como'),
     meta: 'PVC с рамкой · 12 цветов',
     description: 'Фасад с рамкой и утопленной филёнкой — классическая форма в современных цветах. Тыльная сторона белая.',
   },
   {
     group: 'Однотонные PVC',
     name: 'GARDA',
+    image: cover('garda'),
     meta: 'PVC с тонкой рамкой · 12 цветов',
     description: 'Рамочный фасад с тонким профилем по периметру. Тыльная сторона белая.',
   },
@@ -88,7 +97,13 @@ const countertopDecors: Array<[name: string, article: string, slug: string, grou
   ['Carpenter Oak dark', '7122/Nw', 'carpenter-oak-dark', 'Дерево'],
 ]
 
-const countertops: Draft[] = countertopDecors.map(([name, article, slug, group]) => ({ group, name, slug, meta: `Артикул ${article}` }))
+const countertops: Draft[] = countertopDecors.map(([name, article, slug, group]) => ({
+  group,
+  name,
+  slug,
+  meta: `Артикул ${article}`,
+  image: `/catalog/materials/slotex/${slug}.webp`,
+}))
 
 function toInput(section: CatalogSection, drafts: Draft[]): CatalogInput[] {
   return drafts.map((draft, index) => ({
@@ -99,7 +114,7 @@ function toInput(section: CatalogSection, drafts: Draft[]): CatalogInput[] {
     name: draft.name,
     meta: draft.meta,
     description: draft.description ?? '',
-    image: CATALOG_PLACEHOLDER,
+    image: draft.image ?? CATALOG_PLACEHOLDER,
     published: true,
   }))
 }
@@ -108,6 +123,30 @@ export function catalogSeed(section: CatalogSection): CatalogInput[] {
   if (section === 'facades') return toInput(section, facades)
   if (section === 'countertops') return toInput(section, countertops)
   return fillingFromCatalog()
+}
+
+/**
+ * Что показывает страница «Фасады» или «Столешницы», пока раздел в панели
+ * пуст или база не ответила: тот же черновик, но только позиции с настоящим
+ * фото — заглушка на витрине выглядит недоделкой. Ссылки на эти страницы
+ * стоят в меню, поэтому 404 здесь быть не должно
+ */
+export function catalogDraftRows(section: 'facades' | 'countertops'): CatalogRow[] {
+  return catalogSeed(section)
+    .filter((item) => item.image !== CATALOG_PLACEHOLDER)
+    .map((item, position) => ({
+      id: item.id,
+      section: item.section,
+      group_title: item.groupTitle,
+      name: item.name,
+      meta: item.meta,
+      description: item.description,
+      image: item.image,
+      position,
+      published: true,
+      created_at: '',
+      updated_at: '',
+    }))
 }
 
 /**

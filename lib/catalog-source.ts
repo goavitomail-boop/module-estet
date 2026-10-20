@@ -5,6 +5,7 @@ import {
   type CatalogRow,
   type CatalogSection,
 } from '@/lib/db'
+import { catalogDraftRows } from '@/lib/catalog-seed'
 import type { CatalogGroup } from '@/lib/pdf-catalog-data'
 
 /**
@@ -24,6 +25,16 @@ export async function getCatalogSection(section: CatalogSection): Promise<Catalo
     console.error(`[Каталог] Не удалось прочитать раздел «${section}»: ${message}`)
     return []
   }
+}
+
+/**
+ * Позиции «Фасадов» и «Столешниц» для страницы: из панели, а пока там пусто
+ * или база не ответила — черновик из каталога производства (catalog-seed.ts).
+ * Страница есть всегда: на неё ведут меню и подвал
+ */
+export async function getCatalogSectionOrDraft(section: 'facades' | 'countertops'): Promise<CatalogRow[]> {
+  const items = await getCatalogSection(section)
+  return items.length > 0 ? items : catalogDraftRows(section)
 }
 
 /**

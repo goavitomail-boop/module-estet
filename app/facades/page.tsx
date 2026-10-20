@@ -1,12 +1,11 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import { ArrowUpRight } from 'lucide-react'
 import { CatalogCollectionPage } from '@/components/catalog-collection-page'
 import { FacadePalette } from '@/components/facade-palette'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { JsonLd } from '@/components/json-ld'
-import { getCatalogSection } from '@/lib/catalog-source'
+import { getCatalogSectionOrDraft } from '@/lib/catalog-source'
 import type { CatalogRow } from '@/lib/db'
 import { facadeOptionsFor } from '@/lib/pdf-catalog-data'
 import { breadcrumbJsonLd, pageMetadata, webPageJsonLd } from '@/lib/seo'
@@ -18,12 +17,15 @@ const path = '/facades'
 
 export const metadata = pageMetadata({ title, description, path })
 
-export default async function FacadesPage() {
-  const items = await getCatalogSection('facades')
+/**
+ * Страница собирается заранее, а раз в час — заново: если при сборке база
+ * не ответила и встал черновик, позиции из панели вернутся сами. Правки
+ * в панели обновляют страницу сразу (catalog-actions.ts)
+ */
+export const revalidate = 3600
 
-  // Пока раздел не наполнили из панели, страницы на сайте нет: пустая
-  // витрина хуже её отсутствия и для посетителя, и для поиска
-  if (items.length === 0) notFound()
+export default async function FacadesPage() {
+  const items = await getCatalogSectionOrDraft('facades')
 
   return (
     <>

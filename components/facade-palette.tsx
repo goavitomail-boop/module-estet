@@ -209,7 +209,7 @@ export function FacadePalette({
         {action}
       </div>
 
-      <div className="grid items-center gap-x-10 gap-y-5 @2xl:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]">
+      <div className="grid items-center gap-x-10 gap-y-5 @2xl:grid-cols-[minmax(0,34rem)_minmax(12rem,1fr)]">
         <div
           ref={stage}
           className="fp-stage"
@@ -255,7 +255,8 @@ export function FacadePalette({
           <span className="fp-rivet" style={{ zIndex: n + 1 }} aria-hidden="true" />
         </div>
 
-        <div className="flex items-end gap-5">
+        {/* Рядом с веером узко — образец над названием; шире — сбоку */}
+        <div className="flex items-end gap-5 @2xl:flex-col @2xl:items-start @4xl:flex-row @4xl:items-end">
           <div
             className={cn(
               'fp-tile relative shrink-0 overflow-hidden rounded-xl border border-border bg-muted',

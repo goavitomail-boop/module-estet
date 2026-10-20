@@ -1,10 +1,9 @@
-import { notFound } from 'next/navigation'
 import { CatalogCollectionPage } from '@/components/catalog-collection-page'
 import { CountertopSizes } from '@/components/countertop-sizes'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { JsonLd } from '@/components/json-ld'
-import { getCatalogSection } from '@/lib/catalog-source'
+import { getCatalogSectionOrDraft } from '@/lib/catalog-source'
 import { breadcrumbJsonLd, pageMetadata, webPageJsonLd } from '@/lib/seo'
 
 const title = 'Столешницы для кухни на заказ'
@@ -14,11 +13,15 @@ const path = '/countertops'
 
 export const metadata = pageMetadata({ title, description, path })
 
-export default async function CountertopsPage() {
-  const items = await getCatalogSection('countertops')
+/**
+ * Страница собирается заранее, а раз в час — заново: если при сборке база
+ * не ответила и встал черновик, позиции из панели вернутся сами. Правки
+ * в панели обновляют страницу сразу (catalog-actions.ts)
+ */
+export const revalidate = 3600
 
-  // Пока раздел не наполнили из панели, страницы на сайте нет
-  if (items.length === 0) notFound()
+export default async function CountertopsPage() {
+  const items = await getCatalogSectionOrDraft('countertops')
 
   return (
     <>
