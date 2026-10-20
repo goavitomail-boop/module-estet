@@ -280,6 +280,20 @@ export const wardrobeSpecs: WardrobeSpecGroup[] = [
   },
 ]
 
+/**
+ * Выдвижное наполнение шкафа — отбор из каталога поставщика наполнения:
+ * по одной позиции на задачу. Размеры из его каталога, фото из его
+ * фотобанка, подогнаны к 4:3 (public/catalog/storage/wardrobe).
+ */
+export const wardrobeStorage: CatalogItem[] = [
+  { name: 'Пантограф', meta: 'Лифт для одежды · секция 600–800 или 800–1000 мм', image: '/catalog/storage/wardrobe/lift-10002.webp' },
+  { name: 'Выдвижная брючница', meta: 'Секция 600, 700, 800 мм · перекладины с силиконом', image: '/catalog/storage/wardrobe/trousers-10756.webp' },
+  { name: 'Выдвижная корзина', meta: 'Секция 600, 700, 800, 900 мм', image: '/catalog/storage/wardrobe/basket-10056.webp' },
+  { name: 'Полка для обуви', meta: 'Секция 600, 700, 800 мм · площадка из нержавеющей стали', image: '/catalog/storage/wardrobe/shoes-10556.webp' },
+  { name: 'Выдвижное зеркало', meta: 'Высота 1200 мм · поворачивается для обзора', image: '/catalog/storage/wardrobe/mirror-10001.webp' },
+  { name: 'Гладильная доска', meta: 'Секция от 600 мм · складывается пополам', image: '/catalog/storage/wardrobe/ironing-10b01w.webp' },
+]
+
 /** Высоты шкафа: корпус 2200 или 2400 мм плюс антресоль 350–600 мм */
 export const wardrobeHeights = [
   { base: 2200, mezzanines: [350, 400, 450, 500, 550, 600] },

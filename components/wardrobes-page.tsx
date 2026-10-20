@@ -16,6 +16,7 @@ import {
   wardrobeSchemes,
   wardrobeSeries,
   wardrobeSpecs,
+  wardrobeStorage,
   type WardrobeCollection,
 } from '@/lib/wardrobes-data'
 
@@ -26,6 +27,7 @@ const sections = [
   ...wardrobeCollections.map((c) => ({ id: c.id, title: c.title })),
   { id: vetrine.id, title: 'Витрины' },
   { id: 'specs', title: 'Устройство' },
+  { id: 'storage', title: 'Наполнение' },
   { id: 'sizes', title: 'Размеры' },
 ]
 
@@ -267,9 +269,39 @@ export function WardrobesPage() {
           </div>
         </section>
 
+        {/* ── Выдвижное наполнение ── */}
+        <section id="storage" className="scroll-mt-24 border-t border-border py-14 md:py-20">
+          <div className="mb-8 grid gap-5 md:grid-cols-[0.75fr_1.25fr]">
+            <div>
+              <PlanLabel index={wardrobeCollections.length + 4} className="mb-3">
+                Системы хранения
+              </PlanLabel>
+              <h2 className="flyer-title text-4xl text-balance md:text-6xl">Выдвижное наполнение</h2>
+            </div>
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+              Лифт для одежды в высокой секции, брючница, корзина, полка для обуви, зеркало и гладильная доска —
+              выдвигаются, когда нужны, и прячутся за дверью шкафа. Лифт, брючница, корзина и полка — в коричневом
+              или сером жемчуге.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+            {wardrobeStorage.map((item) => (
+              <article key={item.name} className="overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/60">
+                <div className="relative aspect-[4/3] bg-muted">
+                  <Image src={item.image} alt={item.name} fill sizes="(max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                </div>
+                <div className="flex flex-col gap-1 p-4">
+                  <h3 className="font-sans text-base font-semibold text-foreground">{item.name}</h3>
+                  {item.meta && <p className="text-sm leading-relaxed text-muted-foreground">{item.meta}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         {/* ── Размеры ── */}
         <section id="sizes" className="scroll-mt-24 border-t border-border py-14 md:py-20">
-          <PlanLabel index={wardrobeCollections.length + 4} className="mb-3">
+          <PlanLabel index={wardrobeCollections.length + 5} className="mb-3">
             Высоты и секции
           </PlanLabel>
           <h2 className="flyer-title mb-4 text-4xl text-balance md:text-6xl">Размеры</h2>

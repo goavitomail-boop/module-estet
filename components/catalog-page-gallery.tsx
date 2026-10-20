@@ -11,6 +11,7 @@ import {
 import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { FacadePalette } from '@/components/facade-palette'
 import { PlanLabel, PlanTag } from '@/components/plan'
+import { cn } from '@/lib/utils'
 
 type Section = 'collections' | 'materials' | 'filling'
 
@@ -19,8 +20,13 @@ function isNormalized(image: string): boolean {
   return image.startsWith('/media/catalog/') || image.endsWith('/catalog-placeholder.svg')
 }
 
+/** Системы хранения сняты в шкафу целиком: кадр вертикальный, уже подогнан к 4:5 */
+function isStoragePhoto(image: string): boolean {
+  return image.startsWith('/catalog/storage/')
+}
+
 function ItemCard({ item, contain = false }: { item: CatalogItem; contain?: boolean }) {
-  const normalized = isNormalized(item.image)
+  const normalized = isNormalized(item.image) || isStoragePhoto(item.image)
   const isHandlePhoto = !normalized && item.image.startsWith('https://') && !item.meta?.startsWith('Конструктив')
   const isLightingPhoto = !normalized && item.image.includes('/lighting/')
   const isConstructive = !normalized && item.meta?.startsWith('Конструктив')
@@ -33,7 +39,9 @@ function ItemCard({ item, contain = false }: { item: CatalogItem; contain?: bool
             ? 'relative aspect-[3/2] overflow-hidden bg-muted'
             : isConstructive
               ? 'relative aspect-[4/3] overflow-hidden bg-background'
-              : 'relative aspect-[4/3] overflow-hidden bg-muted'
+              : isStoragePhoto(item.image)
+                ? 'relative aspect-[4/5] overflow-hidden bg-muted'
+                : 'relative aspect-[4/3] overflow-hidden bg-muted'
         }
       >
         <Image
@@ -107,7 +115,8 @@ function GroupBlock({ group, index }: { group: CatalogGroup; index: number }) {
         <FacadePalette items={group.items} shape={group.shape} shapeAlt={`Форма фасада ${group.title}`} note={group.paletteNote} />
       )}
       {group.items && group.layout !== 'swatches' && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        // Систем хранения шесть — в три колонки они встают двумя ровными рядами
+        <div className={cn('grid grid-cols-2 gap-4 md:grid-cols-3', !group.items.every((item) => isStoragePhoto(item.image)) && 'lg:grid-cols-4')}>
           {group.items.map((item, i) => (
             <ItemCard
               key={`${item.name}-${i}`}
@@ -151,7 +160,7 @@ export function CatalogPageGallery({
         : {
             eyebrow: 'Фурнитура и детали',
             title: 'Наполнение и фурнитура',
-            intro: 'LED-подсветка рабочей зоны, коллекции ручек всех типов и технический конструктив кухонных корпусов.',
+            intro: 'LED-подсветка рабочей зоны, выдвижные системы хранения, коллекции ручек всех типов и технический конструктив кухонных корпусов.',
             groups: groups ?? fillingSections,
           }
 

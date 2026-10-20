@@ -212,6 +212,20 @@ export const filling: CatalogGroup[] = [
   },
 ]
 
+/**
+ * Выдвижные системы хранения для кухни — отбор из каталога поставщика
+ * наполнения: по одной позиции на задачу. Размеры и материалы из его
+ * каталога, фото из его фотобанка, подогнаны к 4:3.
+ */
+export const kitchenStorage: CatalogItem[] = [
+  { name: 'Бутылочница 6033', meta: 'Фасад 150 мм · хромированная сталь', image: '/catalog/storage/kitchen/bottle-6033.webp' },
+  { name: 'Корзина-сушка 4646', meta: 'Фасад 600, 700, 800, 900 мм · поддон и лоток для приборов', image: '/catalog/storage/kitchen/dryer-4646.webp' },
+  { name: 'Волшебный уголок 6022', meta: 'Угловой модуль 800–900 мм · четыре корзины', image: '/catalog/storage/kitchen/corner-6022.webp' },
+  { name: 'Выдвижная колонна 4862-64', meta: 'Фасад 300, 400, 450 мм · высота 1850–2200 мм · 6 уровней', image: '/catalog/storage/kitchen/column-4862.webp' },
+  { name: 'Корзина в верхний модуль 6095', meta: 'Фасад 600–900 мм · стекло и алюминий · пневмомеханизм', image: '/catalog/storage/kitchen/upper-6095.webp' },
+  { name: 'Система утилизации 6156', meta: 'Фасад 300 мм · два отсека по 10 л', image: '/catalog/storage/kitchen/waste-6156.webp' },
+]
+
 export const handles: CatalogItem[] = [
   { name: 'MONTE белый', meta: 'Торцевая ручка · 16 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/4-0pwfMHWYzCyFMRSSzWe2Cgy29PWnX3.webp' },
   { name: 'MONTE золото сатиновое', meta: 'Торцевая ручка · 16 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/2-RUjin6aFX0DqaK9HmN7uWB12yVBA0Y.webp' },
@@ -280,6 +294,15 @@ export const technical: CatalogItem[] = [
  */
 export const fillingSections: CatalogGroup[] = [
   ...filling,
+  {
+    id: 'storage',
+    eyebrow: 'Системы хранения',
+    title: 'Корзины и колонны',
+    description:
+      'Выдвижные системы для нижних, верхних и угловых модулей: бутылочница на узкий фасад, сушка для посуды, «волшебный уголок», колонна для пенала, корзина, которая опускается из верхнего шкафа, и сортировка мусора.',
+    specs: ['Фасады от 150 до 900 мм', 'Хромированная сталь, стекло и алюминий'],
+    items: kitchenStorage,
+  },
   {
     id: 'handles-profile',
     eyebrow: 'Ручки',
