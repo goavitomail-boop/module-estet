@@ -1,0 +1,52 @@
+/*
+ * Шкаф изнутри (components/wardrobe-inside.tsx). Корень — .hs из scene-kit:
+ * оттуда кривые. Элементы выдвигаются и убираются переходами, а не
+ * анимациями: выбор меняется в любой момент, и уходящее едет обратно
+ * с того места, где его застали. Уход вдвое короче входа.
+ */
+
+.ws-move {
+  transition: transform 0.45s var(--leave);
+}
+.ws-move[data-open] {
+  transform: var(--pull);
+  transition: transform 0.9s var(--in-out) var(--d, 0s);
+}
+
+/* Подписи и бирки появляются, когда выдвинутое встало */
+.ws-show {
+  opacity: 0;
+  transition: opacity 0.2s var(--leave);
+}
+.ws-show[data-on] {
+  opacity: 1;
+  transition: opacity 0.4s var(--out) var(--d, 0s);
+}
+
+/* Размерная линия прочерчивается: у пути pathLength=1 */
+.ws-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.2s var(--leave);
+}
+.ws-line[data-on] {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.6s var(--in-out) var(--d, 0s);
+}
+
+/* Полоска автопоказа под кнопкой: её конец — следующий элемент */
+.ws-progress {
+  transform-origin: left;
+  animation: ws-progress var(--t) linear both;
+}
+@keyframes ws-progress {
+  from { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-move,
+  .ws-show,
+  .ws-line {
+    transition: none !important;
+  }
+}

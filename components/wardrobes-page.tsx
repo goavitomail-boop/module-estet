@@ -4,6 +4,7 @@ import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { FacadePalette } from '@/components/facade-palette'
 import { BookingPlanButton } from '@/components/footer-actions'
 import { CropMarks, PlanButton, PlanLabel, PlanTag } from '@/components/plan'
+import { WardrobeInside } from '@/components/wardrobe-inside'
 import { COMPANY } from '@/lib/company'
 import {
   vetrine,
@@ -293,6 +294,7 @@ export function WardrobesPage() {
             Корпус, наполнение, фурнитура
           </PlanLabel>
           <h2 className="flyer-title mb-10 text-4xl text-balance md:text-6xl">Что внутри шкафа</h2>
+          <WardrobeInside />
           <div className="grid gap-6 lg:grid-cols-2">
             {wardrobeSpecs.map((group) => (
               <article key={group.id} className="grid overflow-hidden rounded-2xl border border-border bg-card sm:grid-cols-[11rem_1fr]">

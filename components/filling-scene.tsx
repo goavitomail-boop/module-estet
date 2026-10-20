@@ -2,6 +2,10 @@
 
 import type { CSSProperties } from 'react'
 import { enter, POP } from '@/components/scene-kit'
+import {
+  AX_ANGLE, BRASS, FACE, FAINT, INK, INSIDE, K, P, SHADE, SHADE_DEEP,
+  fitTo, front, line, path, pullOut, shape, side, sweptOpening, top, type Pt, type Range,
+} from '@/components/axo'
 import './filling-scene.css'
 
 /**
@@ -11,20 +15,9 @@ import './filling-scene.css'
  * размер. Размеры на чертеже — только те, что есть в каталоге
  * (lib/filling-data.ts); сам рисунок — схема, а не замер конкретной кухни.
  *
- * Все размеры ниже — в миллиметрах. Ось x — вдоль фасадов слева направо,
- * y — вверх от пола, z — вглубь шкафа от плоскости фасадов.
+ * Проекция и грани — components/axo.ts, размеры там же — в миллиметрах.
  */
 
-/** Миллиметр на чертеже до вписывания в кадр */
-const K = 0.26
-/**
- * Фасады уходят вправо-вниз под 32° и укорочены, глубина — влево-вниз под 22°:
- * смотрим скорее сбоку, чтобы выехавший модуль было видно во всю глубину
- */
-const AX = { cos: Math.cos((32 * Math.PI) / 180) * 0.78, sin: Math.sin((32 * Math.PI) / 180) * 0.78 }
-const OUT = { cos: Math.cos((22 * Math.PI) / 180) * 0.95, sin: Math.sin((22 * Math.PI) / 180) * 0.95 }
-/** Наклон линий вдоль фасадов на экране, градусы — по нему пишется размер */
-const AX_ANGLE = (Math.atan2(AX.sin, AX.cos) * 180) / Math.PI
 const VIEW = { w: 400, h: 340 }
 
 const PLINTH = 100
@@ -36,9 +29,6 @@ const COUNTER_DEPTH = 600
 const PLINTH_SET = 50
 const GAP = 3
 
-type Pt = [number, number]
-type Range = [number, number]
-
 /**
  * Вход слоя в момент d сцены. На широком экране три карточки стоят в ряд
  * и входят в экран разом, поэтому каждая ждёт свою очередь — --lag
@@ -46,51 +36,9 @@ type Range = [number, number]
 const at = (d: number, options?: Parameters<typeof enter>[1]) =>
   ({ ...enter(d, options), '--d': `calc(var(--lag, 0s) + ${d}s)` }) as CSSProperties
 
-const P = (x: number, y: number, z: number): Pt => [K * (x * AX.cos + z * OUT.cos), K * (x * AX.sin - z * OUT.sin - y)]
-const fmt = ([a, b]: Pt) => `${a.toFixed(1)},${b.toFixed(1)}`
-const path = (pts: Pt[]) => 'M' + pts.map(fmt).join('L') + 'Z'
-const line = (pts: Pt[]) => 'M' + pts.map(fmt).join('L')
-
-/** Грани: фасадная (z = const), верхняя (y = const), правая боковая (x = const) */
-const front = (x: Range, y: Range, z: number) => path([P(x[0], y[0], z), P(x[1], y[0], z), P(x[1], y[1], z), P(x[0], y[1], z)])
-const top = (x: Range, y: number, z: Range) => path([P(x[0], y, z[0]), P(x[1], y, z[0]), P(x[1], y, z[1]), P(x[0], y, z[1])])
-const side = (x: number, y: Range, z: Range) => path([P(x, y[0], z[0]), P(x, y[0], z[1]), P(x, y[1], z[1]), P(x, y[1], z[0])])
-
-/** Выпуклая оболочка точек (монотонная цепь) */
-function hull(points: Pt[]): Pt[] {
-  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1])
-  const cross = (o: Pt, a: Pt, b: Pt) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-  const half = (list: Pt[]) => {
-    const out: Pt[] = []
-    for (const p of list) {
-      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop()
-      out.push(p)
-    }
-    out.pop()
-    return out
-  }
-  return [...half(pts), ...half([...pts].reverse())]
-}
-
-const INK = 'color-mix(in oklab, var(--foreground) 72%, transparent)'
-const FAINT = 'color-mix(in oklab, var(--foreground) 30%, transparent)'
-const BRASS = 'var(--primary)'
-const FACE = 'var(--card)'
-const SHADE = 'color-mix(in oklab, var(--foreground) 7%, var(--card))'
-const SHADE_DEEP = 'color-mix(in oklab, var(--foreground) 14%, var(--card))'
-const INSIDE = 'color-mix(in oklab, var(--foreground) 78%, var(--card))'
-
 /* ── Наполнение ─────────────────────────────────────────────────────── */
 
-/*
- * Бутылки, банки и флаконы рисуются прямо, без перекоса осей: круглое
- * со всех сторон выглядит одинаково. Ставится основанием в точку (x, y, z)
- */
-
-/** Силуэт по точкам [dx, dy] в миллиметрах от середины основания, dy — вверх */
-function shape(base: Pt, pts: Array<[number, number]>) {
-  return path(pts.map(([dx, dy]) => [base[0] + dx * K, base[1] - dy * K] as Pt))
-}
+/* Бутылки, банки и флаконы — силуэтами без перекоса (shape), основанием в точку (x, y, z) */
 
 function Bottle({ at: base, h, r = 32 }: { at: Pt; h: number; r?: number }) {
   const n = 10
@@ -175,11 +123,10 @@ function tierOutline(unit: Unit, y: number): Pt[] {
 /** Модуль в закрытом положении: рама, корзины с содержимым, фасад. Выдвигает его .fs-pull */
 function PullOut({ unit, d }: { unit: Unit; d: number }) {
   const [x0, x1] = unit.x
-  const shift = K * unit.travel
   const back = unit.depth - 30
   const railTop = unit.tiers.at(-1)!.y + 60
   return (
-    <g className="fs-pull" style={{ '--pull': `translate(${(-shift * OUT.cos).toFixed(1)}px, ${(shift * OUT.sin).toFixed(1)}px)`, '--d': `calc(var(--lag, 0s) + ${d}s)` } as CSSProperties}>
+    <g className="fs-pull" style={{ '--pull': pullOut(unit.travel), '--d': `calc(var(--lag, 0s) + ${d}s)` } as CSSProperties}>
       {/* Задние стойки рамы */}
       {[x0 + 14, x1 - 14].map((x) => (
         <path key={x} d={line([P(x, unit.tiers[0].y, back), P(x, railTop, back)])} stroke={BRASS} strokeWidth={1.4} />
@@ -247,8 +194,8 @@ export function FillingScene({ drawing, id }: { drawing: FillingDrawing; id: str
   // Проём, протянутый к зрителю на ход модуля: всё, что модуль показывает
   // перед фасадами, лежит в этой фигуре. Что глубже — видно только сквозь
   // сам проём, остальное закрывает корпус
-  const openingCorners: Pt[] = [P(unit.x[0], unit.y[0], 0), P(unit.x[1], unit.y[0], 0), P(unit.x[1], unit.y[1], 0), P(unit.x[0], unit.y[1], 0)]
-  const swept = hull([...openingCorners, ...[unit.x[0], unit.x[1]].flatMap((x) => [P(x, unit.y[0], -travel), P(x, unit.y[1], -travel)])])
+  const opening = front(unit.x, unit.y, 0)
+  const swept = sweptOpening(unit.x, unit.y, 0, travel)
 
   // Размер под выехавшим фасадом
   const dimY = unit.y[0] - 110
@@ -262,14 +209,8 @@ export function FillingScene({ drawing, id }: { drawing: FillingDrawing; id: str
     ...(drawing.size ? [P(unit.x[0], dimY - 150, -travel), P(unit.x[1], dimY - 150, -travel)] : []),
     ...(sink ? [P((px0 + px1) / 2, TOP + COUNTER + 300, 540)] : []),
   ]
-  const xs = extremes.map((p) => p[0])
-  const ys = extremes.map((p) => p[1])
-  const box = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) }
   // Сверху место под номер и переключатель «Схема / Фото»
-  const pad = { x: 16, top: 48, bottom: 12 }
-  const fit = Math.min((VIEW.w - pad.x * 2) / box.w, (VIEW.h - pad.top - pad.bottom) / box.h)
-  const tx = (VIEW.w - box.w * fit) / 2 - box.x * fit
-  const ty = pad.top + (VIEW.h - pad.top - pad.bottom - box.h * fit) / 2 - box.y * fit
+  const { fit, tx, ty } = fitTo(extremes, VIEW, { x: 16, top: 48, bottom: 12 })
   const clipId = `fs-clip-${id}`
 
   // Бирка у сифона — справа от трубы, чтобы её не закрывать
@@ -281,10 +222,10 @@ export function FillingScene({ drawing, id }: { drawing: FillingDrawing; id: str
       <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="absolute inset-0 size-full" aria-hidden="true">
         <defs>
           <clipPath id={clipId}>
-            <path d={path(swept)} />
+            <path d={swept} />
           </clipPath>
           <clipPath id={`${clipId}-opening`}>
-            <path d={path(openingCorners)} />
+            <path d={opening} />
           </clipPath>
         </defs>
         <g transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${fit.toFixed(3)})`}>
@@ -301,7 +242,7 @@ export function FillingScene({ drawing, id }: { drawing: FillingDrawing; id: str
             if (m.pull) {
               return (
                 <g key={i}>
-                  <path d={path(openingCorners)} fill={INSIDE} stroke={INK} strokeWidth={1} />
+                  <path d={opening} fill={INSIDE} stroke={INK} strokeWidth={1} />
                   {/* Сифон внутри шкафа: виден только сквозь проём */}
                   {unit.siphon && (
                     <g clipPath={`url(#${clipId}-opening)`}>
