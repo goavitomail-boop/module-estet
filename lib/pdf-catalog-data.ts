@@ -186,6 +186,7 @@ export const materials: CatalogGroup[] = [
     title: 'Корпус МДФ',
     description: 'Корпус — МДФ. Выберите один из десяти однотонных и древесных декоров.',
     specs: ['Торцы деталей закромлены кромкой со всех сторон 0,4 мм на PUR'],
+    layout: 'swatches',
     items: mdfBodyDecors,
   },
   { id:'line', eyebrow:'Система без ручек', title:'Профиль LINE', description:'Профили C и L для нижних баз.', specs:['Серебро','Чёрный','Латунь','Белый'] },
