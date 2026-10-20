@@ -1,0 +1,74 @@
+/*
+ * Раскрой и сборка в блоке «Почему мы» (components/factory-cut.tsx). Корень —
+ * .hs из scene-kit: оттуда кривые. Полёт деталей — анимации из компонента
+ * (Web Animations, только transform); здесь — линии реза, подписи и бирки.
+ * Время задаёт компонент через --d. До старта (data-play нет) всё стоит на
+ * первом кадре.
+ */
+
+/* Линия реза прочерчивается: у пути pathLength=1 */
+.fc-cut {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.fc[data-play] .fc-cut {
+  animation:
+    fc-cut 0.5s var(--in-out) var(--d) forwards,
+    fc-fade 0.3s var(--leave) var(--od) forwards;
+}
+@keyframes fc-cut {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Подписи деталей на листе: появляются с резом, гаснут, когда детали подняли */
+.fc-label {
+  opacity: 0;
+}
+.fc[data-play] .fc-label {
+  animation:
+    fc-show 0.4s var(--out) var(--d) forwards,
+    fc-fade 0.3s var(--leave) var(--od) forwards;
+}
+
+/* Остаток листа бледнеет, когда детали ушли */
+.fc[data-play] .fc-rest {
+  animation: fc-dim 0.6s var(--out) var(--d) forwards;
+}
+
+/* Размеры и бирки готового каркаса */
+.fc-done {
+  opacity: 0;
+}
+.fc[data-play] .fc-done {
+  animation: fc-show 0.5s var(--out) var(--d) forwards;
+}
+
+@keyframes fc-show {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fc-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes fc-dim {
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* Без движения: сразу собранный каркас с подписями */
+.fc[data-still] .fc-cut,
+.fc[data-still] .fc-label {
+  opacity: 0;
+}
+.fc[data-still] .fc-rest {
+  opacity: 0.35;
+}
+.fc[data-still] .fc-done {
+  opacity: 1;
+}

@@ -67,7 +67,7 @@ export const { P, AX_ANGLE, front, top, side, pullOut, sweptOpening } = axonomet
 export const wardrobeView = axonometry({ deg: 12, scale: 0.95 }, { deg: 35, scale: 0.5 })
 
 /**
- * Ракурс модуля кухни в разрезе (module-layers.tsx): спереди-справа, глубина
+ * Ракурс модуля кухни в разрезе и раскроя (module-layers.tsx, factory-cut.tsx): спереди-справа, глубина
  * длиннее, чем у шкафа, — слои разъезжаются вверх, к зрителю и назад, и
  * каждый должно быть видно
  */

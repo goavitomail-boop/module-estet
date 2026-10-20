@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import { Gem, ShieldCheck, Factory } from 'lucide-react'
+import { FactoryCut } from '@/components/factory-cut'
 import { PlanLabel, PlanTag } from '@/components/plan'
 
 const advantages = [
@@ -28,16 +28,10 @@ export function AdvantagesSection() {
     <section className="bg-background py-16 md:py-24">
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2 md:gap-14 md:px-6">
         <div className="relative order-2 md:order-1">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border-2 border-primary" data-anim="image">
-            <Image
-              src="/images/workshop.webp"
-              alt="Собственное производство: мастер собирает кухонный корпус в цехе"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-              data-anim="parallax"
-            />
-            <PlanTag title="Своя фабрика" value="Московская область" dot className="absolute bottom-4 left-4" />
+          {/* Своё производство одной сценой: раскрой листа и сборка каркаса */}
+          <div className="paper relative aspect-[4/3] overflow-hidden rounded-3xl border-2 border-primary" data-anim="image">
+            <FactoryCut />
+            <PlanTag title="Своя фабрика" value="Московская область" dot className="pointer-events-none absolute bottom-4 left-4" />
           </div>
           {/* Бейдж в стиле бирки: прямые углы, латунная рамка, зерно */}
           <div className="grain absolute -right-2 -top-5 rounded-md border border-primary/60 bg-foreground px-5 py-3 md:-right-6">
