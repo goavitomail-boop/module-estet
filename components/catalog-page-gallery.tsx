@@ -11,7 +11,7 @@ import {
 import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { FacadePalette } from '@/components/facade-palette'
 import { PlanLabel, PlanTag } from '@/components/plan'
-import { cn } from '@/lib/utils'
+import { StorageCard } from '@/components/storage-card'
 
 type Section = 'collections' | 'materials' | 'filling'
 
@@ -20,13 +20,13 @@ function isNormalized(image: string): boolean {
   return image.startsWith('/media/catalog/') || image.endsWith('/catalog-placeholder.svg')
 }
 
-/** Системы хранения сняты в шкафу целиком: кадр вертикальный, уже подогнан к 4:5 */
+/** Системы хранения — своя карточка (storage-card.tsx): вертикальный кадр и движение снимка */
 function isStoragePhoto(image: string): boolean {
   return image.startsWith('/catalog/storage/')
 }
 
 function ItemCard({ item, contain = false }: { item: CatalogItem; contain?: boolean }) {
-  const normalized = isNormalized(item.image) || isStoragePhoto(item.image)
+  const normalized = isNormalized(item.image)
   const isHandlePhoto = !normalized && item.image.startsWith('https://') && !item.meta?.startsWith('Конструктив')
   const isLightingPhoto = !normalized && item.image.includes('/lighting/')
   const isConstructive = !normalized && item.meta?.startsWith('Конструктив')
@@ -39,9 +39,7 @@ function ItemCard({ item, contain = false }: { item: CatalogItem; contain?: bool
             ? 'relative aspect-[3/2] overflow-hidden bg-muted'
             : isConstructive
               ? 'relative aspect-[4/3] overflow-hidden bg-background'
-              : isStoragePhoto(item.image)
-                ? 'relative aspect-[4/5] overflow-hidden bg-muted'
-                : 'relative aspect-[4/3] overflow-hidden bg-muted'
+              : 'relative aspect-[4/3] overflow-hidden bg-muted'
         }
       >
         <Image
@@ -114,9 +112,16 @@ function GroupBlock({ group, index }: { group: CatalogGroup; index: number }) {
       {group.items && group.layout === 'swatches' && (
         <FacadePalette items={group.items} shape={group.shape} shapeAlt={`Форма фасада ${group.title}`} note={group.paletteNote} />
       )}
-      {group.items && group.layout !== 'swatches' && (
+      {group.items && group.layout !== 'swatches' && group.items.every((item) => isStoragePhoto(item.image)) && (
         // Систем хранения шесть — в три колонки они встают двумя ровными рядами
-        <div className={cn('grid grid-cols-2 gap-4 md:grid-cols-3', !group.items.every((item) => isStoragePhoto(item.image)) && 'lg:grid-cols-4')}>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3" data-anim="drawers">
+          {group.items.map((item, i) => (
+            <StorageCard key={`${item.name}-${i}`} item={item} tall sizes="(max-width: 768px) 50vw, 33vw" />
+          ))}
+        </div>
+      )}
+      {group.items && group.layout !== 'swatches' && !group.items.every((item) => isStoragePhoto(item.image)) && (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {group.items.map((item, i) => (
             <ItemCard
               key={`${item.name}-${i}`}

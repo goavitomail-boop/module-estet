@@ -4,6 +4,7 @@ import { FacadePalette } from '@/components/facade-palette'
 import { WardrobesHero } from '@/components/wardrobes-hero'
 import { BookingPlanButton } from '@/components/footer-actions'
 import { CropMarks, PlanButton, PlanLabel, PlanTag } from '@/components/plan'
+import { StorageCard } from '@/components/storage-card'
 import { WardrobeHeights } from '@/components/wardrobe-heights'
 import { WardrobeInside } from '@/components/wardrobe-inside'
 import { COMPANY } from '@/lib/company'
@@ -284,17 +285,9 @@ export function WardrobesPage() {
               или сером жемчуге.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3" data-anim="drawers">
             {wardrobeStorage.map((item) => (
-              <article key={item.name} className="overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/60">
-                <div className="relative aspect-[4/3] bg-muted">
-                  <Image src={item.image} alt={item.name} fill sizes="(max-width: 1024px) 50vw, 33vw" className="object-cover" />
-                </div>
-                <div className="flex flex-col gap-1 p-4">
-                  <h3 className="font-sans text-base font-semibold text-foreground">{item.name}</h3>
-                  {item.meta && <p className="text-sm leading-relaxed text-muted-foreground">{item.meta}</p>}
-                </div>
-              </article>
+              <StorageCard key={item.name} item={item} sizes="(max-width: 1024px) 50vw, 33vw" />
             ))}
           </div>
         </section>
