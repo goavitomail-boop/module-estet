@@ -73,3 +73,10 @@
 .ss svg .hs-draw-y {
   transform-box: fill-box;
 }
+
+/* Маленькие карточки квиза: чертёж там ужат в несколько раз, и линии
+   толщиной в единицу чертежа стали бы тоньше волоса. Здесь толщина —
+   в пикселях экрана, как задана */
+.ss-card svg :is(path, line, circle, ellipse, rect) {
+  vector-effect: non-scaling-stroke;
+}

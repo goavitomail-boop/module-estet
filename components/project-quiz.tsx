@@ -26,6 +26,10 @@ import { PlanLabel } from '@/components/plan'
 import { AutoHeight, EASE_OUT, FormMotion, itemVariants, maskVariants, staggerVariants, stepVariants } from '@/components/form-motion'
 import { enter } from '@/components/scene-kit'
 import { CheckBadge, NextSteps, SummaryCard } from '@/components/thanks-scene'
+import {
+  FRAMES, KITCHEN_APPLIANCES, KITCHEN_FEATURES, KITCHEN_SIZE_OPTIONS, KITCHEN_STORAGE, LAYOUT_OPTIONS, MOVED_TO_STORAGE,
+  RUN_MARKS, SIZE_UNKNOWN, SchemeChoices, WARDROBE_FEATURES, WARDROBE_STORAGE, WARDROBE_TYPE_OPTIONS, WARDROBE_WIDTH_OPTIONS,
+} from '@/components/quiz-schemes'
 import { COMPANY } from '@/lib/company'
 
 /**
@@ -40,7 +44,12 @@ import { COMPANY } from '@/lib/company'
  * Ключи ответов совпадают с прежним подробным брифом: карточка заявки
  * в панели (lib/admin-format.ts) и сообщение в Max (lib/max-ui.ts) читают
  * их без изменений. Значения сроков, бюджета, стиля и планировки тоже
- * прежние — по ним строятся графики в аналитике.
+ * прежние — по ним строятся графики в аналитике. Новый ключ storage —
+ * системы хранения из каталога; панель и Max показывают его отдельной
+ * строкой.
+ *
+ * Планировка, размер, пожелания, тип, ширина и наполнение шкафа —
+ * карточками со схемой в каркасе (quiz-schemes.tsx).
  *
  * Заявка на шкаф уходит тем же типом 'project' с details.product='wardrobe'
  * и answers.projectType='Шкаф': так её видно в Max и в карточке, а графики
@@ -66,6 +75,8 @@ type Answers = {
   style: string
   appliances: string[]
   features: string[]
+  /** Системы хранения из каталога — отдельным списком, карточками со схемой */
+  storage: string[]
   timeline: string
   budget: string
   name: string
@@ -82,7 +93,7 @@ type UploadedFile = { id: string; file: File; url?: string }
 const initialAnswers: Answers = {
   room: '', wardrobeType: '', wardrobeWidth: '', wardrobeWidthCm: '', facades: '',
   layout: '', kitchenSize: '', wallA: '', wallB: '', wallC: '', roomArea: '', ceilingHeight: '', noMeasurements: false,
-  style: '', appliances: [], features: [], timeline: '', budget: '',
+  style: '', appliances: [], features: [], storage: [], timeline: '', budget: '',
   name: '', phone: '', contactMethod: '', contactTime: '', location: '', comment: '', consent: false,
 }
 
@@ -116,25 +127,14 @@ type ChoiceOption = string | {
   alt: string
 }
 
-const visualOptions = (image: string, items: Array<[string, string]>): ChoiceOption[] =>
-  items.map(([label, alt], imageIndex) => ({ label, image, imageIndex, imageCount: items.length, alt }))
-
-const SIZE_UNKNOWN = 'Не знаю — нужен замер'
 const CONTACT_MAX = 'Написать в Max'
-/** Пожелания одним списком, а в заявку раскладываются по прежним полям: техника и наполнение */
-const applianceWishes = ['Посудомоечная машина', 'Встроенный холодильник', 'Духовой шкаф на уровне глаз', 'Встроенная СВЧ']
-const featureWishes = ['Остров или барная стойка', 'Подсветка рабочей зоны', 'Высокие пеналы для хранения', 'Сортировка мусора']
+/**
+ * Пожелания — карточками со схемой (quiz-schemes.tsx), а в заявку
+ * раскладываются по прежним полям: техника, дополнительно и системы хранения
+ */
+const applianceWishes = KITCHEN_APPLIANCES.map((option) => option.label)
 
 const optionSets = {
-  layout: visualOptions('/quiz-options/layouts.svg', [
-    ['Прямая', 'Схема прямой кухни вдоль одной стены'],
-    ['Угловая', 'Схема угловой Г-образной кухни'],
-    ['П-образная', 'Схема П-образной кухни по трём стенам'],
-    ['С островом', 'Схема линейной кухни с отдельным островом'],
-    ['Параллельная', 'Схема кухни в два параллельных ряда'],
-    ['Пока не знаю', 'Схема с вопросительным знаком — нужна помощь с выбором'],
-  ]),
-  kitchenSize: ['Небольшая — до 3 м', 'Средняя — 3–4 м', 'Большая — больше 4 м', SIZE_UNKNOWN],
   style: [
     { label: 'Современный', image: '/quiz-options/style-modern.webp', imageIndex: 0, imageCount: 1, alt: 'Современная кухня с лаконичными фасадами и островом' },
     { label: 'Минимализм', image: '/quiz-options/style-minimal.webp', imageIndex: 0, imageCount: 1, alt: 'Минималистичная кухня со скрытыми ручками' },
@@ -143,7 +143,6 @@ const optionSets = {
     { label: 'Скандинавский', image: '/quiz-options/style-scandinavian.webp', imageIndex: 0, imageCount: 1, alt: 'Светлая скандинавская кухня с натуральным деревом' },
     { label: 'Нужна рекомендация', image: '/quiz-options/style-recommendation.webp', imageIndex: 0, imageCount: 1, alt: 'Консультация с дизайнером по выбору стиля кухни' },
   ] satisfies ChoiceOption[],
-  wishes: [...applianceWishes, ...featureWishes],
   timeline: ['Как можно скорее', '1–3 месяца', '3–6 месяцев', 'Более 6 месяцев', 'Пока изучаю варианты'],
   budget: ['До 500 000 ₽', '500 000–800 000 ₽', '800 000–1 200 000 ₽', 'От 1 200 000 ₽', 'Нужна консультация'],
   contactMethod: ['Позвонить', CONTACT_MAX],
@@ -161,8 +160,6 @@ const wardrobeOptions = {
     photo('Детская или кабинет', '/quiz-options/wardrobe-room-kids.webp', 'Шкаф с полками и ящиками'),
     photo('Пока не знаю', '/quiz-options/style-recommendation.webp', 'Консультация с дизайнером'),
   ],
-  wardrobeType: ['Распашной шкаф', 'Шкаф до потолка с антресолями', 'Встроенный в нишу', 'Гардеробная система', 'Стеллаж или витрина', 'Нужна рекомендация'],
-  wardrobeWidth: ['До 1,5 м', '1,5–2,5 м', '2,5–3,5 м', 'Больше 3,5 м', SIZE_UNKNOWN],
   facades: [
     photo('Soft & Wood — дерево', '/quiz-options/wardrobe-facade-soft-wood.webp', 'Шкаф с фасадами под дуб'),
     photo('Touch — Soft Touch', '/quiz-options/wardrobe-facade-touch.webp', 'Шкаф с однотонными фасадами Soft Touch'),
@@ -171,7 +168,6 @@ const wardrobeOptions = {
     photo('Flat & Velvet — гладкие или рифлёные', '/quiz-options/wardrobe-facade-flat-velvet.webp', 'Шкаф с гладкими фасадами и витриной'),
     photo('Нужна рекомендация', '/quiz-options/style-recommendation.webp', 'Консультация с дизайнером по выбору фасадов'),
   ],
-  features: ['Штанги для одежды', 'Выдвижные ящики', 'Полки', 'Брючница', 'Сетка для обуви', 'Стеклянная витрина', 'LED-подсветка', 'Антресоли до потолка'],
   budget: ['До 150 000 ₽', '150 000–300 000 ₽', '300 000–500 000 ₽', 'От 500 000 ₽', 'Нужна консультация'],
 }
 
@@ -200,7 +196,7 @@ function summaryRows(answers: Answers, isKitchen: boolean, files: number): Array
         ['Планировка', answers.layout],
         ['Размер', walls.length ? `${walls.join(' × ')} см` : answers.roomArea.trim() ? `${answers.roomArea.trim()} м²` : sizeShort(answers.kitchenSize)],
         ['Стиль', answers.style],
-        ['Пожелания', listShort([...answers.appliances, ...answers.features])],
+        ['Пожелания', listShort([...answers.appliances, ...answers.features, ...answers.storage])],
         ['Сроки', answers.timeline],
         ['Бюджет', answers.budget],
       ]
@@ -209,7 +205,7 @@ function summaryRows(answers: Answers, isKitchen: boolean, files: number): Array
         ['Тип', answers.wardrobeType],
         ['Ширина', answers.wardrobeWidthCm.trim() ? `${answers.wardrobeWidthCm.trim()} см` : sizeShort(answers.wardrobeWidth)],
         ['Фасады', answers.facades],
-        ['Наполнение', listShort(answers.features)],
+        ['Наполнение', listShort([...answers.features, ...answers.storage])],
         ['Сроки', answers.timeline],
         ['Бюджет', answers.budget],
       ]
@@ -235,6 +231,17 @@ function progressLabel(step: number, questions: number): string {
   if (step === 0) return `${questions} коротких вопросов · около минуты`
   if (left === 1) return 'Последний вопрос'
   return `Осталось ${left} ${plural(left, 'вопрос', 'вопроса', 'вопросов')} · ~${left * 10} сек`
+}
+
+/** Подборка вариантов внутри шага: заголовок и, если нужно, подсказка */
+function WishGroup({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <div>
+      <h2 className="font-bold">{title}</h2>
+      {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
+      <div className="mt-3">{children}</div>
+    </div>
+  )
 }
 
 function ChoiceGrid({ options, value, onChange, multiple = false }: { options: ChoiceOption[]; value: string | string[]; onChange: (value: string) => void; multiple?: boolean }) {
@@ -407,7 +414,14 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
     if (raw) {
       try {
         const draft = JSON.parse(raw) as { answers: Answers; step: number }
-        setAnswers({ ...initialAnswers, ...draft.answers })
+        const restoredAnswers = { ...initialAnswers, ...draft.answers }
+        // Пункты, переехавшие в системы хранения, — туда же и в черновике
+        const moved = restoredAnswers.features.filter((item) => item in MOVED_TO_STORAGE)
+        if (moved.length) {
+          restoredAnswers.features = restoredAnswers.features.filter((item) => !(item in MOVED_TO_STORAGE))
+          restoredAnswers.storage = [...new Set([...restoredAnswers.storage, ...moved.map((item) => MOVED_TO_STORAGE[item])])]
+        }
+        setAnswers(restoredAnswers)
         setStep(Math.min(draft.step, steps.length - 1))
         // Черновик пишется сразу при открытии, даже пустой. Сообщение
         // показываем, только если восстанавливать действительно есть что
@@ -473,17 +487,18 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
     if (!exactOpen) answerAndGo('wardrobeWidth', value)
   }
 
-  const toggleWish = (option: string) => {
-    const key = isKitchen && applianceWishes.includes(option) ? 'appliances' : 'features'
+  const toggleIn = (key: 'appliances' | 'features' | 'storage', option: string) =>
     update(key, answers[key].includes(option) ? answers[key].filter((item) => item !== option) : [...answers[key], option])
-  }
+
+  const toggleWish = (option: string) => toggleIn(isKitchen && applianceWishes.includes(option) ? 'appliances' : 'features', option)
+  const toggleStorage = (option: string) => toggleIn('storage', option)
 
   const answered = isKitchen
     ? [
         Boolean(answers.layout),
         Boolean(answers.kitchenSize || answers.wallA || answers.roomArea),
         Boolean(answers.style),
-        answers.appliances.length + answers.features.length > 0,
+        answers.appliances.length + answers.features.length + answers.storage.length > 0,
         Boolean(answers.timeline || answers.budget),
       ]
     : [
@@ -491,7 +506,7 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
         Boolean(answers.wardrobeType),
         Boolean(answers.wardrobeWidth || answers.wardrobeWidthCm),
         Boolean(answers.facades),
-        answers.features.length > 0,
+        answers.features.length + answers.storage.length > 0,
         Boolean(answers.timeline || answers.budget),
       ]
 
@@ -735,11 +750,11 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
           </div>
           {steps[step].hint && <m.p variants={itemVariants} className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{steps[step].hint}</m.p>}
           <m.div variants={itemVariants} className="mt-8">
-            {isKitchen && step === 0 && <ChoiceGrid options={optionSets.layout} value={answers.layout} onChange={(value) => answerAndGo('layout', value)} />}
+            {isKitchen && step === 0 && <SchemeChoices id="layout" mode="appear" frame={FRAMES.plan} options={LAYOUT_OPTIONS} value={answers.layout} onChange={(value) => answerAndGo('layout', value)} />}
 
             {isKitchen && step === 1 && (
               <div className="flex flex-col gap-5">
-                <ChoiceGrid options={optionSets.kitchenSize} value={answers.kitchenSize} onChange={chooseSize} />
+                <SchemeChoices id="size" mode="appear" wide frame={FRAMES.run} marks={RUN_MARKS} options={KITCHEN_SIZE_OPTIONS} value={answers.kitchenSize} onChange={chooseSize} />
                 <Optional open={exactOpen} onToggle={() => setExactOpen((open) => !open)} label="Знаете точные размеры? Укажите — по желанию">
                   <div className="flex flex-col gap-4">
                     <div className="grid gap-4 sm:grid-cols-3">
@@ -758,15 +773,27 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
 
             {isKitchen && step === 2 && <ChoiceGrid options={optionSets.style} value={answers.style} onChange={(value) => answerAndGo('style', value)} />}
 
-            {isKitchen && step === 3 && <ChoiceGrid multiple options={optionSets.wishes} value={[...answers.appliances, ...answers.features]} onChange={toggleWish} />}
+            {isKitchen && step === 3 && (
+              <div className="flex flex-col gap-8">
+                <WishGroup title="Техника">
+                  <SchemeChoices id="appliances" mode="toggle" wide options={KITCHEN_APPLIANCES} value={answers.appliances} onChange={toggleWish} />
+                </WishGroup>
+                <WishGroup title="Удобства">
+                  <SchemeChoices id="features" mode="toggle" options={KITCHEN_FEATURES} value={answers.features} onChange={toggleWish} />
+                </WishGroup>
+                <WishGroup title="Системы хранения" hint="Из нашего каталога. Отметьте — и схема покажет, как это работает.">
+                  <SchemeChoices id="storage" mode="toggle" options={KITCHEN_STORAGE} value={answers.storage} onChange={toggleStorage} />
+                </WishGroup>
+              </div>
+            )}
 
             {!isKitchen && step === 0 && <ChoiceGrid options={wardrobeOptions.room} value={answers.room} onChange={(value) => answerAndGo('room', value)} />}
 
-            {!isKitchen && step === 1 && <ChoiceGrid options={wardrobeOptions.wardrobeType} value={answers.wardrobeType} onChange={(value) => answerAndGo('wardrobeType', value)} />}
+            {!isKitchen && step === 1 && <SchemeChoices id="type" mode="appear" options={WARDROBE_TYPE_OPTIONS} value={answers.wardrobeType} onChange={(value) => answerAndGo('wardrobeType', value)} />}
 
             {!isKitchen && step === 2 && (
               <div className="flex flex-col gap-5">
-                <ChoiceGrid options={wardrobeOptions.wardrobeWidth} value={answers.wardrobeWidth} onChange={chooseWidth} />
+                <SchemeChoices id="width" mode="appear" frame={FRAMES.wide} marks={RUN_MARKS} options={WARDROBE_WIDTH_OPTIONS} value={answers.wardrobeWidth} onChange={chooseWidth} />
                 <Optional open={exactOpen} onToggle={() => setExactOpen((open) => !open)} label="Знаете точные размеры? Укажите — по желанию">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Ширина стены под шкаф, см" value={answers.wardrobeWidthCm} onChange={(v) => update('wardrobeWidthCm', v)} placeholder="Например, 240" inputMode="decimal" />
@@ -778,7 +805,16 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
 
             {!isKitchen && step === 3 && <ChoiceGrid options={wardrobeOptions.facades} value={answers.facades} onChange={(value) => answerAndGo('facades', value)} />}
 
-            {!isKitchen && step === 4 && <ChoiceGrid multiple options={wardrobeOptions.features} value={answers.features} onChange={toggleWish} />}
+            {!isKitchen && step === 4 && (
+              <div className="flex flex-col gap-8">
+                <WishGroup title="Основное">
+                  <SchemeChoices id="filling" mode="toggle" options={WARDROBE_FEATURES} value={answers.features} onChange={toggleWish} />
+                </WishGroup>
+                <WishGroup title="Системы хранения" hint="Из нашего каталога. Отметьте — и схема покажет, как это работает.">
+                  <SchemeChoices id="storage" mode="toggle" options={WARDROBE_STORAGE} value={answers.storage} onChange={toggleStorage} />
+                </WishGroup>
+              </div>
+            )}
 
             {step === TIMELINE_STEP && (
               <div className="flex flex-col gap-8">

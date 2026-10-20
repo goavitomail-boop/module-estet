@@ -22,13 +22,14 @@ const deg = (value: number) => (value * Math.PI) / 180
 
 /**
  * Ракурс: под каким углом и насколько укороченными уходят на экране фасады
- * (вправо-вниз) и глубина (к зрителю — влево-вниз). Возвращает проекцию
- * точки и грани в этом ракурсе
+ * (вправо-вниз) и глубина (к зрителю — влево-вниз). up — во сколько раз
+ * укорочена вертикаль: меньше единицы — смотрим сильнее сверху, как на план
+ * комнаты. Возвращает проекцию точки и грани в этом ракурсе
  */
-export function axonometry(axis: { deg: number; scale: number }, depth: { deg: number; scale: number }) {
+export function axonometry(axis: { deg: number; scale: number }, depth: { deg: number; scale: number }, up = 1) {
   const AX = { cos: Math.cos(deg(axis.deg)) * axis.scale, sin: Math.sin(deg(axis.deg)) * axis.scale }
   const OUT = { cos: Math.cos(deg(depth.deg)) * depth.scale, sin: Math.sin(deg(depth.deg)) * depth.scale }
-  const P = (x: number, y: number, z: number): Pt => [K * (x * AX.cos + z * OUT.cos), K * (x * AX.sin - z * OUT.sin - y)]
+  const P = (x: number, y: number, z: number): Pt => [K * (x * AX.cos + z * OUT.cos), K * (x * AX.sin - z * OUT.sin - y * up)]
   const face = (pts: Array<[number, number, number]>) => path(pts.map(([x, y, z]) => P(x, y, z)))
   return {
     P,

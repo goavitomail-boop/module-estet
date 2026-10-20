@@ -145,13 +145,51 @@ export function swept(v: View, corners: V3[], moves: V3[]) {
    ══════════════════════════════════════════════════════════════════════ */
 
 /** Брус или плита: правый бок, верх и лицо */
-export function Block({ v, x, y, z, fill = FACE, stroke = INK, sw = 0.8 }: { v: View; x: Range; y: Range; z: Range; fill?: string; stroke?: string; sw?: number }) {
+export function Block({ v, x, y, z, fill = FACE, top = SHADE, side = SHADE_DEEP, stroke = INK, sw = 0.8 }: {
+  v: View; x: Range; y: Range; z: Range; fill?: string; top?: string; side?: string; stroke?: string; sw?: number
+}) {
   return (
     <g stroke={stroke} strokeWidth={sw} strokeLinejoin="round">
-      <path d={v.side(x[1], y, z)} fill={SHADE_DEEP} />
-      <path d={v.top(x, y[1], z)} fill={SHADE} />
+      <path d={v.side(x[1], y, z)} fill={side} />
+      <path d={v.top(x, y[1], z)} fill={top} />
       <path d={v.front(x, y, z[0])} fill={fill} />
     </g>
+  )
+}
+
+/** Деталь опускается на место сверху и проявляется: модуль встаёт в ряд */
+export function Drop({ v, d, h = 450, t = 0.7, children }: { v: View; d: number; h?: number; t?: number; children: ReactNode }) {
+  return (
+    <Move from={shift(v, [0, h, 0])} to="none" d={d} t={t} ease="var(--spring)">
+      <g className="hs-fade" style={{ '--d': lagged(d), '--t': '0.3s' } as CSSProperties}>{children}</g>
+    </Move>
+  )
+}
+
+/** Окружность в горизонтальной плоскости y: конфорка, поддон, тарелка СВЧ */
+export function ring(v: View, cx: number, y: number, cz: number, r: number) {
+  return path(Array.from({ length: 28 }, (_, i) => {
+    const a = (i / 28) * Math.PI * 2
+    return v.P(cx + r * Math.cos(a), y, cz + r * Math.sin(a))
+  }))
+}
+
+/** Знак вопроса — вариант «пока не знаю»: выскакивает с пружинкой; size — в единицах чертежа */
+export function Question({ p, size, d }: { p: Pt; size: number; d: number }) {
+  return (
+    <text
+      className="hs-in"
+      style={{ ...at(d, POP), fontFamily: 'var(--font-roboto), sans-serif' }}
+      x={p[0].toFixed(1)}
+      y={p[1].toFixed(1)}
+      fontSize={size}
+      fontWeight={700}
+      textAnchor="middle"
+      dominantBaseline="central"
+      fill={BRASS}
+    >
+      ?
+    </text>
   )
 }
 
@@ -380,15 +418,24 @@ export function sectionExtremes(v: View, inner: Range, topY: number): Pt[] {
    Чертёж
    ══════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Метки чертежа в единицах кадра: половина засечки и кегль числа. По
+ * умолчанию засечка — 5 единиц чертежа: в больших схемах масштаб около
+ * единицы. В маленьких карточках квиза чертёж ужат в разы, и засечки
+ * задаются в единицах кадра, иначе они пропадают
+ */
+export type Marks = { tick: number; label: number }
+
 /** Размер: выноски, линия от середины в обе стороны, засечки, число вдоль линии */
-export function DimLine({ v, dim, fit }: { v: View; dim: Dim; fit: number }) {
+export function DimLine({ v, dim, fit, marks }: { v: View; dim: Dim; fit: number; marks?: Marks }) {
   const a = v.P(...dim.a)
   const b = v.P(...dim.b)
   const mid: Pt = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
   const angle = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI
   const upright = angle > 90 || angle < -90 ? angle + 180 : angle
   const ext = dim.ext ?? [0, 0, 0]
-  const size = 13 / fit
+  const size = (marks?.label ?? 13) / fit
+  const tick = marks ? marks.tick / fit : 5
   return (
     <g>
       {dim.ext && (
@@ -403,7 +450,7 @@ export function DimLine({ v, dim, fit }: { v: View; dim: Dim; fit: number }) {
       ))}
       <g className="hs-in" style={at(dim.d + 0.55, { t: 0.4, from: 'scale(0.4)', ease: 'var(--pop)' })}>
         {[a, b].map(([x, y]) => (
-          <path key={x} d={`M${(x - 5).toFixed(1)},${(y + 5).toFixed(1)}L${(x + 5).toFixed(1)},${(y - 5).toFixed(1)}`} stroke={BRASS} strokeWidth={1.4} />
+          <path key={x} d={`M${(x - tick).toFixed(1)},${(y + tick).toFixed(1)}L${(x + tick).toFixed(1)},${(y - tick).toFixed(1)}`} stroke={BRASS} strokeWidth={1.4} />
         ))}
       </g>
       <g transform={`translate(${mid[0].toFixed(1)} ${mid[1].toFixed(1)}) rotate(${upright.toFixed(1)})`}>
@@ -429,11 +476,12 @@ export function DimLine({ v, dim, fit }: { v: View; dim: Dim; fit: number }) {
  * запасом под подписи); сверху место под номер и кнопки. Бирки — HTML
  * поверх, в процентах кадра
  */
-export function SchemeSvg({ built, id, view, pad = { x: 18, top: 50, bottom: 16 } }: {
+export function SchemeSvg({ built, id, view, pad = { x: 18, top: 50, bottom: 16 }, marks }: {
   built: Built
   id: string
   view: { w: number; h: number }
   pad?: { x: number; top: number; bottom: number }
+  marks?: Marks
 }) {
   const v = built.view
   const dims = built.dims ?? []
@@ -448,7 +496,7 @@ export function SchemeSvg({ built, id, view, pad = { x: 18, top: 50, bottom: 16 
       <svg viewBox={`0 0 ${view.w} ${view.h}`} className="absolute inset-0 size-full" aria-hidden="true">
         <g transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${fit.toFixed(3)})`}>
           {built.body(uid)}
-          {dims.map((dim) => <DimLine key={dim.label + dim.a.join()} v={v} dim={dim} fit={fit} />)}
+          {dims.map((dim) => <DimLine key={dim.label + dim.a.join()} v={v} dim={dim} fit={fit} marks={marks} />)}
         </g>
       </svg>
       {(built.notes ?? []).map((note) => {

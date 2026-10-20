@@ -18,7 +18,7 @@ import { vetrine } from '@/lib/wardrobes-data'
 const v = wardrobeView
 
 /** Цвета рамки и профиля — для схемы; образцы — на фото раздела */
-const FRAME = { Чёрный: '#2b2b2b', Латунь: '#c2a36b', Серебро: '#c3c6ca', Белый: '#f3f2ee' } as const
+export const FRAME = { Чёрный: '#2b2b2b', Латунь: '#c2a36b', Серебро: '#c3c6ca', Белый: '#f3f2ee' } as const
 type Frame = keyof typeof FRAME
 
 /** Стекло: заливка поверх содержимого — от почти прозрачного до сатина, который его прячет */
@@ -32,7 +32,7 @@ const GLASS = {
 type Glass = keyof typeof GLASS
 
 /** Дверь на петлях: поворот к зрителю вокруг вертикальной кромки (hinge — x кромки, знак — в какую сторону) */
-function swing(hinge: number, deg: number) {
+export function swing(hinge: number, deg: number) {
   return keys((s) => affine(v, [[hinge, 0, 0], [hinge + 1000, 0, 0], [hinge, 1000, 0]], rotY([hinge, 0, 0], deg * s)))
 }
 
@@ -146,7 +146,7 @@ export function SeriesScheme({ id }: { id: 'LINE' | 'BASE' }) {
 const VETRINE_VIEW = { w: 440, h: 340 }
 
 /** Книги на полке — корешками к зрителю */
-function Books({ x0, y, z, n }: { x0: number; y: number; z: number; n: number }) {
+export function Books({ x0, y, z, n }: { x0: number; y: number; z: number; n: number }) {
   const widths = [34, 28, 40, 30, 36, 26, 38]
   const heights = [240, 210, 260, 200, 230, 190, 250]
   let x = x0
@@ -169,7 +169,7 @@ function Books({ x0, y, z, n }: { x0: number; y: number; z: number; n: number })
   )
 }
 
-function vetrineScene(frame: string, glass: Glass): Built {
+export function vetrineScene(frame: string, glass: Glass): Built {
   const { P, front } = v
   const x: Range = [0, 932]
   const y: Range = [900, 2200]

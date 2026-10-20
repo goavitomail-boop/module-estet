@@ -30,7 +30,7 @@ import {
 const VIEW = { w: 400, h: 340 }
 
 /** Тарелка на ребре, плоскостью поперёк x: круг в плоскости y–z */
-function Plate({ v, x, y, z, r }: { v: View; x: number; y: number; z: number; r: number }) {
+export function Plate({ v, x, y, z, r }: { v: View; x: number; y: number; z: number; r: number }) {
   const ring = (k: number) => path(Array.from({ length: 28 }, (_, i) => {
     const a = (i / 28) * Math.PI * 2
     return v.P(x, y + r * k * Math.sin(a), z + r * k * Math.cos(a))
@@ -44,7 +44,7 @@ function Plate({ v, x, y, z, r }: { v: View; x: number; y: number; z: number; r:
 }
 
 /** Стопка мисок — силуэтом без перекоса */
-function Bowls({ at: base, n = 3 }: { at: Pt; n?: number }) {
+export function Bowls({ at: base, n = 3 }: { at: Pt; n?: number }) {
   return (
     <g>
       {Array.from({ length: n }, (_, i) => (
@@ -426,7 +426,7 @@ const GARMENTS: Array<{ pts: Array<[number, number]>; fill: string }> = [
   { pts: [[-150, -50], [-120, -300], [-220, -820], [220, -820], [120, -300], [150, -50]], fill: CLOTH },
   { pts: [[-175, -45], [-200, -130], [-160, -140], [-160, -700], [160, -700], [160, -140], [200, -130], [175, -45]], fill: DARK },
 ]
-function Garment({ v, x, y, z, kind }: { v: View; x: number; y: number; z: number; kind: number }) {
+export function Garment({ v, x, y, z, kind }: { v: View; x: number; y: number; z: number; kind: number }) {
   const g = GARMENTS[kind % GARMENTS.length]
   return (
     <g strokeLinejoin="round">
@@ -753,6 +753,9 @@ export function storageSceneKey(image: string): string | null {
   const key = image.split('/').pop()?.replace(/\.\w+$/, '') ?? ''
   return key in SCENES ? key : null
 }
+
+/** Схема позиции по имени фото — для карточек квиза, которые рисуют её в своём кадре */
+export const storageScheme = (scene: string): Built => SCENES[scene]()
 
 export function StorageScene({ scene, id }: { scene: string; id: string }) {
   return <SchemeSvg built={SCENES[scene]()} id={id} view={VIEW} />

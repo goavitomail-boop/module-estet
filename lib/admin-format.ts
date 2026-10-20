@@ -162,6 +162,7 @@ const LABELS: Record<string, string> = {
   hardware: 'Фурнитура',
   appliances: 'Техника',
   features: 'Дополнительно',
+  storage: 'Системы хранения',
   timeline: 'Сроки',
   renovationStage: 'Стадия ремонта',
   budget: 'Бюджет',
@@ -178,7 +179,7 @@ const SECTIONS: Array<{ title: string; keys: string[] }> = [
   { title: 'Задача', keys: ['projectType', 'timeline', 'renovationStage', 'budget'] },
   { title: 'Помещение', keys: ['room', 'wardrobeType', 'wardrobeWidth', 'wardrobeWidthCm', 'layout', 'kitchenSize', 'location', 'wallA', 'wallB', 'wallC', 'roomArea', 'ceilingHeight', 'noMeasurements'] },
   { title: 'Стиль и материалы', keys: ['style', 'palette', 'facades', 'countertop', 'hardware'] },
-  { title: 'Техника и функции', keys: ['appliances', 'features'] },
+  { title: 'Техника и функции', keys: ['appliances', 'features', 'storage'] },
   { title: 'Связь', keys: ['contactMethod', 'contactTime', 'comment'] },
 ]
 

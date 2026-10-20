@@ -284,6 +284,7 @@ function detailLines(lead: Lead): string[] {
   if (str(a.hardware)) lines.push(`• Фурнитура: **${str(a.hardware)}**`)
   if (arr(a.appliances)) lines.push(`• Техника: **${arr(a.appliances)}**`)
   if (arr(a.features)) lines.push(`• Наполнение: **${arr(a.features)}**`)
+  if (arr(a.storage)) lines.push(`• Системы хранения: **${arr(a.storage)}**`)
   if (str(a.budget)) lines.push(`• Бюджет: **${str(a.budget)}**`)
   if (str(a.renovationStage)) lines.push(`• Стадия ремонта: **${str(a.renovationStage)}**`)
   if (str(a.timeline)) lines.push(`• Сроки: **${str(a.timeline)}**`)

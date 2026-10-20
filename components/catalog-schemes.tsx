@@ -47,7 +47,7 @@ const fade = (d: number, t = 0.9) => ({ '--d': lagged(d), '--t': `${t}s` }) as C
 /** Навесные шкафы: низ на 1400 мм, глубина 320 — висят на стене за столешницей */
 const WALL = { y: [1400, 2120] as Range, z: [280, 600] as Range }
 
-function lightScene(color: string): Built {
+export function lightScene(color: string): Built {
   const v = fillingView
   const { P, front, top, side } = v
   const W = 1200
@@ -203,7 +203,7 @@ function Knob({ v, x, y, color }: { v: View; x: number; y: number; color: string
 }
 
 /** Выдвижной ящик: стенки, дно, содержимое и фасад; ручку рисуют поверх */
-function Drawer({ v, x, y, children }: { v: View; x: Range; y: Range; children?: ReactNode }) {
+export function Drawer({ v, x, y, children }: { v: View; x: Range; y: Range; children?: ReactNode }) {
   const box: Range = [x[0] + 22, x[1] - 22]
   const floor = y[0] + 22
   const rim = y[1] - 55
