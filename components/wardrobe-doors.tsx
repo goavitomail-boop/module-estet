@@ -1,135 +1,105 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
-import { FACE, FAINT, INK, SHADE, SHADE_DEEP, fitTo, line, wardrobeView, type Pt, type Range } from '@/components/axo'
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import { FACE } from '@/components/axo'
 import './wardrobe-doors.css'
 
 /**
  * Модульный шкаф для баннера на главной: две секции, четыре распашные двери.
- * Когда баннер вошёл в экран, двери открываются на петлях, за ними —
- * наполнение: штанга и ящики слева, полки справа, сверху загорается
+ * Когда баннер вошёл в экран, двери открываются на петлях к зрителю, за
+ * ними — наполнение: штанга и ящики слева, полки справа, сверху загорается
  * подсветка. Схема, а не замер: размеров на ней нет.
  *
- * Дверь поворачивается вокруг вертикальной оси на петле. В аксонометрии это
- * на каждом угле — своё аффинное преобразование её закрытого контура, поэтому
- * поворот задан ключевыми кадрами matrix() через каждые 15°. Миллиметры и
- * оси — как в axo.ts.
+ * Корпус — чертёж спереди с одной точкой схода: секции видно вглубь, полки
+ * ниже взгляда показывают верх, выше — низ. Двери — HTML-полотна в CSS-
+ * перспективе с той же точкой схода (perspective-origin), поэтому они
+ * поворачиваются по настоящей дуге. Миллиметры, y — сверху вниз.
  */
 
-const { P, front, top, side } = wardrobeView
-
-const VIEW = { w: 440, h: 460 }
-
-/** Шкаф: ширина, высота, глубина, плита; две секции по перегородке */
+/** Шкаф: ширина, высота, плита; две секции по перегородке */
 const W = 1800
 const H = 2200
-const D = 580
 const T = 16
-const MID: Range = [892, 908]
-const A: Range = [T, MID[0]]
-const B: Range = [MID[1], W - T]
-/** Плоскость дверей — чуть впереди корпуса */
-const DOOR_Z = -4
-const DOOR_Y: Range = [4, H - 4]
-/** Двери: где петля и в какую сторону от неё полотно */
-const DOORS = [
-  { hinge: 2, dir: 1 },
-  { hinge: 898, dir: -1 },
-  { hinge: 902, dir: 1 },
-  { hinge: 1798, dir: -1 },
+const MID = [892, 908] as const
+const SECTIONS = [
+  [T, MID[0]],
+  [MID[1], W - T],
 ] as const
-const DOOR_W = 444
-/** Насколько двери открываются, градусов, и шаг ключевых кадров */
-const OPEN = 90
-const STEP = 15
+/** Кадр с запасом: открытые двери выходят за корпус и в перспективе растут */
+const VB = { x: -280, y: -210, w: 2360, h: 2620 }
+/** Точка схода — там же, где perspective-origin сцены (50% 42%) */
+const VP = { x: VB.x + VB.w * 0.5, y: VB.y + VB.h * 0.42 }
+/** Насколько глубина секции сжимает её к точке схода */
+const DEPTH = 0.9
 
-/* ── Поворот двери ──────────────────────────────────────────────────── */
+/** Двери: где петля и в какую сторону от неё полотно; задержка — по парам */
+const DOORS = [
+  { x: 2, hinge: 'left', d: 0 },
+  { x: 452, hinge: 'right', d: 0.06 },
+  { x: 902, hinge: 'left', d: 0.28 },
+  { x: 1352, hinge: 'right', d: 0.34 },
+] as const
+const DOOR_W = 446
+const DOOR_Y = [4, H - 4] as const
 
-const sub = (a: Pt, b: Pt): Pt => [a[0] - b[0], a[1] - b[1]]
-const O = P(0, 0, 0)
-const EX = sub(P(1, 0, 0), O)
-const EY = sub(P(0, 1, 0), O)
-const EZ = sub(P(0, 0, 1), O)
+const INK = 'color-mix(in oklab, var(--foreground) 72%, transparent)'
+const WALL = 'color-mix(in oklab, var(--foreground) 7%, var(--card))'
+const WALL_DEEP = 'color-mix(in oklab, var(--foreground) 13%, var(--card))'
+const BACK = 'color-mix(in oklab, var(--foreground) 18%, var(--card))'
 
-/**
- * Преобразование закрытой двери в открытую на угол deg: точка полотна на
- * расстоянии u от петли уходит из направления вдоль фасада в направление,
- * повёрнутое к зрителю. Высота не меняется
- */
-function doorMatrix(hinge: number, dir: number, deg: number) {
-  const r = (deg * Math.PI) / 180
-  const closed: Pt = [dir * EX[0], dir * EX[1]]
-  const open: Pt = [dir * Math.cos(r) * EX[0] - Math.sin(r) * EZ[0], dir * Math.cos(r) * EX[1] - Math.sin(r) * EZ[1]]
-  // Матрица [open | EY] · [closed | EY]⁻¹
-  const det = closed[0] * EY[1] - EY[0] * closed[1]
-  const inv = [EY[1] / det, -closed[1] / det, -EY[0] / det, closed[0] / det]
-  const a = open[0] * inv[0] + EY[0] * inv[1]
-  const b = open[1] * inv[0] + EY[1] * inv[1]
-  const c = open[0] * inv[2] + EY[0] * inv[3]
-  const d = open[1] * inv[2] + EY[1] * inv[3]
-  // Ось — петля: её точки остаются на месте
-  const [hx, hy] = P(hinge, 0, DOOR_Z)
-  const e = hx - (a * hx + c * hy)
-  const f = hy - (b * hx + d * hy)
-  return `matrix(${[a, b, c, d, e, f].map((value) => value.toFixed(4)).join(',')})`
+type Pt = [number, number]
+const poly = (pts: Pt[]) => pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+/** Точка на глубине k: 0 — плоскость фасада, 1 — задняя стенка */
+const deep = ([x, y]: Pt, k = 1): Pt => {
+  const s = 1 - (1 - DEPTH) * k
+  return [VP.x + (x - VP.x) * s, VP.y + (y - VP.y) * s]
 }
 
-const FRAMES = DOORS.map(({ hinge, dir }) =>
-  Array.from({ length: OPEN / STEP + 1 }, (_, i) => ({ transform: doorMatrix(hinge, dir, i * STEP) })),
-)
-
-/* ── Схема ──────────────────────────────────────────────────────────── */
-
-/** Плита: видны лицо, верх и правый бок */
-function Box({ x, y, z, tone = FACE }: { x: Range; y: Range; z: Range; tone?: string }) {
+/** Полка в секции: передняя кромка и видимая плоскость — верх ниже взгляда, низ выше */
+function Shelf({ x, y }: { x: readonly [number, number]; y: number }) {
+  const face = y < VP.y ? y + T : y
+  const surface: Pt[] = [[x[0], face], [x[1], face], deep([x[1], face]), deep([x[0], face])]
   return (
-    <g stroke={INK} strokeWidth={0.8} strokeLinejoin="round">
-      <path d={side(x[1], y, z)} fill={SHADE_DEEP} />
-      <path d={top(x, y[1], z)} fill={SHADE} />
-      <path d={front(x, y, z[0])} fill={tone} />
+    <g stroke={INK} strokeWidth={1} vectorEffect="non-scaling-stroke">
+      <polygon points={poly(surface)} fill={FACE} vectorEffect="non-scaling-stroke" />
+      <rect x={x[0]} y={y} width={x[1] - x[0]} height={T} fill={FACE} vectorEffect="non-scaling-stroke" />
     </g>
   )
 }
 
-/** Кадр — по корпусу и по дверям, открытым до конца */
-const FRAME = fitTo(
-  [
-    P(0, 0, 0), P(0, H, D), P(W, H, D), P(W, 0, 0), P(W, 0, D),
-    ...DOORS.flatMap(({ hinge, dir }) => {
-      const r = (OPEN * Math.PI) / 180
-      const x = hinge + dir * DOOR_W * Math.cos(r)
-      const z = DOOR_Z - DOOR_W * Math.sin(r)
-      return [P(x, 0, z), P(x, H, z)]
-    }),
-  ],
-  VIEW,
-  { x: 18, top: 18, bottom: 18 },
-)
+/** Секция изнутри: стенки к точке схода и задняя стенка */
+function Opening({ x }: { x: readonly [number, number] }) {
+  const corners: Pt[] = [[x[0], T], [x[1], T], [x[1], H - T], [x[0], H - T]]
+  const back = corners.map((p) => deep(p))
+  const wall = (a: number, b: number, fill: string) => (
+    <polygon points={poly([corners[a], corners[b], back[b], back[a]])} fill={fill} stroke={INK} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+  )
+  return (
+    <g>
+      <polygon points={poly(back)} fill={BACK} stroke={INK} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      {wall(0, 1, WALL_DEEP)}
+      {wall(3, 2, WALL)}
+      {wall(0, 3, WALL)}
+      {wall(1, 2, WALL_DEEP)}
+    </g>
+  )
+}
+
+const pct = (value: number, from: number, size: number) => `${(((value - from) / size) * 100).toFixed(3)}%`
 
 export function WardrobeDoors() {
   const uid = useId().replace(/:/g, '')
   const rootRef = useRef<HTMLDivElement>(null)
-  const doorRefs = useRef<(SVGGElement | null)[]>([])
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return
         observer.disconnect()
         setOpen(true)
-        doorRefs.current.forEach((door, i) => {
-          if (!door) return
-          const frames = FRAMES[i]
-          if (reduced) {
-            door.style.transform = frames[frames.length - 1].transform
-            return
-          }
-          door.animate(frames, { duration: 1300, delay: 150 + i * 110, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'both' })
-        })
       },
       { threshold: 0.4 },
     )
@@ -137,94 +107,85 @@ export function WardrobeDoors() {
     return () => observer.disconnect()
   }, [])
 
-  const { fit, tx, ty } = FRAME
-  const inner: Range = [T, H - T]
+  const [A, B] = SECTIONS
 
   return (
-    <div ref={rootRef} className="wd absolute inset-0" data-open={open || undefined}>
-      <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="size-full" aria-hidden="true">
-        <defs>
-          {/* Наполнение видно только сквозь проём своей секции, не через боковины */}
-          <clipPath id={`${uid}-a`}>
-            <path d={front(A, [T, H - T], 0)} />
-          </clipPath>
-          <clipPath id={`${uid}-b`}>
-            <path d={front(B, [T, H - T], 0)} />
-          </clipPath>
-          <linearGradient id={`${uid}-light`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--primary)" stopOpacity="0.5" />
-            <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <g transform={`translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(${fit.toFixed(3)})`}>
-          <path d={line([P(-500, 0, 0), P(W + 300, 0, 0)])} stroke={FAINT} strokeWidth={0.8} strokeDasharray="4 4" />
+    <div ref={rootRef} className="wd wd-panel absolute inset-0" data-open={open || undefined} aria-hidden="true">
+      <div className="wd-stage" style={{ '--ratio': VB.w / VB.h } as CSSProperties}>
+        <svg viewBox={`${VB.x} ${VB.y} ${VB.w} ${VB.h}`} className="absolute inset-0 size-full">
+          <defs>
+            <linearGradient id={`${uid}-light`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--primary)" stopOpacity="0.55" />
+              <stop offset="1" stopColor="var(--primary)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <line x1={VB.x} x2={VB.x + VB.w} y1={H} y2={H} stroke={INK} strokeWidth={1} strokeDasharray="4 4" vectorEffect="non-scaling-stroke" opacity={0.5} />
 
-          {/* Корпус снаружи: правый бок и крыша */}
-          <path d={side(W, [0, H], [0, D])} fill={SHADE} stroke={INK} strokeWidth={1} />
-          <path d={top([0, W], H, [0, D])} fill={SHADE} stroke={INK} strokeWidth={1} />
+          {/* Корпус и секции изнутри */}
+          <rect x={0} y={0} width={W} height={H} fill={FACE} stroke={INK} strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
+          <Opening x={A} />
+          <Opening x={B} />
 
-          {/* Секции изнутри: задняя стенка, левый бок, дно */}
-          {[A, B].map((x, i) => (
-            <g key={x[0]} clipPath={`url(#${uid}-${i ? 'b' : 'a'})`}>
-              <path d={front(x, inner, D - 10)} fill={SHADE_DEEP} stroke={INK} strokeWidth={0.8} />
-              <path d={side(x[0], inner, [0, D - 10])} fill={SHADE} stroke={INK} strokeWidth={0.8} />
-              <path d={top(x, inner[0], [0, D - 10])} fill={SHADE} stroke={INK} strokeWidth={0.8} />
+          {/* Подсветка под верхними полками */}
+          {SECTIONS.map((x) => {
+            const [l, t] = deep([x[0], 300])
+            const [r] = deep([x[1], 300])
+            return <rect key={x[0]} className="wd-glow" x={l} y={t} width={r - l} height={700} fill={`url(#${uid}-light)`} />
+          })}
+
+          {/* Слева: полка, штанга, три ящика */}
+          <Shelf x={A} y={270} />
+          <line
+            x1={deep([A[0], 420], 0.5)[0]}
+            y1={deep([A[0], 420], 0.5)[1]}
+            x2={deep([A[1], 420], 0.5)[0]}
+            y2={deep([A[1], 420], 0.5)[1]}
+            stroke="var(--primary)"
+            strokeWidth={3}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <Shelf x={A} y={1444} />
+          {[[1480, 1700], [1710, 1930], [1940, 2180]].map(([top, bottom]) => (
+            <g key={top}>
+              <rect x={A[0] + 6} y={top} width={A[1] - A[0] - 12} height={bottom - top} fill={FACE} stroke={INK} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+              <line x1={410} x2={500} y1={top + 40} y2={top + 40} stroke="var(--primary)" strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
             </g>
           ))}
 
-          {/* Слева: полка, штанга на держателях, три ящика */}
-          <g clipPath={`url(#${uid}-a)`}>
-            <Box x={A} y={[1914, 1930]} z={[0, D - 10]} />
-            {[A[0] + 14, A[1] - 14].map((x) => (
-              <path key={x} d={line([P(x, 1780, 280), P(x, 1914, 280)])} stroke={INK} strokeWidth={2.6} strokeLinecap="round" />
-            ))}
-            <path d={line([P(A[0] + 14, 1780, 280), P(A[1] - 14, 1780, 280)])} stroke="var(--primary)" strokeWidth={3.6} strokeLinecap="round" />
-            <Box x={A} y={[740, 756]} z={[0, D - 10]} />
-            {([[40, 260], [270, 490], [500, 720]] as Range[]).map((y) => (
-              <g key={y[0]}>
-                <path d={front([A[0] + 6, A[1] - 6], y, 0)} fill={FACE} stroke={INK} strokeWidth={0.9} />
-                <path d={line([P(410, y[1] - 40, 0), P(500, y[1] - 40, 0)])} stroke="var(--primary)" strokeWidth={2} strokeLinecap="round" />
-              </g>
-            ))}
-          </g>
-
           {/* Справа: полки */}
-          <g clipPath={`url(#${uid}-b)`}>
-            {[420, 820, 1220, 1620, 1914].map((y) => (
-              <Box key={y} x={B} y={[y, y + 16]} z={[0, D - 10]} />
-            ))}
-          </g>
-
-          {/* Подсветка под верхними полками: загорается, когда двери открылись */}
-          {[A, B].map((x, i) => (
-            <path key={x[0]} className="wd-glow" clipPath={`url(#${uid}-${i ? 'b' : 'a'})`} d={front([x[0] + 14, x[1] - 14], [1250, 1912], 40)} fill={`url(#${uid}-light)`} />
+          {[270, 580, 960, 1340, 1720].map((y) => (
+            <Shelf key={y} x={B} y={y} />
           ))}
 
-          {/* Кромки корпуса спереди */}
-          {[[0, T], MID, [W - T, W]].map(([x0, x1]) => (
-            <path key={x0} d={front([x0, x1], [0, H], 0)} fill={FACE} stroke={INK} strokeWidth={1} />
-          ))}
-          <path d={front([0, W], [H - T, H], 0)} fill={FACE} stroke={INK} strokeWidth={1} />
-          <path d={front([0, W], [0, T], 0)} fill={FACE} stroke={INK} strokeWidth={1} />
+          {/* Кромки корпуса спереди: перегородка */}
+          <rect x={MID[0]} y={0} width={MID[1] - MID[0]} height={H} fill={FACE} stroke={INK} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        </svg>
 
-          {/* Двери: закрытый контур, поворот — из ключевых кадров */}
-          {DOORS.map(({ hinge, dir }, i) => {
-            const x: Range = dir > 0 ? [hinge, hinge + DOOR_W] : [hinge - DOOR_W, hinge]
-            const handle = hinge + dir * (DOOR_W - 50)
-            return (
-              <g
-                key={hinge}
-                ref={(node) => {
-                  doorRefs.current[i] = node
-                }}
-              >
-                <path d={front(x, DOOR_Y, DOOR_Z)} fill={FACE} stroke={INK} strokeWidth={1} />
-                <path d={line([P(handle, 950, DOOR_Z - 6), P(handle, 1250, DOOR_Z - 6)])} stroke={INK} strokeWidth={2.4} strokeLinecap="round" />
-              </g>
-            )
-          })}
-        </g>
-      </svg>
+        {/* Двери: полотна в перспективе, поворачиваются на петлях */}
+        {DOORS.map((door) => (
+          <div
+            key={door.x}
+            className="wd-door"
+            data-hinge={door.hinge}
+            style={
+              {
+                left: pct(door.x, VB.x, VB.w),
+                top: pct(DOOR_Y[0], VB.y, VB.h),
+                width: `${((DOOR_W / VB.w) * 100).toFixed(3)}%`,
+                height: `${(((DOOR_Y[1] - DOOR_Y[0]) / VB.h) * 100).toFixed(3)}%`,
+                '--d': `${door.d}s`,
+              } as CSSProperties
+            }
+          >
+            <div className="wd-face">
+              <span className="wd-handle" style={door.hinge === 'left' ? { right: '9%' } : { left: '9%' }} />
+              <span className="wd-shade" />
+            </div>
+            <div className="wd-face wd-face--back" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
