@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { CropMarks } from '@/components/plan'
-import { wardrobeCollections, wardrobeCover } from '@/lib/wardrobes-data'
+import { WardrobeDoors } from '@/components/wardrobe-doors'
+import { wardrobeCollections } from '@/lib/wardrobes-data'
 
 /**
  * Анонс шкафов на главной: сайт до сих пор был только про кухни,
@@ -42,14 +42,9 @@ export function WardrobesBanner() {
               <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </span>
           </div>
-          <div className="relative aspect-[4/3] shrink-0 overflow-hidden md:aspect-auto md:w-[46%]">
-            <Image
-              src={wardrobeCover}
-              alt="Модульный шкаф-стеллаж в гостиной"
-              fill
-              sizes="(max-width: 768px) 100vw, 520px"
-              className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-            />
+          {/* Схема шкафа: когда баннер виден, двери открываются и видно наполнение */}
+          <div className="paper relative aspect-square shrink-0 overflow-hidden md:aspect-auto md:min-h-[26rem] md:w-[46%]">
+            <WardrobeDoors />
           </div>
         </Link>
       </div>

@@ -60,7 +60,7 @@ export function axonometry(axis: { deg: number; scale: number }, depth: { deg: n
 export const { P, AX_ANGLE, front, top, side, pullOut, sweptOpening } = axonometry({ deg: 32, scale: 0.78 }, { deg: 22, scale: 0.95 })
 
 /**
- * Ракурс шкафа (wardrobe-inside.tsx, wardrobe-heights.tsx): почти спереди,
+ * Ракурс шкафа (wardrobe-inside.tsx, wardrobe-heights.tsx, wardrobe-doors.tsx): почти спереди,
  * глубина короткая — шкаф смотрят внутрь и по высоте, секции должно быть
  * видно целиком
  */
