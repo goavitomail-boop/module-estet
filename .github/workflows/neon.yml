@@ -1,0 +1,144 @@
+name: Neon — ветка базы и проверка сайта
+
+# Каждый запуск работает на своей ветке базы — копии production. Боевые
+# данные не трогаются: тестовая заявка уходит в копию, копия потом
+# удаляется. Ключ и проект — из связки Neon с GitHub: секрет NEON_API_KEY
+# и переменная NEON_PROJECT_ID.
+#
+# Строки подключения содержат пароль, поэтому в журнал не попадают: CLI
+# получает их во время работы, они сразу скрываются (::add-mask::), а всё,
+# что печатает CLI, проходит через фильтр postgres://***
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  push:
+    branches: ['claude/**']
+    paths:
+      - 'neon.ts'
+      - 'lib/db.ts'
+      - 'app/api/leads/**'
+      - '.github/workflows/neon.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  NEON: npx -y neon@8.8.0
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  # Ветка PR живёт до закрытия PR, ветка пуша — только на время проверки
+  BRANCH: ${{ github.event_name == 'pull_request' && format('preview/pr-{0}', github.event.number) || format('preview/{0}', github.ref_name) }}
+
+jobs:
+  check:
+    name: Сборка и проверка на ветке базы
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Ветка базы из production, neon deploy
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -uo pipefail
+          redact() { sed -E 's#postgres(ql)?://[^ "'"'"']+#postgres://***#g'; }
+          if [ -z "${NEON_API_KEY:-}" ] || [ -z "$NEON_PROJECT_ID" ]; then
+            echo "::error::Нет секрета NEON_API_KEY или переменной NEON_PROJECT_ID: подключите репозиторий в Neon → Integrations → GitHub"
+            exit 1
+          fi
+          echo "Проект Neon: $NEON_PROJECT_ID, ветка базы: $BRANCH"
+
+          log="$RUNNER_TEMP/neon.log"
+          {
+            $NEON link --project-id "$NEON_PROJECT_ID" --branch production -y --no-env-pull &&
+            $NEON checkout "$BRANCH" --create --no-env-pull &&
+            # Применяет neon.ts к ветке и пишет её DATABASE_URL… в .env.local
+            $NEON deploy -y
+          } > "$log" 2>&1
+          status=$?
+
+          # Всё, что пришло в .env.local, — скрыть в журнале, пароль отдельно
+          if [ -f .env.local ]; then
+            for key in $(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env.local | tr -d =); do
+              node --env-file=.env.local -e '
+                const value = process.env[process.argv[1]] || ""
+                if (!value) process.exit(0)
+                console.log("::add-mask::" + value)
+                try { const url = new URL(value); if (url.password) console.log("::add-mask::" + decodeURIComponent(url.password)) } catch {}
+              ' "$key"
+            done
+            echo "В .env.local: $(grep -oE '^[A-Za-z_][A-Za-z0-9_]*' .env.local | tr '\n' ' ')"
+          fi
+          redact < "$log"
+          exit $status
+
+      - name: Сборка (npm run build)
+        run: npm run build
+
+      - name: Запуск сайта
+        run: |
+          npm run start > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null http://localhost:3000/ && exit 0
+            sleep 1
+          done
+          echo "::error::Сайт не ответил за минуту"
+          exit 1
+
+      - name: Проверка базы через сайт
+        run: |
+          set -euo pipefail
+          db=$(node --env-file=.env.local -e 'console.log(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "")')
+          [ -n "$db" ] || { echo "::error::В .env.local нет DATABASE_URL"; exit 1; }
+
+          # 1. Заявка из формы сайта сохраняется в базе
+          started=$(( $(date +%s%3N) - 10000 ))
+          body=$(curl -sS -X POST http://localhost:3000/api/leads -H 'content-type: application/json' \
+            --data "{\"type\":\"project\",\"name\":\"Проверка CI\",\"phone\":\"+7 999 000-00-00\",\"startedAt\":$started,\"details\":{\"comment\":\"Автопроверка подключения Neon\"}}")
+          echo "Ответ /api/leads: $body"
+          id=$(node -e 'const r = JSON.parse(process.argv[1]); if (!r.ok || !r.saved) process.exit(1); console.log(r.id)' "$body") \
+            || { echo "::error::Сайт не сохранил заявку в базу"; exit 1; }
+          row=$(psql "$db" -tAc "SELECT type || ' | ' || name || ' | ' || status FROM leads WHERE id = '$id'")
+          echo "В базе: $id → $row"
+          [ "$row" = "project | Проверка CI | new" ]
+
+          # 2. Таблицы, которые сайт создаёт сам при первом обращении
+          echo "Таблицы: $(psql "$db" -tAc "SELECT string_agg(table_name, ', ' ORDER BY table_name) FROM information_schema.tables WHERE table_schema = 'public'")"
+
+          # 3. Страницы и маршруты, которые читают базу
+          for path in /api/availability /facades /countertops /filling; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")
+            echo "$path → $code"
+            [ "$code" = 200 ]
+          done
+          echo "Всё в порядке: сайт пишет в базу Neon и читает из неё"
+
+      - name: Журнал сайта
+        if: always()
+        run: sed -E 's#postgres(ql)?://[^ "]+#postgres://***#g' "$RUNNER_TEMP/server.log" 2>/dev/null | tail -60 || true
+
+      - name: Удалить ветку базы
+        if: always() && github.event_name != 'pull_request'
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: $NEON branches delete "$BRANCH" --project-id "$NEON_PROJECT_ID" 2>&1 | sed -E 's#postgres(ql)?://[^ "]+#postgres://***#g'
+
+  cleanup:
+    name: Удалить ветку базы закрытого PR
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
