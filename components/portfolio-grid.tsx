@@ -1,12 +1,14 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useRef, useState, type FocusEvent, type PointerEvent, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type PointerEvent, type RefObject } from 'react'
 import { Grid2X2, Grid3X3, Images, Maximize2 } from 'lucide-react'
 import { type PortfolioProject } from '@/lib/portfolio-data'
 import { PortfolioImage } from '@/components/portfolio-image'
 import { CardPreview, previewSlides } from '@/components/portfolio-card-preview'
 import { visibleCardPhoto } from '@/components/portfolio-flight'
+import { play as playReflow, snapshot, type Snapshot } from '@/components/portfolio-reflow'
+import { RollingCount } from '@/components/rolling-count'
 import { PlanButton, PlanTag } from '@/components/plan'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
@@ -107,7 +109,7 @@ function ProjectCard({ project, index, onOpen }: { project: PortfolioProject; in
           <Maximize2 className="size-5" aria-hidden="true" />
         </span>
       </button>
-      <div className="flex items-start justify-between gap-3">
+      <div data-card-caption className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex items-center gap-2">
             <h3 className="flyer-title text-xl leading-tight sm:text-2xl">{project.title}</h3>
@@ -132,10 +134,32 @@ export function PortfolioGrid({ projects: allProjects }: { projects: PortfolioPr
   const [origin, setOrigin] = useState<HTMLButtonElement | null>(null)
   const [photo, setPhoto] = useState(0)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const reflow = useRef<Snapshot | null>(null)
   const projects = useMemo(() => {
     const active = filters.find((item) => item.id === filter) ?? filters[0]
     return allProjects.filter(active.matches)
   }, [allProjects, filter])
+
+  // Карточки запоминают свои места до смены, а после неё переезжают
+  // на новые (components/portfolio-reflow.ts)
+  function changeFilter(next: string) {
+    if (next === filter) return
+    const matches = (filters.find((item) => item.id === next) ?? filters[0]).matches
+    reflow.current = snapshot(listRef.current, 'filter', new Set(projects.filter((project) => !matches(project)).map((project) => project.id)))
+    setFilter(next)
+  }
+
+  function changeDensity(next: string) {
+    if (next === density) return
+    reflow.current = snapshot(listRef.current, 'density')
+    setDensity(next)
+  }
+
+  useLayoutEffect(() => {
+    playReflow(listRef.current, reflow.current)
+    reflow.current = null
+  }, [projects, density])
 
   // Фильтр, под который не осталось ни одного проекта, показывать нечем:
   // после редактирования портфолио такое вполне может случиться
@@ -153,18 +177,18 @@ export function PortfolioGrid({ projects: allProjects }: { projects: PortfolioPr
       <div className="flex flex-col gap-4 border-b border-border pb-5">
         {showFilters && (
           <div className="overflow-x-auto pb-1">
-            <ToggleGroup aria-label="Фильтр проектов" value={[filter]} onValueChange={(value) => { if (value[0]) setFilter(value[0]) }} variant="portfolio" size="touch" spacing={2} className="gap-2">
+            <ToggleGroup aria-label="Фильтр проектов" value={[filter]} onValueChange={(value) => { if (value[0]) changeFilter(value[0]) }} variant="portfolio" size="touch" spacing={2} className="gap-2">
               {available.map((item) => <ToggleGroupItem key={item.id} value={item.id}>{item.label}<span className="ml-1 tabular-nums opacity-60">{allProjects.filter(item.matches).length}</span></ToggleGroupItem>)}
             </ToggleGroup>
           </div>
         )}
         <div className="flex items-center justify-between gap-3">
           <p role="status" className="text-sm text-muted-foreground">
-            {showFilters ? `Показано ${projects.length} из ${allProjects.length} проектов` : `Проектов: ${allProjects.length}`}
+            {showFilters ? <>Показано <RollingCount value={projects.length} /> из {allProjects.length} проектов</> : `Проектов: ${allProjects.length}`}
           </p>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-muted-foreground lg:block">Откройте фото, чтобы рассмотреть детали</span>
-            <ToggleGroup aria-label="Размер фотографий" value={[density]} onValueChange={(value) => { if (value[0]) setDensity(value[0]) }} variant="outline" size="touch" spacing={0} className="hidden sm:flex">
+            <ToggleGroup aria-label="Размер фотографий" value={[density]} onValueChange={(value) => { if (value[0]) changeDensity(value[0]) }} variant="outline" size="touch" spacing={0} className="hidden sm:flex">
               <ToggleGroupItem value="large" aria-label="Крупные фотографии" title="Крупные фотографии"><Grid2X2 /></ToggleGroupItem>
               <ToggleGroupItem value="compact" aria-label="Компактная сетка" title="Компактная сетка"><Grid3X3 /></ToggleGroupItem>
             </ToggleGroup>
@@ -175,8 +199,8 @@ export function PortfolioGrid({ projects: allProjects }: { projects: PortfolioPr
       {projects.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">Готовим фотоотчёты новых проектов — покажем совсем скоро.</p>
       ) : (
-        <ul data-anim="stagger" className={cn('grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10', density === 'compact' && 'portfolio-grid--compact sm:grid-cols-3')}>
-          {projects.map((project, index) => <li key={project.id} className="min-w-0"><ProjectCard project={project} index={index} onOpen={(trigger, photo) => { triggerRef.current = trigger; setOrigin(trigger); setPhoto(photo); setSelected(project.id) }} /></li>)}
+        <ul ref={listRef} data-anim="stagger" className={cn('grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:gap-x-8 lg:gap-y-10', density === 'compact' && 'portfolio-grid--compact sm:grid-cols-3')}>
+          {projects.map((project, index) => <li key={project.id} data-project={project.id} className="min-w-0"><ProjectCard project={project} index={index} onOpen={(trigger, photo) => { triggerRef.current = trigger; setOrigin(trigger); setPhoto(photo); setSelected(project.id) }} /></li>)}
         </ul>
       )}
 

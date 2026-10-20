@@ -80,9 +80,9 @@ function fly(src: string, ratio: number, from: Box, to: Box, { duration, easing 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** Текущее фото просмотра, если оно уже загружено и разложено */
-function currentImage(root: ParentNode = document) {
+export function currentImage(root: ParentNode = document) {
   const img = root.querySelector<HTMLImageElement>('.yarl__slide_current .yarl__slide_image')
-  if (!img || !img.complete || !img.naturalWidth) return null
+  if (!img || !img.complete || !img.naturalWidth || img.classList.contains('yarl__slide_image_loading')) return null
   const rect = img.getBoundingClientRect()
   return rect.width > 0 ? img : null
 }
@@ -107,7 +107,7 @@ function visibleCardImage(card: HTMLElement) {
   return img?.naturalWidth ? img : null
 }
 
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+export const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 
 /**
  * Открытие: обложка из карточки card летит в рамку первого фото. Настоящее

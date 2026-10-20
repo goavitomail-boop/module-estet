@@ -143,6 +143,15 @@
 }
 
 
+/* Число перекатывается под маской (components/rolling-count.tsx) */
+.rolling-count { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.rolling-count > span { display: inline-block; }
+.rolling-count > [data-dir] { animation: rolling-count 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.rolling-count > [data-dir='-1'] { animation-name: rolling-count-down; }
+@keyframes rolling-count { from { opacity: 0; transform: translateY(100%); } }
+@keyframes rolling-count-down { from { opacity: 0; transform: translateY(-100%); } }
+@media (prefers-reduced-motion: reduce) { .rolling-count > [data-dir] { animation: none; } }
+
 @media (min-width: 40rem) {
   .portfolio-grid--compact article > div { flex-direction: column; }
   .portfolio-grid--compact article > div > span { align-self: flex-start; }
