@@ -1,0 +1,24 @@
+/*
+ * Наполнение на чертеже (components/filling-scene.tsx). Корень — .hs из
+ * scene-kit: оттуда кривые, «уменьшить движение» и ожидание показа.
+ */
+
+/* Выдвижной модуль: в покое стоит выдвинутым (--pull), анимация везёт его
+   из шкафа. CSS-сдвиг у элементов SVG считается в единицах чертежа */
+.fs-pull {
+  transform: var(--pull);
+  animation: fs-pull 1.2s var(--d, 0s) var(--in-out) both;
+}
+@keyframes fs-pull {
+  from { transform: none; }
+}
+
+/* Размерная линия прочерчивается от середины, засечки и выноски — тоже
+   по своей рамке, а не по всему чертежу */
+.fs svg .hs-draw-x,
+.fs svg .hs-in {
+  transform-box: fill-box;
+}
+.fs svg .hs-draw-x {
+  transform-origin: center;
+}

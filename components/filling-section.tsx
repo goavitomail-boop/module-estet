@@ -1,7 +1,6 @@
-import Image from 'next/image'
-import { Check } from 'lucide-react'
 import { fillingCategories } from '@/lib/filling-data'
-import { PlanButton, PlanLabel, PlanTag } from '@/components/plan'
+import { FillingCard } from '@/components/filling-card'
+import { PlanButton, PlanLabel } from '@/components/plan'
 
 const featuredCategories = fillingCategories.slice(0, 3)
 
@@ -23,39 +22,7 @@ export function FillingSection() {
 
         <div className="mt-10 grid gap-5 md:grid-cols-3" data-anim="stagger">
           {featuredCategories.map((category, index) => (
-            <article
-              key={category.title}
-              className="group overflow-hidden rounded-3xl border border-primary/35 bg-card"
-            >
-              <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                <Image
-                  src={category.image}
-                  alt={category.imageAlt}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 380px"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                />
-                <PlanTag value={String(index + 1).padStart(2, '0')} dot className="absolute left-4 top-4 tabular-nums" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/80 to-transparent p-5 pt-16">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary">
-                    {category.shortTitle}
-                  </p>
-                  <h3 className="flyer-title mt-1 text-2xl text-background">
-                    {category.title}
-                  </h3>
-                </div>
-              </div>
-              <div className="p-5">
-                <ul className="flex flex-col gap-2">
-                  {category.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
+            <FillingCard key={category.title} category={category} index={index} />
           ))}
         </div>
 
