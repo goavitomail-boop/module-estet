@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Pause, Play } from 'lucide-react'
-import { BRASS, FACE, FAINT, INK, SHADE, SHADE_DEEP, axonometry, fitTo, line, path, type Pt, type Range } from '@/components/axo'
+import { BRASS, FACE, FAINT, INK, SHADE, SHADE_DEEP, fitTo, line, path, wardrobeView, type Pt, type Range } from '@/components/axo'
 import { wardrobeSpecs } from '@/lib/wardrobes-data'
 import { cn } from '@/lib/utils'
 import './wardrobe-inside.css'
@@ -19,11 +19,8 @@ import './wardrobe-inside.css'
  * в axo.ts.
  */
 
-/**
- * Ракурс почти спереди, глубина короткая: шкаф смотрят внутрь, и секции
- * должно быть видно целиком. Выдвинутое при этом видно сверху и сбоку
- */
-const { P, AX_ANGLE, DEPTH_ANGLE, front, top, side, pullOut, sweptOpening } = axonometry({ deg: 12, scale: 0.95 }, { deg: 35, scale: 0.5 })
+/** Ракурс почти спереди (axo.ts): выдвинутое при этом видно сверху и сбоку */
+const { P, AX_ANGLE, DEPTH_ANGLE, front, top, side, pullOut, sweptOpening } = wardrobeView
 
 const VIEW = { w: 440, h: 600 }
 

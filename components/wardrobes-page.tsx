@@ -4,13 +4,13 @@ import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { FacadePalette } from '@/components/facade-palette'
 import { BookingPlanButton } from '@/components/footer-actions'
 import { CropMarks, PlanButton, PlanLabel, PlanTag } from '@/components/plan'
+import { WardrobeHeights } from '@/components/wardrobe-heights'
 import { WardrobeInside } from '@/components/wardrobe-inside'
 import { COMPANY } from '@/lib/company'
 import {
   vetrine,
   wardrobeCollections,
   wardrobeCover,
-  wardrobeHeights,
   wardrobeHighlights,
   wardrobeRooms,
   wardrobeSchemes,
@@ -101,53 +101,6 @@ function CollectionBlock({ collection, index }: { collection: WardrobeCollection
 
       <FacadePalette items={collection.colors} label="Цвета фасадов" note={collection.paletteNote} />
     </section>
-  )
-}
-
-function HeightsChart() {
-  const max = 3000
-  return (
-    <div className="grid gap-8 md:grid-cols-2">
-      {wardrobeHeights.map((row) => (
-        <div key={row.base} className="rounded-2xl border border-border bg-card p-5 md:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Корпус {row.base} мм</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            С антресолью — от {row.base + row.mezzanines[0]} до {row.base + row.mezzanines[row.mezzanines.length - 1]} мм
-          </p>
-          <div className="mt-6 flex h-56 items-end gap-2" role="img" aria-label={`Высоты шкафа с корпусом ${row.base} мм и антресолью`}>
-            {row.mezzanines.map((m) => {
-              const total = row.base + m
-              return (
-                <div key={m} className="flex flex-1 flex-col items-center gap-1.5">
-                  <span className="text-[11px] font-semibold tabular-nums text-foreground">{total}</span>
-                  {/* Высоты частей — в одном масштабе: верх корпуса у всех столбиков
-                      на одной линии, и разница антресолей видна сразу */}
-                  <div className="flex w-full flex-col">
-                    <div
-                      className="flex items-center justify-center rounded-t-md border border-b-0 border-dashed border-primary bg-primary/25 text-[10px] font-semibold tabular-nums text-foreground"
-                      style={{ height: `${(m / max) * 12}rem` }}
-                    >
-                      {m}
-                    </div>
-                    <div className="rounded-b-md bg-foreground/80" style={{ height: `${(row.base / max) * 12}rem` }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-3 rounded-sm border border-dashed border-primary bg-primary/25" aria-hidden="true" />
-              антресоль
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-3 rounded-sm bg-foreground/80" aria-hidden="true" />
-              корпус {row.base} мм
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
   )
 }
 
@@ -327,7 +280,7 @@ export function WardrobesPage() {
             Корпус высотой 2200 или 2400 мм, сверху — антресоль от 350 до 600 мм: шкаф поднимается до 3000 мм и
             закрывает стену до потолка. Ширину и наполнение секций подбираем под помещение.
           </p>
-          <HeightsChart />
+          <WardrobeHeights />
 
           <div className="mt-14 grid gap-10 lg:grid-cols-2">
             {wardrobeSchemes.map((scheme) => (
