@@ -35,10 +35,10 @@
   transform-origin: right center;
 }
 .wd[data-open] .wd-door[data-hinge='left'] {
-  transform: rotateY(-102deg);
+  transform: rotateY(calc(var(--angle) * -1));
 }
 .wd[data-open] .wd-door[data-hinge='right'] {
-  transform: rotateY(102deg);
+  transform: rotateY(var(--angle));
 }
 
 /* Лицо двери и её изнанка: видна та, что смотрит на зрителя */

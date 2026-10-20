@@ -32,12 +32,16 @@ const VP = { x: VB.x + VB.w * 0.5, y: VB.y + VB.h * 0.42 }
 /** Насколько глубина секции сжимает её к точке схода */
 const DEPTH = 0.9
 
-/** Двери: где петля и в какую сторону от неё полотно; задержка — по парам */
+/**
+ * Двери: где петля, в какую сторону от неё полотно, на сколько открывается,
+ * задержка — по парам. Средние висят на одной перегородке: шире 90° они
+ * упёрлись бы друг в друга, поэтому открываются меньше крайних
+ */
 const DOORS = [
-  { x: 2, hinge: 'left', d: 0 },
-  { x: 452, hinge: 'right', d: 0.06 },
-  { x: 902, hinge: 'left', d: 0.28 },
-  { x: 1352, hinge: 'right', d: 0.34 },
+  { x: 2, hinge: 'left', angle: 102, d: 0 },
+  { x: 452, hinge: 'right', angle: 84, d: 0.06 },
+  { x: 902, hinge: 'left', angle: 84, d: 0.28 },
+  { x: 1352, hinge: 'right', angle: 102, d: 0.34 },
 ] as const
 const DOOR_W = 446
 const DOOR_Y = [4, H - 4] as const
@@ -175,6 +179,7 @@ export function WardrobeDoors() {
                 width: `${((DOOR_W / VB.w) * 100).toFixed(3)}%`,
                 height: `${(((DOOR_Y[1] - DOOR_Y[0]) / VB.h) * 100).toFixed(3)}%`,
                 '--d': `${door.d}s`,
+                '--angle': `${door.angle}deg`,
               } as CSSProperties
             }
           >
