@@ -6,7 +6,10 @@
 //   node tools/motion/render-scroll.cjs / out/process-frames --stills --mobile
 //
 // --section #process, --steps "[data-step]" — где искать шаги;
-// --move 0.9, --hold 3.9 — секунды на перелистывание и на паузу у шага
+// --move 0.9, --hold 3.9 — секунды на перелистывание и на паузу у шага;
+// --imgs "#assembly .sticky img" — какие фото ждать на каждом кадре (по
+// умолчанию все в секции; скрытые на этом экране не загрузятся, и каждый
+// кадр ждал бы их до таймаута)
 const fs = require('fs')
 const { BASE, args, open, waitImages, startClock, step, encoder } = require('./lib.cjs')
 
@@ -63,7 +66,7 @@ const { BASE, args, open, waitImages, startClock, step, encoder } = require('./l
   const at = async (s) => {
     await page.evaluate((y) => scrollTo(0, y), scrollAt(s))
     await step(page, dt)
-    await waitImages(page, `${section} img`, 3000)
+    await waitImages(page, a.imgs || `${section} img`, 3000)
   }
 
   const n = Math.round(total * fps)
