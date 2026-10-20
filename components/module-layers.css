@@ -1,0 +1,63 @@
+/*
+ * Модуль кухни в разрезе (components/module-layers.tsx). Корень — .hs из
+ * scene-kit: оттуда кривые. Слои разъезжаются и собираются переходами, а не
+ * анимациями: модуль собирают и разбирают в любой момент, и слой едет
+ * обратно с того места, где его застали. Сборка вдвое быстрее разборки.
+ */
+
+.ml-part {
+  transition:
+    transform 0.5s var(--in-out),
+    opacity 0.35s var(--out);
+}
+.ml[data-open] .ml-part {
+  transform: var(--explode);
+  transition:
+    transform 1s var(--in-out) var(--d, 0s),
+    opacity 0.35s var(--out);
+}
+/* Выбран слой — остальные отступают */
+.ml[data-focus] .ml-part:not([data-on]) {
+  opacity: 0.25;
+}
+
+/* Подписи, кромки и бирки появляются, когда слой встал */
+.ml-show {
+  opacity: 0;
+  transition: opacity 0.2s var(--leave);
+}
+.ml-show[data-on] {
+  opacity: 1;
+  transition: opacity 0.4s var(--out) var(--d, 0s);
+}
+
+/* Размерная линия прочерчивается: у пути pathLength=1 */
+.ml-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.2s var(--leave);
+}
+.ml-line[data-on] {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.6s var(--in-out) var(--d, 0s);
+}
+
+/* Полоска автопоказа под кнопкой: её конец — следующий слой */
+.ml-progress {
+  transform-origin: left;
+  animation: ml-progress var(--t) linear both;
+}
+@keyframes ml-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ml-part,
+  .ml[data-open] .ml-part,
+  .ml-show,
+  .ml-line {
+    transition: none !important;
+  }
+}

@@ -1,8 +1,9 @@
 import Image from 'next/image'
-import Link from 'next/link'
-import { ArrowUpRight, Layers3, PanelsTopLeft, Palette, SquareStack } from 'lucide-react'
+import { Layers3, PanelsTopLeft, Palette, SquareStack } from 'lucide-react'
 import { materialCategories, paletteSwatches } from '@/lib/materials-data'
 import { PlanLabel, PlanTag } from '@/components/plan'
+import { DecorSamples } from '@/components/decor-samples'
+import { ModuleLayers } from '@/components/module-layers'
 
 const icons = [SquareStack, Layers3, PanelsTopLeft, Palette]
 
@@ -66,10 +67,8 @@ export function MaterialsSection() {
                 <h3 className="flyer-title mt-1 text-xl text-background">{category.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-background/65">{category.summary}</p>
                 {category.id === 'palette' && (
-                  <div className="mt-auto flex gap-1.5 pt-4" aria-label="Примеры оттенков">
-                    {paletteSwatches.slice(0, 6).map((swatch) => (
-                      <span key={swatch.name} className="size-6 rounded-full border border-background/20" style={{ backgroundColor: swatch.color }} title={swatch.name} />
-                    ))}
+                  <div className="mt-auto pt-4">
+                    <DecorSamples samples={paletteSwatches} />
                   </div>
                 )}
               </li>
@@ -77,17 +76,9 @@ export function MaterialsSection() {
           })}
         </ul>
 
-        <div className="mt-8 flex flex-col gap-6 rounded-3xl bg-primary p-6 text-primary-foreground md:flex-row md:items-center md:justify-between md:p-8" data-anim>
-          <div>
-            <p className="flyer-title text-2xl md:text-3xl">Каркасы из МДФ, а не ДСП</p>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-primary-foreground/75">
-              Корпуса доступны в десяти декорах МДФ, а фасады, витрины и столешницы подбираются дизайнером индивидуально под ваш проект.
-            </p>
-          </div>
-          <Link href="/quiz" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3.5 text-sm font-bold text-background transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background">
-            Подобрать материалы
-            <ArrowUpRight className="size-4" aria-hidden="true" />
-          </Link>
+        {/* Нижний модуль по слоям: столешница, каркас, задняя стенка, фасад */}
+        <div className="mt-8 rounded-3xl bg-background p-5 text-foreground md:p-8" data-anim>
+          <ModuleLayers />
         </div>
       </div>
     </section>

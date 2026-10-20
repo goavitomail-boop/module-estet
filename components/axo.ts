@@ -1,7 +1,7 @@
 /**
- * Чертёж в аксонометрии — общий для схем «Наполнения» (filling-scene.tsx)
- * и шкафа (wardrobe-inside.tsx, wardrobe-heights.tsx): смотрим спереди,
- * справа и чуть сверху.
+ * Чертёж в аксонометрии — общий для схем «Наполнения» (filling-scene.tsx),
+ * шкафа (wardrobe-inside.tsx, wardrobe-heights.tsx) и модуля кухни в разрезе
+ * (module-layers.tsx): смотрим спереди, справа и чуть сверху.
  *
  * Размеры — в миллиметрах. Ось x — вдоль фасадов слева направо, y — вверх
  * от пола, z — вглубь от плоскости фасадов. Выдвинуть что-то к зрителю —
@@ -65,6 +65,13 @@ export const { P, AX_ANGLE, front, top, side, pullOut, sweptOpening } = axonomet
  * видно целиком
  */
 export const wardrobeView = axonometry({ deg: 12, scale: 0.95 }, { deg: 35, scale: 0.5 })
+
+/**
+ * Ракурс модуля кухни в разрезе (module-layers.tsx): спереди-справа, глубина
+ * длиннее, чем у шкафа, — слои разъезжаются вверх, к зрителю и назад, и
+ * каждый должно быть видно
+ */
+export const moduleView = axonometry({ deg: 22, scale: 0.9 }, { deg: 30, scale: 0.72 })
 
 /** Выпуклая оболочка точек (монотонная цепь) */
 export function hull(points: Pt[]): Pt[] {

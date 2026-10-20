@@ -56,4 +56,9 @@ export const materialCategories = [
   },
 ] as const
 
-export const paletteSwatches = mdfFrameDecors.map((decor) => ({ name: decor.name, color: decor.hex }))
+/** Декоры каркаса: цвет и фото образца из каталога (public/catalog/materials/mdf, в том же порядке) */
+export const paletteSwatches = mdfFrameDecors.map((decor, index) => ({
+  name: decor.name,
+  color: decor.hex,
+  image: `/catalog/materials/mdf/${index + 1}.webp`,
+}))
