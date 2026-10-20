@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { Check } from 'lucide-react'
-import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { FacadePalette } from '@/components/facade-palette'
+import { WardrobesHero } from '@/components/wardrobes-hero'
 import { BookingPlanButton } from '@/components/footer-actions'
 import { CropMarks, PlanButton, PlanLabel, PlanTag } from '@/components/plan'
 import { WardrobeHeights } from '@/components/wardrobe-heights'
@@ -107,9 +107,7 @@ function CollectionBlock({ collection, index }: { collection: WardrobeCollection
 export function WardrobesPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <CatalogPageHeader
-        eyebrow="Шкафы"
-        title="Модульные шкафы"
+      <WardrobesHero
         intro="Гардеробные, шкафы для гостиной, спальни и прихожей. Семь коллекций фасадов, стеклянные витрины и наполнение под ваши вещи — по размерам вашего помещения."
         action={
           <PlanButton href="/quiz?type=wardrobe" onDark>
@@ -117,7 +115,6 @@ export function WardrobesPage() {
           </PlanButton>
         }
         sections={sections}
-        sectionsLabel="Разделы страницы"
       />
 
       <div className="mx-auto max-w-7xl px-5 md:px-8">
