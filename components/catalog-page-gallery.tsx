@@ -9,6 +9,7 @@ import {
   type CatalogItem,
 } from '@/lib/pdf-catalog-data'
 import { CatalogPageHeader } from '@/components/catalog-page-header'
+import { GroupScheme } from '@/components/catalog-schemes'
 import { FacadePalette } from '@/components/facade-palette'
 import { PlanLabel, PlanTag } from '@/components/plan'
 import { StorageCard } from '@/components/storage-card'
@@ -94,6 +95,8 @@ function GroupBlock({ group, index }: { group: CatalogGroup; index: number }) {
           )}
         </div>
       </div>
+      {/* Схема раздела в каркасе — если она для раздела есть (catalog-schemes.tsx) */}
+      <GroupScheme group={group} />
       {group.hero && (
         <div className="relative mb-6 aspect-[16/7] overflow-hidden rounded-2xl bg-muted">
           <Image src={group.hero} alt={group.title} fill sizes="100vw" className="object-cover" />

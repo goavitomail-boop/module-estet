@@ -5,6 +5,7 @@ import { WardrobesHero } from '@/components/wardrobes-hero'
 import { BookingPlanButton } from '@/components/footer-actions'
 import { CropMarks, PlanButton, PlanLabel, PlanTag } from '@/components/plan'
 import { StorageCard } from '@/components/storage-card'
+import { SeriesScheme, VetrineScheme } from '@/components/wardrobe-schemes'
 import { WardrobeHeights } from '@/components/wardrobe-heights'
 import { WardrobeInside } from '@/components/wardrobe-inside'
 import { COMPANY } from '@/lib/company'
@@ -182,6 +183,7 @@ export function WardrobesPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {wardrobeSeries.map((series) => (
               <div key={series.id} className="grain rounded-2xl bg-foreground p-6 text-background md:p-8">
+                <SeriesScheme id={series.id} />
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">{series.id}</p>
                 <h3 className="flyer-title mt-2 text-3xl">{series.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-background/70">{series.description}</p>
@@ -225,20 +227,8 @@ export function WardrobesPage() {
             <figcaption className="mt-3 text-xs text-muted-foreground">{vetrine.caption}</figcaption>
           </figure>
           <Gallery photos={vetrine.gallery} />
-          <div className="grid gap-4 sm:grid-cols-3">
-            {vetrine.options.map((option) => (
-              <div key={option.title} className="rounded-2xl border border-border bg-card p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{option.title}</p>
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {option.values.map((value) => (
-                    <li key={value} className="rounded-full border border-border px-3 py-1 text-sm">
-                      {value}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          {/* Рамка и стекло — на схеме витрины, варианты из каталога */}
+          <VetrineScheme />
         </section>
 
         {/* ── Устройство шкафа ── */}
