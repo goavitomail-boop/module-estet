@@ -1202,9 +1202,8 @@ html[data-preloader='active'] .hero-life * { animation-play-state: paused !impor
      Класс js-anim вешает встроенный скрипт из layout.tsx, он же снимает
      его, если анимации не поднялись. Поэтому без JavaScript правило
      не применяется и сайт читается целиком.                          */
-  html.js-anim [data-anim]:not([data-anim='stagger']):not([data-anim='drawers']):not([data-anim='parallax']):not([data-anim='count']),
-  html.js-anim [data-anim='stagger'] > *,
-  html.js-anim [data-anim='drawers'] > * {
+  html.js-anim [data-anim]:not([data-anim='stagger']):not([data-anim='parallax']):not([data-anim='count']),
+  html.js-anim [data-anim='stagger'] > * {
     opacity: 0;
   }
 

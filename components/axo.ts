@@ -57,7 +57,8 @@ export function axonometry(axis: { deg: number; scale: number }, depth: { deg: n
  * Ракурс схем «Наполнения»: фасады под 32° и укорочены, глубина под 22° —
  * смотрим скорее сбоку, чтобы выехавший модуль было видно во всю глубину
  */
-export const { P, AX_ANGLE, front, top, side, pullOut, sweptOpening } = axonometry({ deg: 32, scale: 0.78 }, { deg: 22, scale: 0.95 })
+export const fillingView = axonometry({ deg: 32, scale: 0.78 }, { deg: 22, scale: 0.95 })
+export const { P, AX_ANGLE, front, top, side, pullOut, sweptOpening } = fillingView
 
 /**
  * Ракурс шкафа (wardrobe-inside.tsx, wardrobe-heights.tsx): почти спереди,

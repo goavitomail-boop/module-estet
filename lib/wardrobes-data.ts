@@ -283,7 +283,8 @@ export const wardrobeSpecs: WardrobeSpecGroup[] = [
 /**
  * Выдвижное наполнение шкафа — отбор из каталога поставщика наполнения:
  * по одной позиции на задачу. Размеры из его каталога, фото из его
- * фотобанка, подогнаны к 4:3 (public/catalog/storage/wardrobe).
+ * фотобанка, подогнаны к кадру карточки 20:17 (public/catalog/storage/wardrobe);
+ * схема механизма к каждой — components/storage-scene.tsx.
  */
 export const wardrobeStorage: CatalogItem[] = [
   { name: 'Пантограф', meta: 'Лифт для одежды · секция 600–800 или 800–1000 мм', image: '/catalog/storage/wardrobe/lift-10002.webp' },

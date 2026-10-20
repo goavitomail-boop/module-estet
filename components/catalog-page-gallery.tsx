@@ -20,7 +20,7 @@ function isNormalized(image: string): boolean {
   return image.startsWith('/media/catalog/') || image.endsWith('/catalog-placeholder.svg')
 }
 
-/** Системы хранения — своя карточка (storage-card.tsx): вертикальный кадр и движение снимка */
+/** Системы хранения — своя карточка (storage-card.tsx): схема механизма и фото */
 function isStoragePhoto(image: string): boolean {
   return image.startsWith('/catalog/storage/')
 }
@@ -114,9 +114,9 @@ function GroupBlock({ group, index }: { group: CatalogGroup; index: number }) {
       )}
       {group.items && group.layout !== 'swatches' && group.items.every((item) => isStoragePhoto(item.image)) && (
         // Систем хранения шесть — в три колонки они встают двумя ровными рядами
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3" data-anim="drawers">
+        <div className="grid gap-5 md:grid-cols-3" data-anim="stagger">
           {group.items.map((item, i) => (
-            <StorageCard key={`${item.name}-${i}`} item={item} tall sizes="(max-width: 768px) 50vw, 33vw" />
+            <StorageCard key={`${item.name}-${i}`} item={item} index={i} />
           ))}
         </div>
       )}

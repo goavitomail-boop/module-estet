@@ -84,8 +84,6 @@ function prepare(targets: HTMLElement[]): Prepared[] {
     switch (element.dataset.anim) {
       case 'stagger':
         return stagger(element)
-      case 'drawers':
-        return drawers(element)
       case 'parallax':
         return parallax(element)
       case 'count':
@@ -142,31 +140,6 @@ function stagger(element: HTMLElement): Prepared {
         scrollTrigger: { trigger: element, start: START, once: true },
       }),
     reset: () => gsap.set(children, { clearProps: 'opacity,transform' }),
-  }
-}
-
-/**
- * Карточки систем хранения: выходят по очереди, как stagger, а снимок в
- * каждой выдвигается из глубины, будто ящик, — он ниже и крупнее и встаёт
- * на место чуть позже рамки. Двигается сам снимок (data-anim-photo), рамка
- * с overflow-hidden стоит: края карточки не плывут.
- */
-function drawers(element: HTMLElement): Prepared {
-  const cards = Array.from(element.children) as HTMLElement[]
-  const photos = cards.flatMap((card) => Array.from(card.querySelectorAll<HTMLElement>('[data-anim-photo]')))
-  const step = Math.min(0.1, 0.5 / Math.max(cards.length, 1))
-  gsap.set(cards, { opacity: 0, y: 28 })
-  gsap.set(photos, { yPercent: 10, scale: 1.14 })
-
-  return {
-    play: () => {
-      const timeline = gsap.timeline({ scrollTrigger: { trigger: element, start: START, once: true } })
-      timeline
-        .to(cards, { opacity: 1, y: 0, duration: DURATION, ease: EASE, stagger: step, clearProps: 'opacity,transform' })
-        // Снимок доезжает дольше рамки: сначала встаёт карточка, потом ящик
-        .to(photos, { yPercent: 0, scale: 1, duration: 1.15, ease: EASE, stagger: step, clearProps: 'transform' }, 0.08)
-    },
-    reset: () => gsap.set([...cards, ...photos], { clearProps: 'opacity,transform' }),
   }
 }
 

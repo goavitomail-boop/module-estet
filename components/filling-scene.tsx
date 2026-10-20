@@ -40,7 +40,7 @@ const at = (d: number, options?: Parameters<typeof enter>[1]) =>
 
 /* Бутылки, банки и флаконы — силуэтами без перекоса (shape), основанием в точку (x, y, z) */
 
-function Bottle({ at: base, h, r = 32 }: { at: Pt; h: number; r?: number }) {
+export function Bottle({ at: base, h, r = 32 }: { at: Pt; h: number; r?: number }) {
   const n = 10
   return (
     <g>
@@ -56,7 +56,7 @@ function Bottle({ at: base, h, r = 32 }: { at: Pt; h: number; r?: number }) {
   )
 }
 
-function Jar({ at: base, w = 90, h = 120 }: { at: Pt; w?: number; h?: number }) {
+export function Jar({ at: base, w = 90, h = 120 }: { at: Pt; w?: number; h?: number }) {
   return (
     <g>
       <path d={shape(base, [[-w / 2, 0], [-w / 2, h], [w / 2, h], [w / 2, 0]])} fill={FACE} stroke={INK} strokeWidth={0.8} />
@@ -65,7 +65,7 @@ function Jar({ at: base, w = 90, h = 120 }: { at: Pt; w?: number; h?: number }) 
   )
 }
 
-function Pot({ at: base }: { at: Pt }) {
+export function Pot({ at: base }: { at: Pt }) {
   return (
     <g>
       <path d={shape(base, [[-150, 100], [-115, 100]])} stroke={INK} strokeWidth={1.6} />
@@ -77,7 +77,7 @@ function Pot({ at: base }: { at: Pt }) {
 }
 
 /** Флакон с распылителем — для корзины под мойкой */
-function Spray({ at: base }: { at: Pt }) {
+export function Spray({ at: base }: { at: Pt }) {
   return (
     <g>
       <path d={shape(base, [[-34, 0], [-34, 170], [-14, 200], [14, 200], [34, 170], [34, 0]])} fill={FACE} stroke={INK} strokeWidth={0.8} />

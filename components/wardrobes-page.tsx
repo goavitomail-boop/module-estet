@@ -285,9 +285,9 @@ export function WardrobesPage() {
               или сером жемчуге.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3" data-anim="drawers">
-            {wardrobeStorage.map((item) => (
-              <StorageCard key={item.name} item={item} sizes="(max-width: 1024px) 50vw, 33vw" />
+          <div className="grid gap-5 md:grid-cols-3" data-anim="stagger">
+            {wardrobeStorage.map((item, i) => (
+              <StorageCard key={item.name} item={item} index={i} />
             ))}
           </div>
         </section>
