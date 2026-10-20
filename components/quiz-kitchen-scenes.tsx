@@ -6,9 +6,9 @@ import { Bottle, Jar, Pot } from '@/components/filling-scene'
 import { POP } from '@/components/scene-kit'
 import { Bowls, Plate } from '@/components/storage-scene'
 import {
-  DARK, GLASS, KB, BaseRun, Block, Cut, Drop, Move, Path, Question, Tier,
-  affine, at, baseExtremes, gap, keys, lagged, ring, rotX, rotY, shift,
-  type Built, type Mod, type V3, type View,
+  DARK, GLASS, KB, BaseRun, Block, Cut, Drop, Hinged, Move, Path, Question, Tier,
+  at, baseExtremes, gap, keys, lagged, ring, rotX, rotY, shift,
+  type Built, type Mod, type Turn, type V3, type View,
 } from '@/components/scheme-kit'
 
 /**
@@ -349,15 +349,16 @@ function ColumnDoor({ v, y, handle = 'side' }: { v: View; y: Range; handle?: 'si
   )
 }
 
-/** Дверь на левых петлях распахивается к зрителю */
-const swingLeft = (v: View, y: Range, deg: number) => {
+/** Дверь колонны на левых петлях распахивается к зрителю */
+const swingLeft = (y: Range, deg: number): Turn => {
   const x0 = gap(COL.x)[0]
-  return keys((s) => affine(v, [[x0, y[0], 0], [x0 + 1000, y[0], 0], [x0, y[0] + 1000, 0]], rotY([x0, 0, 0], deg * s)))
+  return { origin: [x0, y[0], 0], along: [0, 1, 0], across: [1, 0, 0], move: (s) => rotY([x0, 0, 0], deg * s) }
 }
 
 /** Дверца на нижних петлях опускается к зрителю */
-const dropDown = (v: View, x: Range, y0: number, deg = 88) =>
-  keys((s) => affine(v, [[x[0], y0, 0], [x[1], y0, 0], [x[0], y0 + 1000, 0]], rotX([0, y0, 0], deg * s)))
+const dropDown = (x: Range, y0: number, deg = 88): Turn => ({
+  origin: [x[0], y0, 0], along: [1, 0, 0], across: [0, 1, 0], move: (s) => rotX([0, y0, 0], deg * s),
+})
 
 /** Свет изнутри: тёплый градиент сверху вниз */
 function GlowDef({ id, strength = 0.5 }: { id: string; strength?: number }) {
@@ -386,7 +387,7 @@ export function dishwasherScene(): Built {
   ]
   const x = gap([450, 1050])
   const y = gap([KB.PLINTH, KB.TOP])
-  const open = dropDown(v, x, y[0])
+  const open = dropDown(x, y[0])
   const travel = 400
   const rack = { x: [x[0] + 30, x[1] - 30] as Range, y: y[0] + 70, z: [30, 500] as Range }
   const shut = 0.3 + 0.9
@@ -417,7 +418,7 @@ export function dishwasherScene(): Built {
           </Tier>
         </g>
         {/* Нижняя копия дверцы — под корзиной, когда та выезжает */}
-        <Path steps={open} d={0.3} t={0.9}>{door}</Path>
+        <Hinged v={v} turn={open} d={0.3} t={0.9}>{door}</Hinged>
         <g clipPath={`url(#${uid}-out)`}>
           <Move to={shift(v, [0, 0, -travel])} d={shut} t={0.9}>
             <Tier v={v} x={rack.x} y={rack.y} z={rack.z} rim={150}>
@@ -429,7 +430,7 @@ export function dishwasherScene(): Built {
         </g>
         {/* Верхняя копия: закрытая дверца прячет корзины, у открытой — уходит */}
         <g className="ss-hide" style={{ '--d': lagged(shut) } as CSSProperties}>
-          <Path steps={open} d={0.3} t={0.9}>{door}</Path>
+          <Hinged v={v} turn={open} d={0.3} t={0.9}>{door}</Hinged>
         </g>
       </BaseRun>
     ),
@@ -466,7 +467,7 @@ export function fridgeScene(): Built {
           <Pot at={P(cx, shelves[2], 300)} />
         </Niche>
         <ColumnDoor v={v} y={freezer} handle="side" />
-        <Path steps={swingLeft(v, fridge, 100)} d={0.3} t={1.0}>
+        <Hinged v={v} turn={swingLeft(fridge, 100)} d={0.3} t={1.0}>
           <ColumnDoor v={v} y={fridge} handle="side" />
           {/* Полочки на двери — видны, только когда она открыта */}
           <g className="hs-fade" style={fade(0.9, 0.3)}>
@@ -474,7 +475,7 @@ export function fridgeScene(): Built {
               <path key={sy} d={v.front([COL.x[0] + 60, COL.x[1] - 60], [sy, sy + 70], 0)} fill={GLASS} stroke={INK} strokeWidth={0.6} />
             ))}
           </g>
-        </Path>
+        </Hinged>
         <BaseRun v={v} mods={[{ w: 450, fronts: [[KB.PLINTH, 460], [460, KB.TOP]] }, { w: 450, fronts: [[KB.PLINTH, KB.TOP]] }]} />
       </g>
     ),
@@ -522,7 +523,7 @@ export function ovenScene(): Built {
           const [kx, ky] = P(i === 0 ? x[0] + 110 : x[1] - 110, oven[1] - 45, 0)
           return <circle key={i} cx={kx} cy={ky} r={3} fill="var(--card)" stroke={INK} strokeWidth={0.6} />
         })}
-        <Path steps={dropDown(v, x, doorY[0])} d={0.3} t={0.8}>{door}</Path>
+        <Hinged v={v} turn={dropDown(x, doorY[0])} d={0.3} t={0.8}>{door}</Hinged>
         <g clipPath={`url(#${uid}-out)`}>
           <Move to={shift(v, [0, 0, -travel])} d={shut} t={0.8}>
             <Tier v={v} x={tray.x} y={tray.y} z={tray.z} rim={30}>
@@ -531,7 +532,7 @@ export function ovenScene(): Built {
           </Move>
         </g>
         <g className="ss-hide" style={{ '--d': lagged(shut) } as CSSProperties}>
-          <Path steps={dropDown(v, x, doorY[0])} d={0.3} t={0.8}>{door}</Path>
+          <Hinged v={v} turn={dropDown(x, doorY[0])} d={0.3} t={0.8}>{door}</Hinged>
         </g>
         <BaseRun v={v} mods={[{ w: 450, fronts: [[KB.PLINTH, 460], [460, KB.TOP]] }, { w: 450, fronts: [[KB.PLINTH, KB.TOP]] }]} />
       </g>
@@ -557,7 +558,7 @@ export function microwaveScene(): Built {
     const a = a0 + s * Math.PI * 1.5
     return shift(v, [60 * (Math.cos(a) - Math.cos(a0)), 0, 60 * (Math.sin(a) - Math.sin(a0))])
   }, false)
-  const swing = keys((s) => affine(v, [[doorX[0], mw[0], WALL.z[0]], [doorX[0] + 1000, mw[0], WALL.z[0]], [doorX[0], mw[0] + 1000, WALL.z[0]]], rotY([doorX[0], 0, WALL.z[0]], 95 * s)))
+  const swing: Turn = { origin: [doorX[0], mw[0], WALL.z[0]], along: [0, 1, 0], across: [1, 0, 0], move: (s) => rotY([doorX[0], 0, WALL.z[0]], 95 * s) }
   return {
     view: v,
     extremes: [...baseExtremes(v, W), P(0, WALL.y[1], WALL.z[1]), P(W, WALL.y[1], WALL.z[1]), P(0, WALL.y[1], WALL.z[0]), P(-140, mw[0], WALL.z[0] - 440)],
@@ -594,10 +595,10 @@ export function microwaveScene(): Built {
           const [kx, ky] = P((panelX[0] + panelX[1]) / 2, mw[1] - 90 - i * 110, WALL.z[0] - 1)
           return <circle key={i} cx={kx} cy={ky} r={3} fill="var(--card)" stroke={INK} strokeWidth={0.6} />
         })}
-        <Path steps={swing} d={0.3} t={0.9}>
+        <Hinged v={v} turn={swing} d={0.3} t={0.9}>
           <path d={front(doorX, mw, WALL.z[0] - 1)} fill={DARK} stroke={INK} strokeWidth={1} />
           <path d={front([doorX[0] + 45, doorX[1] - 45], [mw[0] + 45, mw[1] - 45], WALL.z[0] - 1)} fill="color-mix(in oklab, var(--foreground) 32%, var(--card))" stroke={INK} strokeWidth={0.6} />
-        </Path>
+        </Hinged>
       </g>
     ),
   }
@@ -640,12 +641,12 @@ export function pantryScene(): Built {
           <Jar at={P(cx + 140, 1500, 220)} w={80} h={120} />
           <Jar at={P(cx - 60, 1820, 260)} w={130} h={150} />
         </Niche>
-        <Path steps={swingLeft(v, lower, 100)} d={0.3} t={1.0}>
+        <Hinged v={v} turn={swingLeft(lower, 100)} d={0.3} t={1.0}>
           <ColumnDoor v={v} y={lower} handle="side" />
-        </Path>
-        <Path steps={swingLeft(v, upper, 100)} d={0.55} t={1.0}>
+        </Hinged>
+        <Hinged v={v} turn={swingLeft(upper, 100)} d={0.55} t={1.0}>
           <ColumnDoor v={v} y={upper} handle="side" />
-        </Path>
+        </Hinged>
         <BaseRun v={v} mods={[{ w: 450, fronts: [[KB.PLINTH, 460], [460, KB.TOP]] }, { w: 450, fronts: [[KB.PLINTH, KB.TOP]] }]} />
       </g>
     ),

@@ -4,7 +4,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { BRASS, FACE, FAINT, INK, SHADE, SHADE_DEEP, line, wardrobeView, type Range } from '@/components/axo'
 import { Jar } from '@/components/filling-scene'
 import { PlayWhenSeen } from '@/components/play-when-seen'
-import { Path, SchemeSvg, WB, affine, keys, lagged, rotY, type Built } from '@/components/scheme-kit'
+import { Hinged, SchemeSvg, WB, lagged, rotY, type Built, type Turn } from '@/components/scheme-kit'
 import { ColorChips, SchemePanel } from '@/components/scheme-panel'
 import { vetrine } from '@/lib/wardrobes-data'
 
@@ -32,8 +32,8 @@ const GLASS = {
 type Glass = keyof typeof GLASS
 
 /** Дверь на петлях: поворот к зрителю вокруг вертикальной кромки (hinge — x кромки, знак — в какую сторону) */
-export function swing(hinge: number, deg: number) {
-  return keys((s) => affine(v, [[hinge, 0, 0], [hinge + 1000, 0, 0], [hinge, 1000, 0]], rotY([hinge, 0, 0], deg * s)))
+export function swing(hinge: number, deg: number): Turn {
+  return { origin: [hinge, 0, 0], along: [0, 1, 0], across: [1, 0, 0], move: (s) => rotY([hinge, 0, 0], deg * s) }
 }
 
 /** Корпус-фрагмент: правый бок, верх (если не обрезан), внутри — задняя стенка и полки */
@@ -97,7 +97,7 @@ function seriesScene(id: 'LINE' | 'BASE'): Built {
         {doors.map((door) => {
           const handleX = door.edge + (door.hinge < door.edge ? -1 : 1) * (id === 'LINE' ? 9 : 70)
           return (
-            <Path key={door.hinge} steps={swing(door.hinge, door.deg)} d={1.25} t={1.0}>
+            <Hinged key={door.hinge} v={v} turn={swing(door.hinge, door.deg)} d={1.25} t={1.0}>
               <path d={front(door.x, y, 0)} fill={FACE} stroke={INK} strokeWidth={1} />
               {/* BASE — рамочный фасад: на фрагменте видны продольные рамки */}
               {id === 'BASE' &&
@@ -119,7 +119,7 @@ function seriesScene(id: 'LINE' | 'BASE'): Built {
                   <path d={line([P(handleX, 1000, 0), P(handleX, 1000, -30), P(handleX, 1320, -30), P(handleX, 1320, 0)])} fill="none" stroke={color} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
                 </g>
               )}
-            </Path>
+            </Hinged>
           )
         })}
       </g>
@@ -227,9 +227,9 @@ export function vetrineScene(frame: string, glass: Glass): Built {
           door.deg === 0 ? (
             <g key={door.hinge}>{glassPane(door.x)}</g>
           ) : (
-            <Path key={door.hinge} steps={swing(door.hinge, door.deg)} d={1.2} t={1.1}>
+            <Hinged key={door.hinge} v={v} turn={swing(door.hinge, door.deg)} d={1.2} t={1.1}>
               {glassPane(door.x)}
-            </Path>
+            </Hinged>
           ),
         )}
       </g>

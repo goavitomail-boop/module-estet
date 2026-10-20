@@ -80,3 +80,11 @@
 .ss-card svg :is(path, line, circle, ellipse, rect) {
   vector-effect: non-scaling-stroke;
 }
+
+/* Схема карточки квиза встаёт, когда шаг уже выехал (Later в quiz-schemes.tsx) */
+.ss-later {
+  animation: ss-later 0.35s ease-out both;
+}
+@keyframes ss-later {
+  from { opacity: 0; }
+}

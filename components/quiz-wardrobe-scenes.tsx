@@ -7,7 +7,7 @@ import { Drawer } from '@/components/catalog-schemes'
 import { Garment } from '@/components/storage-scene'
 import { Books, swing } from '@/components/wardrobe-schemes'
 import {
-  CLOTH, DARK, Block, Drop, Move, Path, Question, WB,
+  CLOTH, DARK, Block, Drop, Hinged, Move, Question, WB,
   lagged, shift,
   type Built, type V3,
 } from '@/components/scheme-kit'
@@ -193,9 +193,9 @@ export function hingedScene(): Built {
       >
         {doors.map((dx, i) =>
           i % 2 === 0 ? (
-            <Path key={dx[0]} steps={swing(dx[0], 100)} d={0.3 + i * 0.12} t={0.9}>
+            <Hinged key={dx[0]} v={v} turn={swing(dx[0], 100)} d={0.3 + i * 0.12} t={0.9}>
               <Door x={dx} y={dy} handle="right" />
-            </Path>
+            </Hinged>
           ) : (
             <Door key={dx[0]} x={dx} y={dy} handle="left" />
           ),

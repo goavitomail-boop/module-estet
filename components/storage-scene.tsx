@@ -5,9 +5,9 @@ import { BRASS, FACE, FAINT, INK, INSIDE, SHADE, SHADE_DEEP, fillingView, line, 
 import { Bottle, Jar, Pot } from '@/components/filling-scene'
 import {
   BASKET, BIN, CLOTH, DARK, GLASS, GLASS_PANE, KB, WB,
-  BaseRun, Block, Cut, Face, Move, Path, Posts, SchemeSvg, Section, Tier,
+  BaseRun, Block, Cut, Face, Hinged, Move, Path, Posts, SchemeSvg, Section, Tier,
   add, affine, arc, baseExtremes, gap, keys, lagged, profile, rotX, rotY, sectionExtremes, shift, swept, twoStage,
-  type Built, type Dim, type Mod, type V3, type View,
+  type Built, type Dim, type Mod, type Turn, type V3, type View,
 } from '@/components/scheme-kit'
 
 /**
@@ -154,7 +154,7 @@ function cornerScene(): Built {
   const travel = 380
   const tierY = [200, 500]
   // Дверь на левых петлях: поворачивается к зрителю на 95°
-  const door = keys((s) => affine(v, [[0, 100, 0], [1000, 100, 0], [0, 1100, 0]], rotY([0, 0, 0], 95 * s)))
+  const door: Turn = { origin: [0, 100, 0], along: [0, 1, 0], across: [1, 0, 0], move: (s) => rotY([0, 0, 0], 95 * s) }
   const doorFace = (
     <g>
       <path d={v.front(x, y, 0)} fill={FACE} stroke={INK} strokeWidth={1} />
@@ -190,7 +190,7 @@ function cornerScene(): Built {
         {/* Открытая дверь стоит левее корзин и ими закрыта; пока она закрыта —
             наоборот. Поэтому дверь нарисована дважды: верхняя копия гаснет,
             как только дверь открылась */}
-        <Path steps={door} d={0.3} t={0.8}>{doorFace}</Path>
+        <Hinged v={v} turn={door} d={0.3} t={0.8}>{doorFace}</Hinged>
         <g clipPath={`url(#${uid}-out)`}>
           {/* Задние корзины: стоят в глухой части, потом переезжают в проём */}
           <Move to={shift(v, [-450, 0, -60])} d={1.95} t={1.1}>
@@ -204,7 +204,7 @@ function cornerScene(): Built {
           </Move>
         </g>
         <g className="ss-hide" style={{ '--d': lagged(1.12) } as CSSProperties}>
-          <Path steps={door} d={0.3} t={0.8}>{doorFace}</Path>
+          <Hinged v={v} turn={door} d={0.3} t={0.8}>{doorFace}</Hinged>
         </g>
       </BaseRun>
     ),
@@ -291,7 +291,7 @@ function upperScene(): Built {
   const pivot: V3 = [585, 1578, 187]
   const moves = keys((s) => shift(v, lift.move(s)))
   const arm = (xx: number) => keys((s) => affine(v, [[xx, pivot[1], pivot[2]], [xx, pivot[1] + 1000, pivot[2]], [xx, pivot[1], pivot[2] + 1000]], rotX([xx, pivot[1], pivot[2]], lift.angle(s))))
-  const door = keys((s) => affine(v, [[0, Y[1], 0], [1000, Y[1], 0], [0, Y[1] - 1000, 0]], rotX([0, Y[1], 0], -105 * s)))
+  const door: Turn = { origin: [0, Y[1], 0], along: [1, 0, 0], across: [0, -1, 0], move: (s) => rotX([0, Y[1], 0], -105 * s) }
   const end = lift.move(1)
   const corners: V3[] = [[x[0], y[0], 0], [x[1], y[0], 0], [x[1], y[1], 0], [x[0], y[1], 0]]
   const path11 = Array.from({ length: 11 }, (_, i) => lift.move(i / 10))
@@ -363,10 +363,10 @@ function upperScene(): Built {
         </g>
 
         {/* Дверь поднимается вверх и уходит над шкафом */}
-        <Path steps={door} d={0.3} t={0.8}>
+        <Hinged v={v} turn={door} d={0.3} t={0.8}>
           <path d={front(x, y, 0)} fill={FACE} stroke={INK} strokeWidth={1} />
           <path d={line([P(x[0] + 60, Y[0] + 50, 0), P(x[0] + 220, Y[0] + 50, 0)])} stroke={INK} strokeWidth={1.6} strokeLinecap="round" />
-        </Path>
+        </Hinged>
       </g>
     ),
     notes: [{ at: [1000, 1960, 0], text: 'Пневматический механизм', d: 2.4 }],
@@ -639,7 +639,7 @@ function ironingScene(): Built {
   const half: Range = [40, 445]
   const travel = 400
   const hinge: V3 = [0, y + 12, half[0]]
-  const flip = keys((s) => affine(v, [[0, y + 25, half[0]], [1000, y + 25, half[0]], [0, y + 25, half[0] + 1000]], rotX(hinge, 180 * s)))
+  const flip: Turn = { origin: [0, y + 25, half[0]], along: [1, 0, 0], across: [0, 0, 1], move: (s) => rotX(hinge, 180 * s) }
   // Верхняя половина: нос — у дальнего конца, после раскладки он впереди
   const nose: V3[] = [[bx[0], y + 25, half[0]], [bx[1], y + 25, half[0]], [bx[1], y + 25, half[1] - 85], [bx[1] - 40, y + 25, half[1] - 25], [(bx[0] + bx[1]) / 2, y + 25, half[1]], [bx[0] + 40, y + 25, half[1] - 25], [bx[0], y + 25, half[1] - 85]]
   const topY = 1100
@@ -659,9 +659,9 @@ function ironingScene(): Built {
             <path d={line([P(bx[0], y - 30, half[0]), P(bx[0], y - 30, half[1]), P(bx[1], y - 30, half[1]), P(bx[1], y - 30, half[0])])} fill="none" stroke={BRASS} strokeWidth={1.4} />
             <path d={v.front(bx, [y - 30, y], half[0])} fill={SHADE_DEEP} stroke={INK} strokeWidth={0.8} />
             <path d={v.top(bx, y + 12, half)} fill={CLOTH} stroke={INK} strokeWidth={0.9} />
-            <Path steps={flip} d={1.4} t={1.0}>
+            <Hinged v={v} turn={flip} d={1.4} t={1.0}>
               <path d={path(nose.map((p) => P(...p)))} fill={CLOTH} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
-            </Path>
+            </Hinged>
           </Move>
         </g>
       </Section>
@@ -682,11 +682,15 @@ function mirrorScene(): Built {
   const travel = 400
   const pivot: V3 = [mx, 0, mz[0] - travel]
   const stage = twoStage(0.48)
-  const steps = keys((s) => {
-    const [a, b] = stage(s)
-    const f = (p: V3) => rotY(pivot, 65 * b)(add(p, [0, 0, -travel * a]))
-    return affine(v, [[mx, my[0], mz[0]], [mx, my[0] + 1000, mz[0]], [mx, my[0], mz[0] + 1000]], f)
-  }, false)
+  const turn: Turn = {
+    origin: [mx, my[0], mz[0]],
+    along: [0, 1, 0],
+    across: [0, 0, 1],
+    move: (s) => {
+      const [a, b] = stage(s)
+      return (p) => rotY(pivot, 65 * b)(add(p, [0, 0, -travel * a]))
+    },
+  }
   const face = (inset: number) => path([[mz[0] + inset, my[0] + inset], [mz[1] - inset, my[0] + inset], [mz[1] - inset, my[1] - inset], [mz[0] + inset, my[1] - inset]].map(([z, y]) => P(mx, y, z)))
   const corners: V3[] = [[inner[0], 23, 0], [inner[1], 23, 0], [inner[1], H - 16, 0], [inner[0], H - 16, 0]]
   return {
@@ -718,13 +722,13 @@ function mirrorScene(): Built {
           <clipPath id={`${uid}-out`}><path d={swept(v, corners, [[0, 0, 0], [0, 0, -travel - 40]])} /></clipPath>
         </defs>
         <g clipPath={`url(#${uid}-out)`}>
-          <Path steps={steps} d={0.35} t={2.2}>
+          <Hinged v={v} turn={turn} d={0.35} t={2.2} eased={false}>
             <path d={face(0)} fill={FACE} stroke={INK} strokeWidth={1} strokeLinejoin="round" />
             <path d={face(30)} fill={GLASS} stroke={INK} strokeWidth={0.6} />
             {[0.25, 0.42].map((k) => (
               <path key={k} d={line([P(mx, my[0] + (my[1] - my[0]) * k, mz[1] - 50), P(mx, my[0] + (my[1] - my[0]) * (k + 0.22), mz[0] + 50)])} stroke="var(--card)" strokeWidth={2} strokeLinecap="round" />
             ))}
-          </Path>
+          </Hinged>
         </g>
       </Section>
     ),

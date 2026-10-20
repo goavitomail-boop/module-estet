@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { m } from 'framer-motion'
 import { EASE_OUT, itemVariants, staggerVariants } from '@/components/form-motion'
@@ -46,6 +46,31 @@ export const FRAMES = {
 } satisfies Record<string, Frame>
 
 const PAD = { x: 8, top: 10, bottom: 8 }
+
+/**
+ * Схемы появляются не вместе с шагом. Шаг выезжает за 0,42 с (stepVariants
+ * в form-motion.tsx), и если в те же кадры собрать десяток схем, браузер
+ * замирает на 50–80 мс — экран дёргается. Поэтому шаг выезжает с пустыми
+ * рамками, а схемы встают потом, по одной за раз
+ */
+const MOUNT_AFTER = 420
+const MOUNT_STEP = 40
+
+/** Содержимое появляется через after мс и проявляется (.ss-later) */
+function Later({ after, children }: { after: number; children: ReactNode }) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), after)
+    return () => clearTimeout(timer)
+  }, [after])
+  return ready ? <span className="ss-later absolute inset-0 block">{children}</span> : null
+}
+
+/** Схема карточки: чертёж строится, только когда карточка его показывает */
+function CardScheme({ option, id, frame, marks }: { option: SchemeOption; id: string; frame: Frame; marks?: Marks }) {
+  const built = useMemo(() => option.scene(), [option])
+  return <SchemeSvg built={built} id={id} view={frame} pad={PAD} marks={marks} />
+}
 /** Засечки и число размера — в единицах кадра: чертёж в карточке ужат в разы */
 export const RUN_MARKS: Marks = { tick: 3, label: 12 }
 
@@ -157,12 +182,11 @@ export function SchemeChoices({ id, options, value, onChange, mode, frame = FRAM
   /** Четыре карточки в ряд на широком экране — для ряда модулей в длину */
   wide?: boolean
 }) {
-  const built = useMemo(() => options.map((option) => option.scene()), [options])
   return (
     <m.div variants={staggerVariants} className={cn('grid grid-cols-2 gap-3 max-[350px]:grid-cols-1', wide ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
       {options.map((option, i) => {
         const selected = Array.isArray(value) ? value.includes(option.label) : value === option.label
-        const scheme = <SchemeSvg built={built[i]} id={`quiz-${id}-${i}`} view={frame} pad={PAD} marks={marks} />
+        const scheme = <CardScheme option={option} id={`quiz-${id}-${i}`} frame={frame} marks={marks} />
         return (
           <m.button
             key={option.label}
@@ -179,17 +203,19 @@ export function SchemeChoices({ id, options, value, onChange, mode, frame = FRAM
             )}
           >
             <span className="paper relative block w-full overflow-hidden rounded-xl" style={{ aspectRatio: `${frame.w} / ${frame.h}` }} aria-hidden="true">
-              {mode === 'toggle' ? (
-                // Новый ключ — сцена с нуля: выбор проигрывает механизм, снятие — закрывает его
-                <span key={selected ? 'on' : 'off'} className="hs hs-wait ss ss-card absolute inset-0 block" data-wait={selected ? undefined : ''}>
-                  {scheme}
-                </span>
-              ) : (
-                // Схемы шага отыгрывают по очереди; .hs-wait — чтобы дождаться ухода заставки
-                <span className="hs hs-wait ss ss-card absolute inset-0 block" style={{ '--lag': `${(0.1 + i * 0.1).toFixed(2)}s` } as CSSProperties}>
-                  {scheme}
-                </span>
-              )}
+              <Later after={MOUNT_AFTER + i * MOUNT_STEP}>
+                {mode === 'toggle' ? (
+                  // Новый ключ — сцена с нуля: выбор проигрывает механизм, снятие — закрывает его
+                  <span key={selected ? 'on' : 'off'} className="hs hs-wait ss ss-card absolute inset-0 block" data-wait={selected ? undefined : ''}>
+                    {scheme}
+                  </span>
+                ) : (
+                  // Схемы шага отыгрывают по очереди; .hs-wait — чтобы дождаться ухода заставки
+                  <span className="hs hs-wait ss ss-card absolute inset-0 block" style={{ '--lag': `${(0.05 + i * 0.06).toFixed(2)}s` } as CSSProperties}>
+                    {scheme}
+                  </span>
+                )}
+              </Later>
               {/* Отметка — в углу схемы: подписи остаётся вся ширина карточки, длинные слова не рвутся */}
               <span className={cn('absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full border', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 bg-card')}>
                 {selected && (

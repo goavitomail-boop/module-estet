@@ -1,6 +1,6 @@
 'use client'
 
-import type { CSSProperties, ReactNode } from 'react'
+import { Fragment, type CSSProperties, type ReactNode } from 'react'
 import { enter, POP } from '@/components/scene-kit'
 import {
   BRASS, FACE, FAINT, INK, INSIDE, SHADE, SHADE_DEEP,
@@ -120,6 +120,98 @@ export function Move({ from = 'none', to, d, t = 1.1, ease, children }: { from?:
   return (
     <g className="ss-move" style={{ '--from': from, '--to': to, '--d': lagged(d), '--t': `${t}s`, ...(ease ? { '--ease': ease } : {}) } as CSSProperties}>
       {children}
+    </g>
+  )
+}
+
+/**
+ * Поворот плоской детали на петлях — дверцы, двери, доски, зеркала. Деталь
+ * лежит в плоскости, натянутой на along (вдоль петель — это направление при
+ * повороте не меняется) и across; origin — её угол на оси петель.
+ * move(s) — куда деталь переносит ход s: поворот, при надобности со сдвигом.
+ *
+ * Почему не affine: промежуточные кадры между одиннадцатью матрицами браузер
+ * считает, раскладывая матрицу на поворот, масштаб и сдвиг. Когда деталь
+ * встаёт к зрителю ребром и дальше показывает изнанку, у матрицы меняется
+ * знак, и между кадрами деталь проворачивалась и отлетала от петель. Здесь
+ * та же матрица записана в осях самой детали: ось вдоль петель стоит,
+ * поперечная сжимается до нуля и уходит в минус. Это scaleY и skewX
+ * (и сдвиг, если петли едут), и браузер ведёт их линейно
+ */
+export type Turn = { origin: V3; along: V3; across: V3; move: (s: number) => (p: V3) => V3 }
+
+const num = (n: number) => String(Math.abs(n) < 1e-9 ? 0 : +n.toFixed(8))
+
+/**
+ * Насколько тонкой может стать деталь, пока её рисуем. Ровно ребром её
+ * не видно, а почти нулевой масштаб тормозит: линии постоянной толщины
+ * (.ss-card) браузер строит через обратную матрицу, и она огромна — выбор
+ * карточки замирал на секунду. Поэтому ход делится на отрезки, где деталь
+ * не тоньше EDGE; между ними — кадр-другой, когда её нет
+ */
+const EDGE = 0.04
+
+export function turnSteps(v: View, { origin, along, across, move }: Turn, eased = true) {
+  const O = v.P(...origin)
+  const rel = (p: V3, o: Pt = O): Pt => {
+    const q = v.P(...p)
+    return [q[0] - o[0], q[1] - o[1]]
+  }
+  const far = (p: V3, d: V3) => add(p, [d[0] * 1000, d[1] * 1000, d[2] * 1000])
+  // Оси детали на чертеже: метр вдоль петель и метр поперёк
+  const c1 = rel(far(origin, along))
+  const c2 = rel(far(origin, across))
+  const det = c1[0] * c2[1] - c2[0] * c1[1]
+  const local = ([x, y]: Pt): Pt => [(c2[1] * x - c2[0] * y) / det, (c1[0] * y - c1[1] * x) / det]
+  // Положение в долю времени u: сдвиг петель, сжатие поперёк (q) и перекос
+  const at = (u: number) => {
+    const f = move(eased ? smooth(u) : u)
+    const o = f(origin)
+    const [tx, ty] = local(rel(o))
+    const [p, q] = local(rel(f(far(origin, across)), v.P(...o)))
+    return { q, css: `translate(${num(tx)}px, ${num(ty)}px) scaleY(${num(q)}) skewX(${num((Math.atan(p) * 180) / Math.PI)}deg)` }
+  }
+  // Отрезки хода, где деталь не тоньше EDGE и не меняет сторону
+  const N = 400
+  const qs = Array.from({ length: N + 1 }, (_, i) => at(i / N).q)
+  const spans: Array<[number, number]> = []
+  let start: number | null = 0
+  for (let i = 1; i <= N; i++) {
+    const thin = Math.abs(qs[i]) < EDGE
+    if (start !== null && (thin || Math.sign(qs[i]) !== Math.sign(qs[start]))) {
+      if (i - 1 > start) spans.push([start / N, (i - 1) / N])
+      start = null
+    }
+    if (start === null && !thin) start = i
+  }
+  if (start !== null && start < N) spans.push([start / N, 1])
+  const [i1, i2, io] = [local([1, 0]), local([0, 1]), local(O)]
+  return {
+    outer: `matrix(${[c1[0], c1[1], c2[0], c2[1], O[0], O[1]].map(num).join(' ')})`,
+    inner: `matrix(${[i1[0], i1[1], i2[0], i2[1], -io[0], -io[1]].map(num).join(' ')})`,
+    spans: spans.map(([from, to]) => ({ from, to, steps: Array.from({ length: 11 }, (_, i) => at(from + ((to - from) * i) / 10).css) })),
+  }
+}
+
+/**
+ * Деталь на петлях: снаружи — оси детали, в них ход, внутри — обратно
+ * в чертёж. Отрезок хода — своя копия детали: первая гаснет в конце своего
+ * отрезка, следующие появляются в начале своего
+ */
+export function Hinged({ v, turn, d, t, eased = true, children }: { v: View; turn: Turn; d: number; t: number; eased?: boolean; children: ReactNode }) {
+  const { outer, inner, spans } = turnSteps(v, turn, eased)
+  return (
+    <g transform={outer}>
+      {spans.map((span, i) => {
+        let part = (
+          <Path steps={span.steps} d={d + t * span.from} t={Math.max(t * (span.to - span.from), 0.01)}>
+            <g transform={inner}>{children}</g>
+          </Path>
+        )
+        if (i < spans.length - 1) part = <g className="ss-hide" style={{ '--d': lagged(d + t * span.to) } as CSSProperties}>{part}</g>
+        if (i > 0) part = <g className="hs-fade" style={{ '--d': lagged(d + t * span.from), '--t': '0.01s' } as CSSProperties}>{part}</g>
+        return <Fragment key={span.from}>{part}</Fragment>
+      })}
     </g>
   )
 }

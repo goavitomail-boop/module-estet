@@ -743,7 +743,8 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
               проявляются, без подъёма, а высота карточки меняется плавно */}
           <AutoHeight>
           <AnimatePresence mode="wait" custom={direction}>
-          <m.div key={step} custom={direction} variants={stepVariants} initial="enter" animate="center" exit="exit">
+          {/* Свой слой: шаг выезжает и проявляется на видеокарте, схемы внутри при этом не перерисовываются */}
+          <m.div key={step} custom={direction} variants={stepVariants} initial="enter" animate="center" exit="exit" style={{ willChange: 'transform, opacity' }}>
           <m.div variants={itemVariants}><PlanLabel index={step + 1}>{steps[step].eyebrow}</PlanLabel></m.div>
           <div className="-mb-1 mt-3 overflow-hidden pb-1">
             <m.h1 variants={maskVariants} className="flyer-title text-balance text-3xl text-foreground sm:text-4xl md:text-5xl">{steps[step].title}</m.h1>
