@@ -1,8 +1,8 @@
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
-  HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
@@ -224,14 +224,41 @@ export async function deleteFiles(keys: string[]): Promise<void> {
   }
 }
 
+/**
+ * Почему хранилище отказало — словами, без секретов. Неудачный HEAD приходит
+ * без тела, и SDK знает только код ответа, поэтому проверка ниже делает
+ * запрос со списком файлов: на него хранилище отвечает кодом ошибки
+ */
+export function describeStorageError(error: unknown): string {
+  const e = error as { name?: string; code?: string; $metadata?: { httpStatusCode?: number } }
+  const status = e?.$metadata?.httpStatusCode
+  switch (e?.name ?? e?.code) {
+    case 'InvalidAccessKeyId':
+      return 'Neon не знает такой ключ — он удалён или AWS_ACCESS_KEY_ID вписан с ошибкой'
+    case 'SignatureDoesNotMatch':
+      return 'секрет не подходит к ключу — AWS_SECRET_ACCESS_KEY с ошибкой или от другого ключа, либо AWS_REGION не совпадает с регионом в адресе'
+    case 'AuthorizationHeaderMalformed':
+      return 'неверный регион — AWS_REGION должен совпадать с регионом в AWS_ENDPOINT_URL_S3'
+    case 'AccessDenied':
+      return 'у ключа нет прав на хранилище (нужны storage:read и storage:write) или он от другой ветки Neon'
+    case 'NoSuchBucket':
+      return `бакета «${BUCKET}» нет — создайте его в консоли Neon: ветка production → Object storage → New bucket`
+    case 'ENOTFOUND':
+    case 'ECONNREFUSED':
+    case 'ETIMEDOUT':
+      return 'адрес хранилища не отвечает — проверьте AWS_ENDPOINT_URL_S3'
+  }
+  if (status === 403) return 'доступ запрещён (403) — ключ удалён, секрет с ошибкой или у ключа нет прав storage:read и storage:write'
+  return `${e?.name ?? 'ошибка'}${status ? ` (${status})` : ''}`
+}
+
 /** Для диагностики: доступен ли бакет Neon. Ошибку — текстом, без секретов */
 export async function checkNeonBucket(): Promise<{ ok: boolean; error?: string }> {
   if (!isNeonStorage()) return { ok: false, error: 'переменные AWS_* не заданы' }
   try {
-    await s3().send(new HeadBucketCommand({ Bucket: BUCKET }))
+    await s3().send(new ListObjectsV2Command({ Bucket: BUCKET, MaxKeys: 1 }))
     return { ok: true }
   } catch (error) {
-    const e = error as { name?: string; $metadata?: { httpStatusCode?: number } }
-    return { ok: false, error: `${e.name ?? 'ошибка'}${e.$metadata?.httpStatusCode ? ` (${e.$metadata.httpStatusCode})` : ''}` }
+    return { ok: false, error: describeStorageError(error) }
   }
 }

@@ -20,7 +20,6 @@ import {
   CreateBucketCommand,
   DeleteObjectCommand,
   GetBucketCorsCommand,
-  HeadBucketCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutBucketCorsCommand,
@@ -46,7 +45,36 @@ const s3 = new S3Client({
 })
 
 const missing = (error) => error?.name === 'NotFound' || error?.name === 'NoSuchKey' || error?.name === 'NoSuchBucket' || error?.$metadata?.httpStatusCode === 404
-const why = (error) => `${error?.name ?? 'ошибка'}${error?.$metadata?.httpStatusCode ? ` (${error.$metadata.httpStatusCode})` : ''}`
+
+/** Причина отказа словами — как describeStorageError в lib/storage.ts */
+function why(error) {
+  const status = error?.$metadata?.httpStatusCode
+  switch (error?.name ?? error?.code) {
+    case 'InvalidAccessKeyId': return 'Neon не знает такой ключ — он удалён или AWS_ACCESS_KEY_ID вписан с ошибкой'
+    case 'SignatureDoesNotMatch': return 'секрет не подходит к ключу — AWS_SECRET_ACCESS_KEY с ошибкой или от другого ключа, либо AWS_REGION не совпадает с регионом в адресе'
+    case 'AuthorizationHeaderMalformed': return 'неверный регион — AWS_REGION должен совпадать с регионом в AWS_ENDPOINT_URL_S3'
+    case 'AccessDenied': return 'у ключа нет прав на хранилище (нужны storage:read и storage:write) или он от другой ветки Neon'
+    case 'NoSuchBucket': return `бакета «${BUCKET}» нет`
+    case 'ENOTFOUND': case 'ECONNREFUSED': case 'ETIMEDOUT': return 'адрес хранилища не отвечает — проверьте AWS_ENDPOINT_URL_S3'
+  }
+  if (status === 403) return 'доступ запрещён (403) — ключ удалён, секрет с ошибкой или у ключа нет прав storage:read и storage:write'
+  if (!error?.$metadata && error?.message) return error.message
+  return `${error?.name ?? 'ошибка'}${status ? ` (${status})` : ''}`
+}
+
+/**
+ * Есть ли бакет. Список из одного файла, а не HEAD: на HEAD хранилище
+ * отвечает без тела, и по одному коду 403 не понять, в чём дело
+ */
+async function bucketExists() {
+  try {
+    await s3.send(new ListObjectsV2Command({ Bucket: BUCKET, MaxKeys: 1 }))
+    return true
+  } catch (error) {
+    if (error?.name === 'NoSuchBucket') return false
+    throw error
+  }
+}
 
 function origins() {
   const main = new URL(SITE)
@@ -65,11 +93,9 @@ async function exists(key) {
 }
 
 async function setup() {
-  try {
-    await s3.send(new HeadBucketCommand({ Bucket: BUCKET }))
+  if (await bucketExists()) {
     console.log(`Бакет «${BUCKET}» есть`)
-  } catch (error) {
-    if (!missing(error)) throw error
+  } else {
     await s3.send(new CreateBucketCommand({ Bucket: BUCKET }))
     console.log(`Бакет «${BUCKET}» создан`)
   }
@@ -82,7 +108,10 @@ async function setup() {
 }
 
 async function check() {
-  await s3.send(new HeadBucketCommand({ Bucket: BUCKET }))
+  if (!(await bucketExists())) {
+    console.error(`Бакета «${BUCKET}» нет — выполните setup или создайте его в консоли Neon: ветка production → Object storage → New bucket`)
+    process.exit(1)
+  }
   console.log(`Бакет «${BUCKET}» доступен`)
   for (const prefix of ['leads/', 'portfolio/', 'catalog/']) {
     let count = 0
@@ -160,6 +189,6 @@ try {
       process.exit(1)
   }
 } catch (error) {
-  console.error(`Ошибка: ${error instanceof Error ? error.message : why(error)}`)
+  console.error(`Ошибка: ${why(error)}`)
   process.exit(1)
 }
