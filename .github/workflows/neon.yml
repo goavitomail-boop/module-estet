@@ -98,6 +98,9 @@ jobs:
         env:
           # Браузерная загрузка в бакет на проверке идёт с localhost — его тоже пускаем в CORS
           STORAGE_CORS_ORIGINS: http://localhost:3000
+          # Свой бакет ветки, а не унаследованный от production files: у
+          # унаследованного Neon не даёт менять CORS (отвечает NoSuchBucket)
+          STORAGE_BUCKET: ci-files
         run: |
           npm run start > "$RUNNER_TEMP/server.log" 2>&1 &
           for i in $(seq 1 60); do
@@ -142,40 +145,10 @@ jobs:
           done
           echo "Всё в порядке: сайт пишет в базу Neon и читает из неё"
 
-      - name: Временная проверка поведения хранилища
-        continue-on-error: true
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-        run: |
-          $NEON bucket list --project-id "$NEON_PROJECT_ID" --branch production 2>&1 | tail -20 || true
-          $NEON bucket list --project-id "$NEON_PROJECT_ID" --branch "$BRANCH" 2>&1 | tail -20 || true
-          $NEON credentials list --help 2>&1 | head -30 || true
-          cat > "$RUNNER_TEMP/probe.mjs" <<'JS'
-          import { S3Client, HeadBucketCommand, ListObjectsV2Command, GetBucketCorsCommand, PutBucketCorsCommand, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-          const s3 = new S3Client({ endpoint: process.env.AWS_ENDPOINT_URL_S3, region: process.env.AWS_REGION, forcePathStyle: true, requestChecksumCalculation: 'WHEN_REQUIRED', responseChecksumValidation: 'WHEN_REQUIRED' })
-          const cors = { CORSRules: [{ AllowedOrigins: ['http://localhost:3000'], AllowedMethods: ['PUT'], AllowedHeaders: ['content-type'], MaxAgeSeconds: 60 }] }
-          for (const bucket of ['files', 'no-such-bucket-ci-probe']) {
-            const tries = {
-              HeadBucket: () => new HeadBucketCommand({ Bucket: bucket }),
-              ListObjectsV2: () => new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 1 }),
-              GetBucketCors: () => new GetBucketCorsCommand({ Bucket: bucket }),
-              PutBucketCors: () => new PutBucketCorsCommand({ Bucket: bucket, CORSConfiguration: cors }),
-              PutObject: () => new PutObjectCommand({ Bucket: bucket, Key: 'ci/probe.txt', Body: 'x', ContentType: 'text/plain' }),
-              DeleteObject: () => new DeleteObjectCommand({ Bucket: bucket, Key: 'ci/probe.txt' }),
-            }
-            for (const [name, make] of Object.entries(tries)) {
-              try { const r = await s3.send(make()); console.log(bucket, name, 'OK', r.$metadata.httpStatusCode, name === 'ListObjectsV2' ? `KeyCount=${r.KeyCount}` : '') }
-              catch (e) { console.log(bucket, name, 'ERR', e.name, e.$metadata?.httpStatusCode, (e.message || '').slice(0, 120)) }
-            }
-          }
-          JS
-          cp "$RUNNER_TEMP/probe.mjs" ./probe-tmp.mjs
-          node --env-file=.env.local ./probe-tmp.mjs
-          rm -f ./probe-tmp.mjs
-
       - name: Хранилище файлов Neon через сайт
         env:
           STORAGE_CORS_ORIGINS: http://localhost:3000
+          STORAGE_BUCKET: ci-files
         run: |
           set -euo pipefail
           # Ключи AWS_* — в .env.local (их пишет neon deploy), в журнале они уже скрыты

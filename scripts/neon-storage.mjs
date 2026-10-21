@@ -100,10 +100,19 @@ async function setup() {
     console.log(`Бакет «${BUCKET}» создан`)
   }
   const allowed = origins()
-  await s3.send(new PutBucketCorsCommand({
-    Bucket: BUCKET,
-    CORSConfiguration: { CORSRules: [{ AllowedOrigins: allowed, AllowedMethods: ['PUT'], AllowedHeaders: ['content-type'], MaxAgeSeconds: 3600 }] },
-  }))
+  try {
+    await s3.send(new PutBucketCorsCommand({
+      Bucket: BUCKET,
+      CORSConfiguration: { CORSRules: [{ AllowedOrigins: allowed, AllowedMethods: ['PUT'], AllowedHeaders: ['content-type'], MaxAgeSeconds: 3600 }] },
+    }))
+  } catch (error) {
+    // Бакет есть, а CORS «бакета нет»: так Neon отвечает на ветке, которая
+    // унаследовала бакет от родителя. Менять его настройки там нельзя
+    if (error?.name === 'NoSuchBucket') {
+      throw new Error(`бакет «${BUCKET}» унаследован от родительской ветки Neon, и CORS у него не меняется — на этой ветке задайте другой STORAGE_BUCKET`)
+    }
+    throw error
+  }
   console.log(`CORS: загрузка из браузера разрешена с ${allowed.join(', ')}`)
 }
 
