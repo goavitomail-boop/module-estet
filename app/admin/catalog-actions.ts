@@ -18,6 +18,7 @@ import {
 } from '@/lib/db'
 import { catalogGroupNotesSeed, catalogSeed } from '@/lib/catalog-seed'
 import { slugify, uniqueSlug } from '@/lib/slug'
+import { deleteFiles } from '@/lib/storage'
 
 const BLOB_PREFIX = 'catalog/'
 const MEDIA_PREFIX = '/media/'
@@ -58,12 +59,8 @@ function safeImage(src: string): string {
 async function removeBlob(src: string | null | undefined): Promise<void> {
   const pathname = src ? blobPathname(src) : null
   if (!pathname) return
-  try {
-    const { del } = await import('@vercel/blob')
-    await del(pathname)
-  } catch (error) {
-    console.error('[Каталог] Фото осталось в хранилище:', error)
-  }
+  // И в Neon, и в Vercel Blob: фото может быть ещё не перенесено (lib/storage.ts)
+  await deleteFiles([pathname])
 }
 
 export type CatalogFormState = { error?: string } | null

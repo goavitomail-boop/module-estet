@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readFile } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 
@@ -28,25 +29,25 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   }
 
   try {
-    const { get } = await import('@vercel/blob')
-    const result = await get(pathname, { access: 'private' })
-
-    if (!result || result.statusCode !== 200 || !result.stream) {
+    // Neon, а файл, ещё не перенесённый из Vercel Blob, — оттуда (lib/storage.ts)
+    const file = await readFile(pathname)
+    if (!file) {
       return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
     }
 
     // Наружу отдаём только картинки. В этих папках ничего другого быть не
     // должно, а если там окажется PDF или HTML, раздавать его с нашего домена
     // нельзя: так на сайте компании размещают чужие страницы и документы
-    const contentType = result.blob.contentType || ''
+    const contentType = file.contentType
     if (!PUBLIC_TYPES.includes(contentType)) {
+      await file.stream.cancel().catch(() => {})
       return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
     }
 
-    return new NextResponse(result.stream as unknown as BodyInit, {
+    return new NextResponse(file.stream, {
       headers: {
         'Content-Type': contentType,
-        'Content-Length': String(result.blob.size),
+        'Content-Length': String(file.size),
         'Cache-Control': 'public, max-age=31536000, immutable',
         // Браузер не должен угадывать тип по содержимому
         'X-Content-Type-Options': 'nosniff',

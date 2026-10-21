@@ -3,6 +3,7 @@ import { getMaxBotInfo, adminUserIds } from '@/lib/max-bot'
 import { databaseUrlSource, isDbConfigured, listBotUsers } from '@/lib/db'
 import { isAuthConfigured, isPasswordHashed } from '@/lib/admin-auth'
 import { MEASUREMENT_SLOTS, slotCapacity } from '@/lib/measurement-slots'
+import { BUCKET, checkNeonBucket, isBlobStorage, isNeonStorage } from '@/lib/storage'
 import { Panel } from '../../_components/ui'
 import { TestNotificationButton } from './test-notification'
 
@@ -15,6 +16,8 @@ export default async function SettingsPage() {
   const recipients = adminUserIds()
   const botUsers = isDbConfigured() ? await listBotUsers().catch(() => []) : []
   const capacity = slotCapacity()
+  // Не переменные, а настоящий доступ: ключ может быть задан, но не подходить к бакету
+  const neon = isNeonStorage() ? await checkNeonBucket() : null
 
   const checks = [
     {
@@ -58,11 +61,15 @@ export default async function SettingsPage() {
           : 'Не задано — уведомления некуда отправлять.',
     },
     {
-      name: 'Хранилище файлов (BLOB_READ_WRITE_TOKEN)',
-      ok: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-      hint: process.env.BLOB_READ_WRITE_TOKEN
-        ? 'Фото и планы из квиза загружаются.'
-        : 'Не задан — файлы из квиза не сохраняются, заявка придёт без вложений.',
+      name: 'Хранилище файлов — Neon (AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)',
+      ok: Boolean(neon?.ok),
+      hint: neon?.ok
+        ? `Новые файлы — в Neon Object Storage, бакет «${BUCKET}». Ещё не перенесённые старые читаются из Vercel Blob${isBlobStorage() ? '' : ' — но BLOB_READ_WRITE_TOKEN не задан, и их не видно'}.`
+        : neon
+          ? `Переменные заданы, но бакет «${BUCKET}» недоступен: ${neon.error}. Файлы из квиза не сохранятся.`
+          : isBlobStorage()
+            ? 'Не задано — файлы пишутся по-старому в Vercel Blob (BLOB_READ_WRITE_TOKEN).'
+            : 'Не задано ни Neon, ни Vercel Blob — файлы из квиза не сохраняются, заявка придёт без вложений.',
     },
     {
       name: 'Секрет вебхука (MAX_WEBHOOK_SECRET)',

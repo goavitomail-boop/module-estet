@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, ImagePlus, Star, Trash2 } from 'lucide-react'
 import { savePortfolioAction } from '@/app/admin/portfolio-actions'
 import type { PortfolioPhotoRow, PortfolioRow } from '@/lib/db'
 import { cn } from '@/lib/utils'
+import { uploadFile } from '@/lib/upload-client'
 
 const MAX_SIZE = 25 * 1024 * 1024
 const MAX_PHOTOS = 40
@@ -51,11 +52,11 @@ export function PortfolioEditor({ project }: { project: PortfolioRow | null }) {
 
       setBusy(file.name)
       try {
-        const { upload } = await import('@vercel/blob/client')
-        const blob = await upload(`portfolio/${folder}/${file.name}`, file, {
-          access: 'private',
-          handleUploadUrl: '/admin/upload',
-        })
+        const blob = await uploadFile(file, {
+          endpoint: '/admin/upload',
+          folder: `portfolio/${folder}`,
+          blobPath: `portfolio/${folder}/${file.name}`,
+        }, 120_000)
 
         const src = `/media/${blob.pathname}`
         setPhotos((current) => [...current, { src, alt: '' }])

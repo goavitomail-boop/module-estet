@@ -5,6 +5,7 @@ import { Download, FileText, Paperclip, Trash2, Upload } from 'lucide-react'
 import { FILE_KINDS, fileKindLabel, type LeadFileRow } from '@/lib/db'
 import { attachFileAction, deleteFileAction } from '@/app/admin/actions'
 import { formatDateTime, formatFileSize } from '@/lib/admin-format'
+import { uploadFile } from '@/lib/upload-client'
 import { cn } from '@/lib/utils'
 
 /** Столько же, сколько разрешает /admin/upload */
@@ -36,11 +37,11 @@ export function ManagerFiles({ leadId, files }: { leadId: string; files: LeadFil
 
       setBusy(file.name)
       try {
-        const { upload } = await import('@vercel/blob/client')
-        const blob = await upload(`leads/${leadId}/${Date.now()}-${file.name}`, file, {
-          access: 'private',
-          handleUploadUrl: '/admin/upload',
-        })
+        const blob = await uploadFile(file, {
+          endpoint: '/admin/upload',
+          folder: `leads/${leadId}`,
+          blobPath: `leads/${leadId}/${Date.now()}-${file.name}`,
+        }, 120_000)
 
         const result = await attachFileAction({
           leadId,

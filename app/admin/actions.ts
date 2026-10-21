@@ -33,6 +33,7 @@ import {
 import { SLOT_VALUES, slotCapacity, slotLabel } from '@/lib/measurement-slots'
 import { sendMaxMessage } from '@/lib/max-bot'
 import { allowRequest, clientIp, requestCount } from '@/lib/request-guard'
+import { deleteFiles } from '@/lib/storage'
 
 /** Сколько неверных паролей подряд допускается с одного адреса и за какое время */
 const LOGIN_ATTEMPTS = 5
@@ -274,12 +275,7 @@ export async function deleteFileAction(formData: FormData) {
   // Объект в хранилище убираем после записи в базе: если упадёт здесь,
   // останется осиротевший файл, а не запись без файла
   if (removed) {
-    try {
-      const { del } = await import('@vercel/blob')
-      await del(removed.pathname)
-    } catch (error) {
-      console.error('[Admin] Файл удалён из заявки, но остался в хранилище:', error)
-    }
+    await deleteFiles([removed.pathname])
   }
 
   revalidatePath(`/admin/leads/${leadId}`)
@@ -299,12 +295,7 @@ export async function deleteLeadAction(formData: FormData) {
 
   // Как и с файлами менеджера: сначала база, потом хранилище
   if (removed && removed.pathnames.length > 0) {
-    try {
-      const { del } = await import('@vercel/blob')
-      await del(removed.pathnames)
-    } catch (error) {
-      console.error('[Admin] Заявка удалена, но файлы остались в хранилище:', error)
-    }
+    await deleteFiles(removed.pathnames)
   }
 
   revalidatePath('/admin/leads')

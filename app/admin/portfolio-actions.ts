@@ -15,6 +15,7 @@ import {
 } from '@/lib/db'
 import { staticProjectsAsInput } from '@/lib/portfolio-source'
 import { slugify, uniqueSlug } from '@/lib/slug'
+import { deleteFiles } from '@/lib/storage'
 
 /** Префикс, под которым фотографии портфолио лежат в хранилище */
 const BLOB_PREFIX = 'portfolio/'
@@ -32,12 +33,8 @@ function blobPathname(src: string): string | null {
 async function removeBlobs(sources: string[]): Promise<void> {
   const pathnames = sources.map(blobPathname).filter((value): value is string => value !== null)
   if (pathnames.length === 0) return
-  try {
-    const { del } = await import('@vercel/blob')
-    await del(pathnames)
-  } catch (error) {
-    console.error('[Портфолио] Фотографии остались в хранилище:', error)
-  }
+  // И в Neon, и в Vercel Blob: фото может быть ещё не перенесено (lib/storage.ts)
+  await deleteFiles(pathnames)
 }
 
 /** Текст из многострочного поля → массив строк без пустых */

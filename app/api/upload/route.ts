@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { allowRequest, clientIp } from '@/lib/request-guard'
+import { isBlobStorage, isNeonStorage, newKey, putFile, signUpload } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,7 +10,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf
 const MAX_SIZE = 10 * 1024 * 1024
 
 /** Единственная папка, куда может писать посетитель. Остальные — только из панели */
-const LEADS_FOLDER = 'leads/'
+const LEADS_FOLDER = 'leads'
 
 /**
  * Квиз принимает до 8 файлов, у каждого бывает повторная попытка — с запасом.
@@ -18,35 +19,52 @@ const LEADS_FOLDER = 'leads/'
 const UPLOAD_LIMIT = 30
 const UPLOAD_WINDOW_MS = 10 * 60_000
 
-/** Имя файла без путей и управляющих символов: оно попадает в ключ хранилища */
-function safeName(value: string): string {
-  const base = value.split(/[\\/]/).pop() ?? ''
-  const clean = base.replace(/[^\p{L}\p{N}._ -]+/gu, '_').replace(/\.{2,}/g, '.').trim().slice(0, 120)
-  return clean || 'file'
-}
-
 /**
- * Выдаёт браузеру одноразовый токен для прямой загрузки файла в Vercel Blob.
+ * Загрузка файла посетителем (квиз). Хранилище — lib/storage.ts.
  *
- * Файлы идут в хранилище напрямую, минуя серверную функцию: на Vercel тело
- * запроса к функции ограничено 4,5 МБ, а квиз принимает до 8 файлов по 10 МБ.
+ * Neon: браузер присылает имя, тип и размер, сервер отвечает подписанной
+ * ссылкой, и файл идёт прямо в бакет, минуя сервер. Пока Neon на сервере не
+ * настроен, отвечаем { mode: 'blob' }, и браузер грузит по-старому в Vercel
+ * Blob — этот же маршрут выдаёт ему токен (старый протокол handleUpload).
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  // Наличие BLOB_READ_WRITE_TOKEN намеренно НЕ проверяем.
-  // При подключении хранилища через OIDC этой переменной не существует,
-  // а доступ выдаётся по идентификатору стора — ранняя проверка в таком
-  // случае отсекала бы полностью рабочую конфигурацию.
-  let body: HandleUploadBody
+  let body: unknown
   try {
-    body = (await request.json()) as HandleUploadBody
+    body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Неверный формат данных' }, { status: 400 })
   }
 
+  const legacyType = (body as { type?: unknown })?.type
+  if (legacyType === 'blob.generate-client-token' || legacyType === 'blob.upload-completed') return legacyBlob(request, body as HandleUploadBody)
+
+  if (!allowRequest('upload', clientIp(request), UPLOAD_LIMIT, UPLOAD_WINDOW_MS)) {
+    return NextResponse.json({ error: 'Слишком много загрузок подряд. Попробуйте чуть позже.' }, { status: 429 })
+  }
+
+  const { name, type, size } = (body ?? {}) as { name?: unknown; type?: unknown; size?: unknown }
+  if (typeof type !== 'string' || !ALLOWED_TYPES.includes(type)) return NextResponse.json({ error: 'Недопустимый тип файла' }, { status: 400 })
+  if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0 || size > MAX_SIZE) return NextResponse.json({ error: 'Недопустимый размер файла' }, { status: 400 })
+
+  if (isNeonStorage()) {
+    try {
+      const pathname = newKey(LEADS_FOLDER, typeof name === 'string' ? name : 'file')
+      const { url, headers } = await signUpload(pathname, type, Math.trunc(size))
+      return NextResponse.json({ mode: 'put', url, headers, pathname })
+    } catch (error) {
+      console.error('[Upload] Не удалось подписать загрузку:', error instanceof Error ? error.message : error)
+      return NextResponse.json({ error: 'Не удалось подготовить загрузку файла' }, { status: 500 })
+    }
+  }
+  if (isBlobStorage()) return NextResponse.json({ mode: 'blob' })
+  return NextResponse.json({ error: 'Хранилище файлов не настроено' }, { status: 503 })
+}
+
+/** Старый протокол Vercel Blob: токен для прямой загрузки и событие о её завершении */
+async function legacyBlob(request: Request, body: HandleUploadBody): Promise<NextResponse> {
   // Событие о завершении присылает само хранилище, а не посетитель: его
   // подлинность проверяет handleUpload по подписи, и в лимит оно не входит
-  const isCompletionCallback = (body as { type?: string })?.type === 'blob.upload-completed'
-  if (!isCompletionCallback && !allowRequest('upload', clientIp(request), UPLOAD_LIMIT, UPLOAD_WINDOW_MS)) {
+  if (body.type !== 'blob.upload-completed' && !allowRequest('upload', clientIp(request), UPLOAD_LIMIT, UPLOAD_WINDOW_MS)) {
     return NextResponse.json({ error: 'Слишком много загрузок подряд. Попробуйте чуть позже.' }, { status: 429 })
   }
 
@@ -57,7 +75,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       onBeforeGenerateToken: async (pathname) => {
         // Путь выбирает браузер. Без этой проверки посетитель мог бы положить
         // файл в portfolio/ или catalog/ — а их сайт раздаёт всем по /media
-        if (!pathname.startsWith(LEADS_FOLDER) || pathname.includes('..')) {
+        if (!pathname.startsWith(`${LEADS_FOLDER}/`) || pathname.includes('..')) {
           throw new Error('Недопустимый путь загрузки')
         }
         return {
@@ -82,23 +100,19 @@ export async function POST(request: Request): Promise<NextResponse> {
 }
 
 /**
- * Запасной путь: файл приходит на сервер, и уже сервер кладёт его в хранилище.
- *
- * Нужен потому, что прямая загрузка из браузера идёт на vercel.com/api/blob,
- * и этот адрес в некоторых сетях и конфигурациях отвечает без CORS-заголовков —
- * браузер режет запрос, а SDK молча уходит в повторные попытки.
- *
- * Ограничение: тело запроса к серверной функции на Vercel — около 4,5 МБ,
- * поэтому сюда пускаем файлы до 4 МБ. Более крупные идут только прямым путём.
+ * Запасной путь: файл приходит на сервер, и уже сервер кладёт его в
+ * хранилище — если прямая загрузка из браузера не прошла (сеть режет адрес
+ * хранилища, нет CORS). Если перед сайтом nginx, его client_max_body_size
+ * должен пропускать 10 МБ, иначе крупные файлы он отсечёт сам
  */
-export const FALLBACK_MAX_SIZE = 4 * 1024 * 1024
+export const FALLBACK_MAX_SIZE = MAX_SIZE
 
 export async function PUT(request: Request): Promise<NextResponse> {
   if (!allowRequest('upload', clientIp(request), UPLOAD_LIMIT, UPLOAD_WINDOW_MS)) {
     return NextResponse.json({ error: 'Слишком много загрузок подряд. Попробуйте чуть позже.' }, { status: 429 })
   }
 
-  const name = safeName(new URL(request.url).searchParams.get('name') ?? '')
+  const name = new URL(request.url).searchParams.get('name') ?? ''
   const contentType = request.headers.get('content-type') || 'application/octet-stream'
 
   if (!ALLOWED_TYPES.includes(contentType)) {
@@ -112,23 +126,16 @@ export async function PUT(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const data = await request.arrayBuffer()
-    if (data.byteLength > FALLBACK_MAX_SIZE) {
-      return NextResponse.json({ error: 'Файл слишком большой для этого способа загрузки' }, { status: 413 })
+    const data = new Uint8Array(await request.arrayBuffer())
+    if (data.byteLength === 0 || data.byteLength > FALLBACK_MAX_SIZE) {
+      return NextResponse.json({ error: 'Недопустимый размер файла' }, { status: 413 })
     }
 
-    const { put } = await import('@vercel/blob')
-    // access: 'private' — фотографии кухонь и планировки это личные данные
-    // клиента. Их нельзя отдавать всем, у кого есть ссылка. Менеджеры смотрят
-    // файлы через /admin/file, который проверяет сессию.
-    const blob = await put(`${LEADS_FOLDER}${Date.now()}-${name}`, data, {
-      access: 'private',
-      contentType,
-      addRandomSuffix: true,
-    })
-
-    console.log(`[Upload] Файл загружен через сервер: ${blob.pathname}`)
-    return NextResponse.json({ url: blob.url, pathname: blob.pathname })
+    // Файлы клиента приватные: фото квартиры и планировки — личные данные.
+    // Менеджеры смотрят их через /admin/file, который проверяет сессию
+    const { pathname } = await putFile(newKey(LEADS_FOLDER, name), data, contentType)
+    console.log(`[Upload] Файл загружен через сервер: ${pathname}`)
+    return NextResponse.json({ pathname })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error('[Upload] Серверная загрузка не удалась:', message)

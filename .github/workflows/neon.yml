@@ -17,7 +17,14 @@ on:
     paths:
       - 'neon.ts'
       - 'lib/db.ts'
+      - 'lib/storage.ts'
+      - 'lib/upload-client.ts'
       - 'app/api/leads/**'
+      - 'app/api/upload/**'
+      - 'app/admin/upload/**'
+      - 'app/admin/file/**'
+      - 'app/media/**'
+      - 'scripts/neon-storage.mjs'
       - '.github/workflows/neon.yml'
   workflow_dispatch:
 
@@ -56,6 +63,8 @@ jobs:
             exit 1
           fi
           echo "Проект Neon: $NEON_PROJECT_ID, ветка базы: $BRANCH"
+          # Регион — не секрет: от него зависит, есть ли в проекте Object Storage
+          echo "Регион проекта: $($NEON projects get "$NEON_PROJECT_ID" -o json 2>/dev/null | jq -r '.region_id // .project.region_id // "не удалось узнать"' 2>/dev/null || echo 'не удалось узнать')"
 
           log="$RUNNER_TEMP/neon.log"
           {
@@ -86,6 +95,9 @@ jobs:
         run: npm run build
 
       - name: Запуск сайта
+        env:
+          # Браузерная загрузка в бакет на проверке идёт с localhost — его тоже пускаем в CORS
+          STORAGE_CORS_ORIGINS: http://localhost:3000
         run: |
           npm run start > "$RUNNER_TEMP/server.log" 2>&1 &
           for i in $(seq 1 60); do
@@ -129,6 +141,67 @@ jobs:
             [ "$code" = 200 ]
           done
           echo "Всё в порядке: сайт пишет в базу Neon и читает из неё"
+
+      - name: Хранилище файлов Neon через сайт
+        env:
+          STORAGE_CORS_ORIGINS: http://localhost:3000
+        run: |
+          set -euo pipefail
+          # Ключи AWS_* — в .env.local (их пишет neon deploy), в журнале они уже скрыты
+          storage() { node --env-file=.env.local scripts/neon-storage.mjs "$@"; }
+          json() { node -e 'const v = JSON.parse(process.argv[1]); console.log(process.argv[2].split(".").reduce((o, k) => (o == null ? o : o[k]), v) ?? "")' "$1" "$2"; }
+          grep -q '^AWS_ENDPOINT_URL_S3=' .env.local || { echo "::error::neon deploy не выдал ключи хранилища (AWS_*): бакет из neon.ts не создан"; exit 1; }
+
+          storage setup
+          echo 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' | base64 -d > ci.png
+          size=$(stat -c %s ci.png)
+
+          # 1. Прямая загрузка: сайт подписывает ссылку, файл идёт в бакет мимо сервера
+          plan=$(curl -sS -X POST http://localhost:3000/api/upload -H 'content-type: application/json' \
+            --data "{\"name\":\"ci.png\",\"type\":\"image/png\",\"size\":$size}")
+          url=$(json "$plan" url); key=$(json "$plan" pathname)
+          # Подписанная ссылка живёт 10 минут, но в открытый журнал ей незачем
+          [ -n "$url" ] && echo "::add-mask::$url"
+          [ "$(json "$plan" mode)" = put ] || { echo "::error::Сайт не выдал ссылку для загрузки в Neon: $(json "$plan" error)"; exit 1; }
+          echo "Ключ: $key"
+          allow=$(curl -sS -o /dev/null -D - -X OPTIONS "$url" -H 'Origin: http://localhost:3000' \
+            -H 'Access-Control-Request-Method: PUT' -H 'Access-Control-Request-Headers: content-type' | tr -d '\r' | grep -i '^access-control-allow-origin:' || true)
+          echo "CORS для браузера: ${allow:-нет заголовка}"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "$url" -H 'Content-Type: image/png' --data-binary @ci.png)
+          echo "PUT по ссылке → $code"
+          [ "$code" = 200 ]
+          storage head "$key" && echo "Файл в бакете"
+          # Размер подписан: файл другого размера по той же ссылке не примут
+          printf 'лишнее' | cat ci.png - > ci-bigger.png
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "$url" -H 'Content-Type: image/png' --data-binary @ci-bigger.png)
+          echo "PUT другого размера → $code (ждём отказ)"
+          [ "$code" != 200 ] || echo "::warning::Хранилище приняло файл другого размера: подпись размера не проверяется"
+
+          # 2. Запасной путь: файл через сайт
+          res=$(curl -sS -X PUT "http://localhost:3000/api/upload?name=ci-fallback.png" -H 'Content-Type: image/png' --data-binary @ci.png)
+          key2=$(json "$res" pathname)
+          [ -n "$key2" ] || { echo "::error::Запасная загрузка не прошла: $(json "$res" error)"; exit 1; }
+          storage head "$key2" && echo "Запасной путь: файл в бакете ($key2)"
+
+          # 3. Чтение через сайт: фото каталога по /media
+          storage put catalog/ci/ci-test.png ci.png image/png
+          code=$(curl -sS -o media.png -w '%{http_code}' http://localhost:3000/media/catalog/ci/ci-test.png)
+          echo "/media/catalog/ci/ci-test.png → $code"
+          [ "$code" = 200 ] && cmp -s media.png ci.png && echo "Сайт отдаёт файл из бакета байт в байт"
+
+          # 4. Заявка с файлом: путь сохраняется в базе
+          started=$(( $(date +%s%3N) - 10000 ))
+          body=$(curl -sS -X POST http://localhost:3000/api/leads -H 'content-type: application/json' \
+            --data "{\"type\":\"project\",\"name\":\"Проверка файлов CI\",\"phone\":\"+7 999 000-00-01\",\"startedAt\":$started,\"details\":{\"files\":[{\"name\":\"ci.png\",\"size\":$size,\"type\":\"image/png\",\"pathname\":\"$key\"}]}}")
+          id=$(json "$body" id)
+          db=$(node --env-file=.env.local -e 'console.log(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "")')
+          saved=$(psql "$db" -tAc "SELECT details->'files'->0->>'pathname' FROM leads WHERE id = '$id'")
+          echo "Заявка $id, путь файла в базе: $saved"
+          [ "$saved" = "$key" ]
+
+          storage check
+          for k in "$key" "$key2" catalog/ci/ci-test.png; do storage delete "$k"; done
+          echo "Всё в порядке: файлы идут в Neon Object Storage и читаются сайтом"
 
       - name: Журнал сайта
         if: always()

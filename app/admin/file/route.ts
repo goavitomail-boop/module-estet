@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/admin-auth'
+import { readFile } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,20 +30,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { get } = await import('@vercel/blob')
-    const result = await get(pathname, { access: 'private' })
-
-    if (!result || result.statusCode !== 200 || !result.stream) {
+    // Neon, а файл, ещё не перенесённый из Vercel Blob, — оттуда (lib/storage.ts)
+    const file = await readFile(pathname)
+    if (!file) {
       return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
     }
 
     const download = request.nextUrl.searchParams.get('download') === '1'
     const filename = pathname.split('/').pop() ?? 'file'
 
-    return new NextResponse(result.stream as unknown as BodyInit, {
+    return new NextResponse(file.stream, {
       headers: {
-        'Content-Type': result.blob.contentType || 'application/octet-stream',
-        'Content-Length': String(result.blob.size),
+        'Content-Type': file.contentType,
+        'Content-Length': String(file.size),
         // inline — чтобы превью показывалось прямо в карточке
         'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(filename)}`,
         // Приватные данные не должны оседать в общих кэшах

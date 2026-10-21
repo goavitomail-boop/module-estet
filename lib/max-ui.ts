@@ -1,6 +1,7 @@
 import { formatRussianPhone } from '@/lib/phone'
 import { STATUS_LABELS, TYPE_LABELS, LEAD_STATUSES, type Lead, type LeadStatus, type LeadType } from '@/lib/db'
 import type { MaxAttachment, MaxInlineButton } from '@/lib/max-bot'
+import { siteUrl } from '@/lib/seo'
 
 /**
  * Оформление сообщений и клавиатур бота.
@@ -306,11 +307,14 @@ function fileLines(details: Record<string, unknown>): string[] {
 
   for (const item of raw.slice(0, 8)) {
     if (typeof item !== 'object' || !item) continue
-    const file = item as { name?: unknown; url?: unknown }
+    const file = item as { name?: unknown; url?: unknown; pathname?: unknown }
     const name = typeof file.name === 'string' ? plain(file.name).slice(0, 120) || 'файл' : 'файл'
-    // Ссылку присылает браузер посетителя — показываем её, только если она
-    // действительно ведёт в наше хранилище
-    const url = typeof file.url === 'string' && isStorageUrl(file.url) ? file.url : ''
+    // Файл приватный: открывается через панель сайта, после входа (/admin/file).
+    // Старые заявки — с прямой ссылкой в Vercel Blob, если она действительно туда
+    const pathname = typeof file.pathname === 'string' && file.pathname.startsWith('leads/') && !file.pathname.includes('..') ? file.pathname : ''
+    const url = pathname
+      ? `${siteUrl}/admin/file?path=${encodeURIComponent(pathname)}`
+      : typeof file.url === 'string' && isStorageUrl(file.url) ? file.url : ''
     lines.push(url ? `   ↳ ${name}: ${url}` : `   ↳ ${name} — загрузить не удалось, запросите у клиента`)
   }
 

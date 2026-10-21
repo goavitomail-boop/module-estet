@@ -31,6 +31,7 @@ import {
   RUN_MARKS, SIZE_UNKNOWN, SchemeChoices, WARDROBE_FEATURES, WARDROBE_STORAGE, WARDROBE_TYPE_OPTIONS, WARDROBE_WIDTH_OPTIONS,
 } from '@/components/quiz-schemes'
 import { COMPANY } from '@/lib/company'
+import { uploadFile as uploadToStorage } from '@/lib/upload-client'
 
 /**
  * Квиз «Рассчитать кухню» — лёгкая версия. Тот же квиз считает и шкафы:
@@ -298,54 +299,19 @@ function ChoiceGrid({ options, value, onChange, multiple = false }: { options: C
 
 /** Дольше этого ждать загрузку одного файла бессмысленно — клиент уже нервничает */
 const UPLOAD_TIMEOUT_MS = 20000
-/** Предел серверного запасного пути: тело функции на Vercel ограничено ~4,5 МБ */
-const FALLBACK_MAX_SIZE = 4 * 1024 * 1024
 
 /**
- * Кладёт файл в хранилище и возвращает ссылку, либо null.
- *
- * Сначала пробуем прямую загрузку из браузера — она быстрее и не нагружает
- * функцию. Если она не отвечает (адрес vercel.com/api/blob местами режется
- * политикой CORS, и SDK при этом уходит в бесконечные повторы), файл идёт
- * через наш сервер. Обе попытки ограничены таймаутом: форма не имеет права
- * зависнуть на «Загружаем файлы 0/1» — клиент просто закроет вкладку.
+ * Кладёт файл клиента в хранилище и возвращает путь к нему, либо null.
+ * Как именно — решает сервер (lib/upload-client.ts): прямо в Neon по
+ * подписанной ссылке, по-старому в Vercel Blob или запасным путём через наш
+ * сервер. Файлы приватные: менеджеры смотрят их из панели через /admin/file
+ * с проверкой сессии
  */
-async function uploadFile(file: File): Promise<{ url: string; pathname: string } | null> {
-  const withTimeout = <T,>(task: Promise<T>, ms: number) =>
-    Promise.race([task, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))])
-
+async function uploadFile(file: File): Promise<{ pathname: string; url?: string } | null> {
   try {
-    const { upload } = await withTimeout(import('@vercel/blob/client'), 10000)
-    // access: 'private' — файлы клиента не должны открываться по прямой ссылке,
-    // менеджеры смотрят их из панели через /admin/file с проверкой сессии
-    const blob = await withTimeout(
-      upload(`leads/${Date.now()}-${file.name}`, file, { access: 'private', handleUploadUrl: '/api/upload' }),
-      UPLOAD_TIMEOUT_MS
-    )
-    return { url: blob.url, pathname: blob.pathname }
+    return await uploadToStorage(file, { endpoint: '/api/upload', blobPath: `leads/${Date.now()}-${file.name}` }, UPLOAD_TIMEOUT_MS)
   } catch (error) {
-    console.warn('Прямая загрузка не удалась, пробуем через сервер:', file.name, error)
-  }
-
-  if (file.size > FALLBACK_MAX_SIZE) {
-    console.error('Файл слишком большой для запасного пути:', file.name, file.size)
-    return null
-  }
-
-  try {
-    const response = await withTimeout(
-      fetch(`/api/upload?name=${encodeURIComponent(file.name)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      }),
-      UPLOAD_TIMEOUT_MS
-    )
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const data = (await response.json()) as { url?: string; pathname?: string }
-    return data.url && data.pathname ? { url: data.url, pathname: data.pathname } : null
-  } catch (error) {
-    console.error('Серверная загрузка тоже не удалась:', file.name, error)
+    console.error('Файл не загрузился:', file.name, error)
     return null
   }
 }

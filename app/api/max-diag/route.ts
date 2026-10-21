@@ -11,6 +11,7 @@ import {
   MAX_API_BASE,
 } from '@/lib/max-bot'
 import { getStats, isDbConfigured, listBotUsers, ensureSchema } from '@/lib/db'
+import { BUCKET, checkNeonBucket, isBlobStorage, isNeonStorage } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
       ? `задан (${process.env.BLOB_READ_WRITE_TOKEN.length} символов)`
       : 'не задан (нормально при подключении через OIDC)',
     BLOB_STORE_ID: process.env.BLOB_STORE_ID ? 'задан' : 'не задан',
+    STORAGE: isNeonStorage() ? `Neon Object Storage, бакет «${BUCKET}»` : isBlobStorage() ? 'Vercel Blob (Neon не настроен)' : 'НЕ НАСТРОЕНО',
   }
 
   const hints: string[] = []
@@ -97,7 +99,16 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     blob = { ok: false, error: error instanceof Error ? error.message : String(error) }
-    hints.push('Обращение к файловому хранилищу падает — файлы из квиза загружаться не будут. Текст ошибки в поле blob.error.')
+    // Когда основное хранилище — Neon, Blob нужен только для ещё не перенесённых старых файлов
+    hints.push(isNeonStorage()
+      ? 'Vercel Blob недоступен: старые файлы, ещё не перенесённые в Neon, не откроются. Текст ошибки в поле blob.error.'
+      : 'Обращение к файловому хранилищу падает — файлы из квиза загружаться не будут. Текст ошибки в поле blob.error.')
+  }
+
+  // Neon Object Storage — основное хранилище, если заданы переменные AWS_*
+  const neonStorage = isNeonStorage() ? await checkNeonBucket() : 'не настроено'
+  if (isNeonStorage() && !(neonStorage as { ok: boolean }).ok) {
+    hints.push(`Переменные Neon Object Storage заданы, но бакет «${BUCKET}» недоступен — файлы из квиза не сохранятся.`)
   }
 
   /* ── Подписки-вебхуки ── */
@@ -178,6 +189,7 @@ export async function GET(request: NextRequest) {
     bot: { status: me.status, ok: me.ok, data: me.data },
     database,
     blob,
+    neonStorage,
     subscriptions: { status: subs.status, urls: subUrls },
     hookAction,
     chats: { status: chats.status, data: chats.data },

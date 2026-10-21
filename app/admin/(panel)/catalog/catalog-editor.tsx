@@ -8,6 +8,7 @@ import { saveCatalogAction } from '@/app/admin/catalog-actions'
 import { CATALOG_PLACEHOLDER } from '@/lib/catalog-seed'
 import { catalogSectionLabel, type CatalogRow, type CatalogSection } from '@/lib/db'
 import { CATALOG_MAX_WIDTH, normalizeCatalogImage } from '@/lib/image-normalize'
+import { uploadFile } from '@/lib/upload-client'
 
 const MAX_SIZE = 25 * 1024 * 1024
 
@@ -50,11 +51,11 @@ export function CatalogEditor({
       // снимок нужного размера, а не оригинал с телефона
       const normalized = await normalizeCatalogImage(file)
 
-      const { upload } = await import('@vercel/blob/client')
-      const blob = await upload(`catalog/${section}/${normalized.file.name}`, normalized.file, {
-        access: 'private',
-        handleUploadUrl: '/admin/upload',
-      })
+      const blob = await uploadFile(normalized.file, {
+        endpoint: '/admin/upload',
+        folder: `catalog/${section}`,
+        blobPath: `catalog/${section}/${normalized.file.name}`,
+      }, 120_000)
 
       setImage(`/media/${blob.pathname}`)
       setNote(

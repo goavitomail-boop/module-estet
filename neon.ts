@@ -3,6 +3,11 @@ import { defineConfig } from "@neon/config/v1";
 export default defineConfig({
   // Declare your Neon services here
   auth: false,
+  // Файлы сайта: вложения к заявкам, фото портфолио и каталога (lib/storage.ts).
+  // Приватный: посетителю фото отдаёт /media, менеджеру файлы — /admin/file
+  buckets: {
+    files: {},
+  },
   // Branch policy: per-branch tuning
   branch: (branch) => {
     if (branch.isDefault) {
