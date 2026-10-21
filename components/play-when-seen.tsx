@@ -47,3 +47,17 @@ export function PlayWhenSeen({
     </div>
   )
 }
+
+/**
+ * Содержимое появляется через after мс и проявляется (.hs-later в
+ * scene-kit.css). Так тяжёлые схемы встают уже после того, как шаг формы
+ * выехал: если собрать их в кадрах выезда, экран дёргается
+ */
+export function Later({ after, children }: { after: number; children: ReactNode }) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), after)
+    return () => clearTimeout(timer)
+  }, [after])
+  return ready ? <span className="hs-later absolute inset-0 block">{children}</span> : null
+}

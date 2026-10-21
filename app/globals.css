@@ -1336,8 +1336,14 @@ html[data-preloader='active'] .hero-life * { animation-play-state: paused !impor
 [data-slot='dialog-overlay']:has(~ .booking-dialog)[data-closed] {
   animation: booking-fade-out 220ms ease-in both;
 }
-/* На телефоне форма во весь экран — выезжает снизу, как шторка */
+/* На телефоне форма во весь экран — выезжает снизу, как шторка. Расфокуса
+   за ней всё равно не видно, а пересчитывать его браузеру приходится на
+   каждом кадре любой анимации в окне (сцены шагов, циферблаты) — и они
+   идут рывками. Поэтому здесь сайт только темнеет */
 @media (max-width: 639px) {
+  [data-slot='dialog-overlay']:has(~ .booking-dialog) {
+    backdrop-filter: none;
+  }
   .booking-dialog[data-open] {
     animation-name: booking-sheet-in;
     animation-duration: 560ms;

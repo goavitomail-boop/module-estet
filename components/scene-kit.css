@@ -194,3 +194,11 @@
     animation-delay: 0s !important;
   }
 }
+
+/* Сцена или схема встаёт, когда шаг формы уже выехал (Later в play-when-seen.tsx) */
+.hs-later {
+  animation: hs-later 0.35s ease-out both;
+}
+@keyframes hs-later {
+  from { opacity: 0; }
+}

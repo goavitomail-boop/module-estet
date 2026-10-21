@@ -18,9 +18,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { MaxSocialIcon } from '@/components/max-social-icon'
 import { PlanLabel } from '@/components/plan'
-import { FormMotion, itemVariants, riseVariants, stepVariants, successVariants } from '@/components/form-motion'
+import { EASE_OUT, FormMotion, itemVariants, riseVariants, stepVariants, successVariants } from '@/components/form-motion'
 import { enter } from '@/components/scene-kit'
 import { CheckBadge, NextSteps } from '@/components/thanks-scene'
+import { BookingScene, SlotDial } from '@/components/booking-scenes'
 
 export const MEASUREMENT_BOOKING_EVENT = 'open-measurement-booking'
 export const MEASUREMENT_BOOKING_ALT_EVENT = 'measurement-booking:open'
@@ -59,9 +60,9 @@ const stepContent = [
 ] as const
 
 const timeSlots = [
-  { value: 'morning', label: 'Утро', detail: '09:00 — 12:00', icon: Clock },
-  { value: 'day', label: 'День', detail: '13:00 — 16:00', icon: Clock },
-  { value: 'evening', label: 'Вечер', detail: '17:00 — 20:00', icon: Clock },
+  { value: 'morning', label: 'Утро', detail: '09:00 — 12:00' },
+  { value: 'day', label: 'День', detail: '13:00 — 16:00' },
+  { value: 'evening', label: 'Вечер', detail: '17:00 — 20:00' },
 ] as const
 
 /** Ответ /api/availability: только цифры занятости, без данных клиентов */
@@ -488,6 +489,8 @@ export function MeasurementBooking() {
                   onAnimationComplete={focusFirstField}
                   className="mx-auto flex max-w-xl flex-col gap-5 sm:gap-6"
                 >
+                  {/* Сцена шага: лазерный замер, звонок с подтверждением, маршрут к дому (booking-scenes.tsx) */}
+                  <BookingScene step={step} date={data.date} time={time} name={data.name} city={data.city} address={data.address} />
                   {step === 3 && (
                     <FieldGroup className="gap-4 sm:gap-5">
                       <Field className="min-w-0" data-invalid={Boolean(errors.city)}>
@@ -518,12 +521,16 @@ export function MeasurementBooking() {
                             соседний день, если нужное время занято */}
                         {nextFreeDays.length > 0 && (
                           <div className="flex flex-wrap gap-2" role="group" aria-label="Ближайшие свободные даты">
-                            {nextFreeDays.map((day) => {
+                            {nextFreeDays.map((day, index) => {
                               const selected = data.date === day
                               return (
-                                <button
+                                // Подсказки появляются по очереди, когда пришла занятость
+                                <m.button
                                   key={day}
                                   type="button"
+                                  initial={{ opacity: 0, y: 6, scale: 0.94 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  transition={{ duration: 0.35, delay: 0.05 + index * 0.06, ease: EASE_OUT }}
                                   aria-pressed={selected}
                                   // Выбранное время сохраняем: если на новый день оно
                                   // занято, его снимет эффект выше
@@ -534,7 +541,7 @@ export function MeasurementBooking() {
                                   )}
                                 >
                                   {formatShortDate(day)}
-                                </button>
+                                </m.button>
                               )
                             })}
                           </div>
@@ -545,7 +552,6 @@ export function MeasurementBooking() {
                         <legend className="mb-3 text-sm font-medium">Период времени</legend>
                         <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-3 sm:gap-3">
                           {timeSlots.map((slot) => {
-                            const Icon = slot.icon
                             const selected = time === slot.value
                             const busy = isSlotBusy(data.date, slot.value)
                             return (
@@ -571,7 +577,8 @@ export function MeasurementBooking() {
                                 )}
                                 aria-pressed={selected}
                               >
-                                <Icon className="size-5 shrink-0" aria-hidden="true" />
+                                {/* Циферблат: дуга — часы визита; выбор прочерчивает её заново */}
+                                <SlotDial key={selected ? 'on' : 'off'} slot={slot.value} selected={selected} busy={busy} className="size-9 min-[380px]:size-10" />
                                 <span className="flex min-w-0 flex-col gap-0.5">
                                   <span className={cn('font-medium', busy && 'line-through')}>{slot.label}</span>
                                   <span className={cn('text-xs', selected && !busy ? 'text-primary-foreground/75' : 'text-muted-foreground')}>

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import { Check } from 'lucide-react'
 import { m } from 'framer-motion'
 import { EASE_OUT, itemVariants, staggerVariants } from '@/components/form-motion'
+import { Later } from '@/components/play-when-seen'
 import { SchemeSvg, type Built, type Marks } from '@/components/scheme-kit'
 import { storageScheme } from '@/components/storage-scene'
 import { lightScene } from '@/components/catalog-schemes'
@@ -55,16 +56,6 @@ const PAD = { x: 8, top: 10, bottom: 8 }
  */
 const MOUNT_AFTER = 420
 const MOUNT_STEP = 40
-
-/** Содержимое появляется через after мс и проявляется (.ss-later) */
-function Later({ after, children }: { after: number; children: ReactNode }) {
-  const [ready, setReady] = useState(false)
-  useEffect(() => {
-    const timer = setTimeout(() => setReady(true), after)
-    return () => clearTimeout(timer)
-  }, [after])
-  return ready ? <span className="ss-later absolute inset-0 block">{children}</span> : null
-}
 
 /** Схема карточки: чертёж строится, только когда карточка его показывает */
 function CardScheme({ option, id, frame, marks }: { option: SchemeOption; id: string; frame: Frame; marks?: Marks }) {
