@@ -19,7 +19,7 @@
 | Стек | Next.js 16 (App Router), React 19, Tailwind CSS 4, TypeScript |
 | Пакетный менеджер | pnpm 10 (`packageManager` в `package.json`) |
 | База данных | Postgres (Neon), драйвер `@neondatabase/serverless` |
-| Файлы | Vercel Blob, **приватное** хранилище: заявки, планировки, фото квартир |
+| Файлы | Neon Object Storage, **приватный** бакет `files` (`lib/storage.ts`): заявки, планировки, фото квартир, портфолио, каталог. Vercel Blob — запасной на время переезда |
 | Уведомления | Бот в мессенджере MAX |
 | Аналитика | Яндекс.Метрика, счётчик **113551158** |
 | Хостинг | Собственный облачный сервер Beget (не Vercel) |
@@ -83,8 +83,10 @@
 | Переменная | Зачем | Обязательна |
 |---|---|---|
 | `DATABASE_URL` | Postgres. Также читаются `POSTGRES_URL`, `DATABASE_URL_UNPOOLED`, `POSTGRES_URL_NON_POOLING` | да — без неё заявки не сохраняются |
-| `BLOB_READ_WRITE_TOKEN` | Доступ к приватному хранилищу файлов | да — для файлов заявок и портфолио |
-| `BLOB_STORE_ID` | Идентификатор хранилища | по ситуации |
+| `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | Neon Object Storage — бакет `files` для всех файлов сайта. Ключ: `neon credentials create --scope storage:read --scope storage:write` на ветке production | да — без них файлы пишутся в Vercel Blob |
+| `STORAGE_BUCKET`, `STORAGE_CORS_ORIGINS` | Другое имя бакета; ещё адреса для загрузки из браузера (сайт и www разрешены всегда) | нет |
+| `BLOB_READ_WRITE_TOKEN` | Старое хранилище Vercel Blob: читать файлы, ещё не перенесённые в Neon | пока не выполнен перенос |
+| `BLOB_STORE_ID` | Идентификатор хранилища Vercel Blob | по ситуации |
 | `ADMIN_PASSWORD_HASH` | Пароль админки в виде `scrypt:соль:хеш`. Команда генерации — в `.env.example` | да |
 | `ADMIN_PASSWORD` | Устаревший пароль открытым текстом. Панель помечает его как небезопасный | нет — лучше перейти на хеш |
 | `ADMIN_SESSION_SECRET` | Подпись сессионной куки, 32+ случайных символа | желательно |
@@ -110,8 +112,35 @@
 ### База и файлы
 - Заявки, сессии квиза, замеры, каталог и портфолио — в Postgres
   (`lib/db.ts`).
-- Файлы — в приватном Vercel Blob. Посетителю фото портфолио отдаёт
-  `/media/...` (там белый список папок), админке — `/admin/file`.
+- Файлы — в приватном бакете `files` Neon Object Storage (`lib/storage.ts`,
+  бакет объявлен в `neon.ts`). Посетителю фото портфолио и каталога отдаёт
+  `/media/...` (там белый список папок), админке — `/admin/file`. Браузер
+  грузит файлы прямо в бакет по подписанной ссылке, запасной путь — через
+  сервер (`PUT /api/upload`, `PUT /admin/upload`).
+- Vercel Blob — запасной: пока переменных `AWS_*` нет, файлы пишутся туда;
+  когда есть, сайт читает сначала Neon, потом Blob, поэтому ещё не
+  перенесённые файлы открываются.
+
+### Переезд файлов в Neon — один раз
+1. Проверить регион проекта Neon: Object Storage есть в `aws-us-east-1`,
+   `aws-us-east-2`, `aws-eu-central-1`, `aws-ap-southeast-1` (регион
+   печатает проверка в GitHub Actions, задача «Neon — ветка базы»).
+2. Создать бакет на production: `neon deploy` на ветке production (бакет
+   объявлен в `neon.ts`) или в консоли Neon → ветка production → Object
+   storage → New bucket `files`, доступ private.
+3. Ключ для сервера: `neon credentials create --scope storage:read --scope storage:write --name module-estet-site`
+   (на ветке production) или консоль → Settings → Credentials. Секрет
+   показывается один раз — сразу в `.env.local` на сервере вместе с
+   `AWS_ENDPOINT_URL_S3` и `AWS_REGION`. Никому не пересылать.
+4. На сервере: `node --env-file=.env.local scripts/neon-storage.mjs setup` —
+   CORS бакета (загрузка из браузера), затем перезапуск сайта.
+5. Перенос старых файлов: `node --env-file=.env.local scripts/neon-storage.mjs migrate --dry-run`,
+   потом без `--dry-run` (нужен ещё `BLOB_READ_WRITE_TOKEN`). Повторный
+   запуск пропускает уже перенесённые. Проверка: `... neon-storage.mjs check`.
+6. После переноса `BLOB_READ_WRITE_TOKEN` можно убрать, а хранилище Vercel
+   Blob удалить не раньше, чем убедитесь, что старые заявки открываются.
+7. Если перед сайтом nginx: `client_max_body_size 30m;` — иначе запасной
+   путь загрузки через сервер отсечёт файлы больше 1 МБ.
 
 ### Бот MAX
 - Новая заявка уходит всем из `MAX_NOTIFY_USER_ID` (`lib/max-bot.ts`,
