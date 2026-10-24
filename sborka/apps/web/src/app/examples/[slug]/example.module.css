@@ -1,0 +1,20 @@
+.bar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 10px var(--gutter);
+  background: var(--ink);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}

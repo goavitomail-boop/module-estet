@@ -1,0 +1,45 @@
+.main {
+  display: grid;
+  place-items: center;
+  padding: 64px 0 96px;
+}
+
+.card {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 40px 32px;
+  background: var(--surface);
+  border: 1px dashed var(--violet);
+  border-radius: var(--r-l);
+}
+
+.badge {
+  justify-self: start;
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--violet);
+  color: var(--violet-text);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+}
+
+.title {
+  font-size: var(--fs-h1);
+  line-height: 1;
+  color: var(--lime);
+}
+
+.text {
+  color: var(--text-2);
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.error {
+  color: var(--danger);
+}

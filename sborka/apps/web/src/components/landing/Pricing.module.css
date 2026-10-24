@@ -1,0 +1,91 @@
+.section {
+  padding: var(--section) 0;
+  border-top: 1px solid var(--line);
+}
+
+.grid {
+  display: grid;
+  gap: 48px;
+}
+
+.title {
+  font-size: var(--fs-h1);
+  line-height: 1.02;
+  margin-bottom: 24px;
+  max-width: 11em;
+}
+
+.text {
+  font-size: var(--fs-lead);
+  color: var(--text-2);
+  max-width: 26em;
+}
+
+.card {
+  padding: 40px 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+}
+
+.price {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(56px, 8vw, 104px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--lime);
+}
+
+.once {
+  margin-top: 8px;
+  color: var(--text-2);
+}
+
+.list {
+  list-style: none;
+  margin: 32px 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.list li {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.list li::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 18px;
+  height: 10px;
+  margin-top: 6px;
+  border-left: 2px solid var(--lime);
+  border-bottom: 2px solid var(--lime);
+  transform: rotate(-45deg) translate(2px, -2px);
+}
+
+.note {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  margin-bottom: 32px;
+}
+
+.cta {
+  width: 100%;
+}
+
+@media (min-width: 1000px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+
+  .card {
+    padding: 48px;
+  }
+}

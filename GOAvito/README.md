@@ -1,3 +1,0 @@
-# GOAvito
-
-Проект GOAvito.

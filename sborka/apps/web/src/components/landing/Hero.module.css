@@ -1,0 +1,131 @@
+.hero {
+  position: relative;
+  padding: 120px 0 var(--section);
+  overflow: hidden;
+  background-image: radial-gradient(rgba(124, 92, 255, 0.22) 1px, transparent 1.4px);
+  background-size: 28px 28px;
+  background-position: center top;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Когда WebGL запустился, CSS-сетка больше не нужна */
+.hero:has(.canvas[data-ready]) {
+  background-image: none;
+}
+
+.inner {
+  position: relative;
+  display: grid;
+  gap: 56px;
+  align-items: center;
+}
+
+.title {
+  font-size: clamp(40px, 11vw, 92px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  margin-bottom: 32px;
+}
+
+.line {
+  position: relative;
+  display: block;
+  width: fit-content;
+  padding-block: 0.04em;
+}
+
+.lineSkel {
+  position: absolute;
+  inset: 0.08em -0.06em;
+  border: 1px dashed var(--violet);
+  border-radius: 6px;
+  background: rgba(124, 92, 255, 0.08);
+  /* Каркас виден только во время анимации загрузки */
+  opacity: 0;
+}
+
+.lineText {
+  position: relative;
+  display: block;
+  white-space: nowrap;
+}
+
+.line:last-child .lineText {
+  color: var(--lime);
+}
+
+.lead {
+  font-size: var(--fs-lead);
+  color: var(--text-2);
+  max-width: 30em;
+  margin-bottom: 36px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+.facts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.facts li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--lime);
+}
+
+@media (min-width: 1100px) {
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    padding-top: 112px;
+    padding-bottom: 96px;
+  }
+
+  .hero > .inner {
+    width: min(1320px, 100% - 2 * var(--gutter));
+  }
+
+  .inner {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 72px;
+  }
+
+  .title {
+    font-size: clamp(56px, 5.5vw, 88px);
+  }
+}
+
+@media (max-width: 480px) {
+  .actions :global(.btn) {
+    flex: 1 1 100%;
+  }
+}

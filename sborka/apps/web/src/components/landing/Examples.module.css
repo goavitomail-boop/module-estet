@@ -1,0 +1,116 @@
+.section {
+  padding: var(--section) 0;
+  border-top: 1px solid var(--line);
+}
+
+.head {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.title {
+  font-size: var(--fs-h1);
+  line-height: 1.02;
+}
+
+.sub {
+  font-size: var(--fs-lead);
+  color: var(--text-2);
+  max-width: 32em;
+}
+
+.track {
+  /* Сайт рендерится шириной 1280px и уменьшается до ширины карточки */
+  --card: 300px;
+  --scale: 0.234375;
+  display: flex;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0 max(var(--gutter), (100vw - 1320px) / 2) 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: max(var(--gutter), (100vw - 1320px) / 2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.card {
+  flex: 0 0 var(--card);
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.preview {
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-l);
+}
+
+.frame {
+  height: calc(820px * var(--scale) + 44px);
+  transition: border-color 0.3s;
+}
+
+.preview:hover .frame,
+.preview:has(.overlay:focus-visible) .frame {
+  border-color: var(--text-3);
+}
+
+.scaler {
+  width: 1280px;
+  transform: scale(var(--scale));
+  transform-origin: 0 0;
+  transition: translate 6s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* Наведение «прокручивает» сайт внутри окна */
+.preview:hover .scaler,
+.preview:has(.overlay:focus-visible) .scaler {
+  translate: 0 calc(-1 * (100% - 820px) * var(--scale));
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.name {
+  font-size: var(--fs-h3);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.niche {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+@media (min-width: 640px) {
+  .track {
+    --card: 420px;
+    --scale: 0.328125;
+  }
+}
+
+@media (min-width: 1100px) {
+  .track {
+    --card: 560px;
+    --scale: 0.4375;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview:hover .scaler,
+  .preview:has(.overlay:focus-visible) .scaler {
+    translate: none;
+  }
+}

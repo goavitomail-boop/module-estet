@@ -1,0 +1,305 @@
+/* Токены — см. DESIGN.md */
+:root {
+  --ink: #0a0a0d;
+  --surface: #121217;
+  --surface-2: #1b1b22;
+  --line: #2a2a33;
+  --text: #f2f2ee;
+  --text-2: #a3a3ad;
+  --text-3: #6e6e78;
+  --lime: #c8ff3d;
+  --lime-ink: #0a0a0d;
+  --violet: #7c5cff;
+  --violet-text: #a894ff;
+  --danger: #ff6b5e;
+  --warning: #ffc24a;
+
+  --font-display: "Unbounded Variable", "Arial Black", sans-serif;
+  --font-body: "Manrope Variable", system-ui, sans-serif;
+
+  --fs-display: clamp(48px, 8.4vw, 128px);
+  --fs-h1: clamp(36px, 5vw, 72px);
+  --fs-h2: clamp(26px, 3vw, 40px);
+  --fs-h3: 22px;
+  --fs-lead: clamp(18px, 1.6vw, 22px);
+  --fs-body: 17px;
+  --fs-small: 15px;
+  --fs-micro: 13px;
+
+  --r-s: 6px;
+  --r-m: 12px;
+  --r-l: 20px;
+  --r-pill: 999px;
+
+  --gutter: 16px;
+  --section: 96px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: 32px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --gutter: 48px;
+    --section: 160px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
+  background: var(--ink);
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+.container {
+  width: min(1320px, 100% - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  z-index: 100;
+  padding: 12px 16px;
+  background: var(--lime);
+  color: var(--lime-ink);
+  border-radius: var(--r-m);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Кнопки */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 28px;
+  border-radius: var(--r-m);
+  border: 1px solid transparent;
+  font: 600 17px/1 var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    box-shadow 0.3s var(--ease),
+    transform 0.15s var(--ease),
+    border-color 0.2s,
+    background 0.2s,
+    color 0.2s;
+  white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 0 6px rgba(200, 255, 61, 0.16);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--text-2);
+}
+
+.btn:disabled {
+  background: var(--surface-2);
+  color: var(--text-3);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.btn-small {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: var(--fs-small);
+}
+
+.link {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: color 0.2s;
+}
+
+.link:hover {
+  color: var(--lime);
+}
+
+/* Метка для данных, которые ещё нужно уточнить у владельца */
+.todo {
+  border: 1px dashed var(--violet);
+  border-radius: var(--r-s);
+  padding: 0 6px;
+  color: var(--violet-text);
+}
+
+/* Поля ввода */
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.field-hint {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+.input {
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+
+textarea.input {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input::placeholder {
+  color: var(--text-3);
+}
+
+.input:hover {
+  border-color: #3a3a45;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--lime);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.field-error {
+  font-size: var(--fs-small);
+  color: var(--danger);
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

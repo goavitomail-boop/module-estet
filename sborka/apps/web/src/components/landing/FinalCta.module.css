@@ -1,0 +1,29 @@
+.section {
+  padding: var(--section) 0;
+  border-top: 1px solid var(--line);
+  background-image:
+    linear-gradient(rgba(124, 92, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 92, 255, 0.08) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center;
+}
+
+.inner {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 24px;
+}
+
+.title {
+  font-size: var(--fs-h1);
+  line-height: 1.02;
+  max-width: 12em;
+}
+
+.text {
+  font-size: var(--fs-lead);
+  color: var(--text-2);
+  max-width: 28em;
+  margin-bottom: 8px;
+}
