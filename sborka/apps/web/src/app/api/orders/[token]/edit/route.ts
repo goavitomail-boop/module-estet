@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, isEditable, readJson } from "@/lib/http";
-import { notifyOwner, photoLibrary, rebuildVersions, siteSpec, snapshot } from "@/lib/orders";
+import { canUsePhoto, notifyOwner, rebuildVersions, siteSpec, snapshot } from "@/lib/orders";
 import { blockKeys, CustomSchema, FieldPath, HIDEABLE, PhotoUrl, type Hideable } from "@/lib/sites/customize";
 import { isScene } from "@/lib/sites/effects";
 import { BriefSchema, EffectsSchema, StyleSchema } from "@/lib/sites/schema";
@@ -78,7 +78,7 @@ function apply(order: Order, data: Edit): string | null {
       if (data.path.startsWith("hero.")) delete c.hero[data.path.slice(5) as (typeof HERO_FIELDS)[number]];
       break;
     case "image":
-      if (data.src && !photoLibrary(order).includes(data.src)) return "Такого фото нет в библиотеке";
+      if (data.src && !canUsePhoto(order, data.src)) return "Такого фото нет в библиотеке";
       if (data.src) c.images[data.path] = data.src;
       else delete c.images[data.path];
       break;

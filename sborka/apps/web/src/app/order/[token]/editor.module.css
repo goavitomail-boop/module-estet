@@ -335,6 +335,52 @@
   box-shadow: 0 0 0 2px var(--lime);
 }
 
+/* Категории библиотеки фото: лента чипов, листается вбок */
+.photoCats {
+  display: flex;
+  gap: 6px;
+  margin: 0 -20px;
+  padding: 2px 20px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.photoCats::-webkit-scrollbar {
+  display: none;
+}
+
+.photoCats button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--text-2);
+  font: 600 12px / 1 var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.photoCats button:hover {
+  color: var(--text);
+}
+
+.photoCats button[aria-selected="true"] {
+  border-color: var(--lime);
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+.photoCats i {
+  font-style: normal;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
 .library span {
   position: absolute;
   left: 4px;

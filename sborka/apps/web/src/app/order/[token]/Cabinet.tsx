@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { quote, rub, type AddonId, type AddonSelection, type Leads } from "@/lib/addons";
 import type { BlockOption } from "@/lib/sites/catalog";
+import type { PhotoGroup } from "@/lib/library";
 import type { Custom } from "@/lib/sites/customize";
 import type { BuildShowData, TourStep } from "@/lib/sites/presentation";
 import type { SiteStyle } from "@/lib/sites/style";
@@ -46,9 +47,8 @@ interface Props {
   wishes: Wish[];
   /** Есть что отменить. */
   canUndo: boolean;
-  /** Фото на выбор: загрузки клиента и библиотека сферы. */
-  library: string[];
-  uploads: string[];
+  /** Фото на выбор по категориям: загрузки клиента, фото шаблона и общая библиотека. */
+  library: PhotoGroup[];
   /** Оформление варианта без правок клиента — для «Как было». */
   defaults: { accent: string; font: string; layout: string };
   effects: EffectsData & {
@@ -534,7 +534,6 @@ export function Cabinet(p: Props) {
                 style={p.custom.style}
                 defaults={p.defaults}
                 library={p.library}
-                uploads={p.uploads}
                 services={p.edit.services}
                 effects={p.effects}
                 onEffects={changeEffects}

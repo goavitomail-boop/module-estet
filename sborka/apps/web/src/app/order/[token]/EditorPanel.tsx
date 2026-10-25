@@ -1,8 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { PhotoGroup } from "@/lib/library";
 import type { EffectGroup, SiteEffects } from "@/lib/sites/effects";
-import { ACCENTS, DISPLAY_FONTS, HERO_LAYOUTS, RADII, type DisplayFont, type HeroLayoutId, type Radius, type SiteStyle } from "@/lib/sites/style";
+import {
+  ACCENTS,
+  DISPLAY_FONTS,
+  HERO_LAYOUTS,
+  RADII,
+  type DisplayFont,
+  type HeroLayoutId,
+  type Radius,
+  type SiteStyle,
+} from "@/lib/sites/style";
 import { EffectsPanel } from "./EffectsPanel";
 import { ServicesEditor, type SaveEdit } from "./EditTab";
 import e from "./editor.module.css";
@@ -33,7 +43,6 @@ export function EditorPanel({
   style,
   defaults,
   library,
-  uploads,
   services,
   effects,
   canUndo,
@@ -52,8 +61,7 @@ export function EditorPanel({
   style: SiteStyle;
   /** Как в теме, без правок: акцент, шрифт и композиция. */
   defaults: { accent: string; font: string; layout: string };
-  library: string[];
-  uploads: string[];
+  library: PhotoGroup[];
   services: { name: string; price: string }[];
   effects: EffectsData;
   canUndo: boolean;
@@ -127,7 +135,6 @@ export function EditorPanel({
           key={context.path}
           current={context.src}
           library={library}
-          uploads={uploads}
           busy={busy}
           onPick={(src) => onPhoto(context.path, src)}
           onUpload={onUpload}
@@ -149,7 +156,17 @@ export function EditorPanel({
   );
 }
 
-function Design({ style, defaults, busy, onStyle }: { style: SiteStyle; defaults: { accent: string; font: string; layout: string }; busy: string | null; onStyle: (s: SiteStyle) => void }) {
+function Design({
+  style,
+  defaults,
+  busy,
+  onStyle,
+}: {
+  style: SiteStyle;
+  defaults: { accent: string; font: string; layout: string };
+  busy: string | null;
+  onStyle: (s: SiteStyle) => void;
+}) {
   const set = (patch: Partial<SiteStyle>) => onStyle({ ...style, ...patch });
   const accent = style.accent ?? defaults.accent;
   const customAccent = style.accent && !ACCENTS.includes(style.accent);
@@ -161,11 +178,30 @@ function Design({ style, defaults, busy, onStyle }: { style: SiteStyle; defaults
         </h3>
         <p className={e.hint}>Кнопки, выделенные слова и акценты.</p>
         <div className={e.swatches} role="radiogroup" aria-label="Главный цвет">
-          <button type="button" role="radio" aria-checked={!style.accent} className={e.swatch} style={{ background: defaults.accent }} onClick={() => set({ accent: undefined })} disabled={busy !== null} title="Как было">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!style.accent}
+            className={e.swatch}
+            style={{ background: defaults.accent }}
+            onClick={() => set({ accent: undefined })}
+            disabled={busy !== null}
+            title="Как было"
+          >
             <span className="visually-hidden">Как было</span>
           </button>
           {ACCENTS.filter((c) => c.toLowerCase() !== defaults.accent.toLowerCase()).map((c) => (
-            <button key={c} type="button" role="radio" aria-checked={style.accent === c} className={e.swatch} style={{ background: c }} onClick={() => set({ accent: c })} disabled={busy !== null} title={c}>
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={style.accent === c}
+              className={e.swatch}
+              style={{ background: c }}
+              onClick={() => set({ accent: c })}
+              disabled={busy !== null}
+              title={c}
+            >
               <span className="visually-hidden">{c}</span>
             </button>
           ))}
@@ -180,14 +216,29 @@ function Design({ style, defaults, busy, onStyle }: { style: SiteStyle; defaults
           Шрифт заголовков
         </h3>
         <div className={e.fonts} role="radiogroup" aria-label="Шрифт заголовков">
-          <button type="button" role="radio" aria-checked={!style.display} className={e.font} onClick={() => set({ display: undefined })} disabled={busy !== null}>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!style.display}
+            className={e.font}
+            onClick={() => set({ display: undefined })}
+            disabled={busy !== null}
+          >
             <em style={{ fontFamily: defaults.font }}>Аа</em>
             <span>Как было</span>
           </button>
           {(Object.keys(DISPLAY_FONTS) as DisplayFont[]).map((id) => {
             const f = DISPLAY_FONTS[id];
             return (
-              <button key={id} type="button" role="radio" aria-checked={style.display === id} className={e.font} onClick={() => set({ display: id })} disabled={busy !== null}>
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={style.display === id}
+                className={e.font}
+                onClick={() => set({ display: id })}
+                disabled={busy !== null}
+              >
                 <em style={{ fontFamily: f.css, fontWeight: f.weight }}>Аа</em>
                 <span>
                   {f.title}
@@ -205,7 +256,15 @@ function Design({ style, defaults, busy, onStyle }: { style: SiteStyle; defaults
         </h3>
         <div className={e.radii} role="radiogroup" aria-label="Форма кнопок">
           {(Object.keys(RADII) as Radius[]).map((id) => (
-            <button key={id} type="button" role="radio" aria-checked={(style.radius ?? null) === id} className={e.radius} onClick={() => set({ radius: style.radius === id ? undefined : id })} disabled={busy !== null}>
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={(style.radius ?? null) === id}
+              className={e.radius}
+              onClick={() => set({ radius: style.radius === id ? undefined : id })}
+              disabled={busy !== null}
+            >
               <i style={{ borderRadius: RADII[id].value, background: accent }} />
               {RADII[id].title}
             </button>
@@ -220,7 +279,16 @@ function Design({ style, defaults, busy, onStyle }: { style: SiteStyle; defaults
         <p className={e.hint}>Сейчас: {defaults.layout}</p>
         <div className={e.layouts} role="radiogroup" aria-label="Первый экран">
           {(Object.keys(HERO_LAYOUTS) as HeroLayoutId[]).map((id) => (
-            <button key={id} type="button" role="radio" aria-checked={style.hero === id} className={e.layout} data-layout={id} onClick={() => set({ hero: style.hero === id ? undefined : id })} disabled={busy !== null}>
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={style.hero === id}
+              className={e.layout}
+              data-layout={id}
+              onClick={() => set({ hero: style.hero === id ? undefined : id })}
+              disabled={busy !== null}
+            >
               <span className={e.thumb} aria-hidden="true">
                 <i />
                 <i />
@@ -244,15 +312,13 @@ function Design({ style, defaults, busy, onStyle }: { style: SiteStyle; defaults
 function PhotoPicker({
   current,
   library,
-  uploads,
   busy,
   onPick,
   onUpload,
   onBack,
 }: {
   current: string;
-  library: string[];
-  uploads: string[];
+  library: PhotoGroup[];
   busy: string | null;
   onPick: (src: string) => void;
   onUpload: (file: File) => Promise<string | null>;
@@ -260,7 +326,10 @@ function PhotoPicker({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const own = new Set(uploads);
+  // Открываем категорию, где лежит текущее фото; иначе — первую (загрузки клиента или его сфера)
+  const [open, setOpen] = useState(() => library.find((g) => g.photos.some((p) => p.src === current))?.id ?? library[0]?.id);
+  const group = library.find((g) => g.id === open) ?? library[0];
+  const total = library.reduce((n, g) => n + g.photos.length, 0);
   return (
     <section className={e.block} aria-labelledby="photo-title">
       <button type="button" className={e.back} onClick={onBack}>
@@ -269,14 +338,22 @@ function PhotoPicker({
       <h3 id="photo-title" className={e.h3}>
         Фото
       </h3>
-      <p className={e.hint}>Загрузите своё — мы уменьшим и сожмём его, чтобы сайт открывался быстро. Или выберите из библиотеки.</p>
+      <p className={e.hint}>
+        Загрузите своё — мы уменьшим и сожмём его, чтобы сайт открывался быстро. Или выберите из библиотеки: {total} фото, все можно
+        использовать на сайте бесплатно.
+      </p>
       <div className={e.photoTop}>
         {current && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={current} alt="Сейчас на сайте" className={e.current} />
         )}
         <div className={e.photoActions}>
-          <button type="button" className="btn btn-primary btn-small" onClick={() => input.current?.click()} disabled={uploading || busy !== null}>
+          <button
+            type="button"
+            className="btn btn-primary btn-small"
+            onClick={() => input.current?.click()}
+            disabled={uploading || busy !== null}
+          >
             {uploading ? "Загружаем…" : "Загрузить своё фото"}
           </button>
           <input
@@ -299,17 +376,32 @@ function PhotoPicker({
           </button>
         </div>
       </div>
-      <ul className={e.library} aria-label="Библиотека фото">
-        {library.map((src) => (
-          <li key={src}>
-            <button type="button" aria-pressed={src === current} onClick={() => onPick(src)} disabled={busy !== null} aria-label={own.has(src) ? "Ваше фото" : "Фото из библиотеки"}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" loading="lazy" />
-              {own.has(src) && <span>ваше</span>}
-            </button>
-          </li>
+      <div className={e.photoCats} role="tablist" aria-label="Категории фото">
+        {library.map((g) => (
+          <button key={g.id} type="button" role="tab" aria-selected={g.id === group?.id} onClick={() => setOpen(g.id)}>
+            {g.label}
+            <i>{g.photos.length}</i>
+          </button>
         ))}
-      </ul>
+      </div>
+      {group && (
+        <ul key={group.id} className={e.library} aria-label={group.label}>
+          {group.photos.map((p) => (
+            <li key={p.src}>
+              <button
+                type="button"
+                aria-pressed={p.src === current}
+                onClick={() => onPick(p.src)}
+                disabled={busy !== null}
+                aria-label={`Фото: ${group.label}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.thumb} alt="" loading="lazy" decoding="async" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

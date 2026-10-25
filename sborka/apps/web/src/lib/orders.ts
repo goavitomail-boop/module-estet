@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { AddonSelectionSchema, ADDONS, LeadsSchema, quote, type AddonSelection } from "./addons";
+import { isLibraryPhoto, libraryFor, type PhotoGroup } from "./library";
 import { availableAddons } from "./sites/catalog";
 import { CustomSchema, customize, HIDEABLE } from "./sites/customize";
 import { getGenerator } from "./sites/generator";
@@ -130,9 +131,19 @@ export function notifyOwner(message: string) {
   console.info(`[сборка] ${message}`);
 }
 
-/** Фото, из которых клиент может выбирать: библиотека его сферы и его загрузки. */
-export function photoLibrary(order: Order) {
-  return [...order.uploads, ...nichePhotos(order.brief.niche)];
+/** Фото, из которых клиент может выбирать: его загрузки, фото шаблона его сферы и общая библиотека по категориям. */
+export function photoLibrary(order: Order): PhotoGroup[] {
+  const own = (list: string[]) => list.map((src) => ({ src, thumb: src }));
+  return [
+    { id: "uploads", label: "Ваши фото", photos: own(order.uploads) },
+    { id: "template", label: "Из шаблона", photos: own(nichePhotos(order.brief.niche)) },
+    ...libraryFor(order.brief.niche),
+  ].filter((g) => g.photos.length > 0);
+}
+
+/** Можно ли поставить это фото на сайт: только загрузки клиента и фото из библиотек. */
+export function canUsePhoto(order: Order, src: string) {
+  return order.uploads.includes(src) || nichePhotos(order.brief.niche).includes(src) || isLibraryPhoto(src);
 }
 
 /** Запоминает состояние перед правкой, чтобы её можно было отменить. */

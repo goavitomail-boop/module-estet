@@ -20,7 +20,8 @@ const text = (max: number) => z.string().trim().max(max, `Не длиннее ${
 export const FieldPath = z.string().regex(/^[a-z][a-z0-9-]*(\.[a-zA-Z0-9]+){1,4}$/, "Неизвестное поле").max(80);
 
 /** Фото — только из нашей библиотеки или загруженные клиентом. */
-export const PhotoUrl = z.string().regex(/^\/(images\/niches\/[\w.-]+|api\/uploads\/[\w-]+\/[\w.-]+)$/, "Неизвестное фото");
+/** Фото шаблона, библиотеки или загрузка клиента. */
+export const PhotoUrl = z.string().regex(/^\/(images\/niches\/[\w.-]+|library\/[\w-]+\/[\w.-]+|api\/uploads\/[\w-]+\/[\w.-]+)$/, "Неизвестное фото");
 
 export const CustomSchema = z.object({
   hidden: z.array(z.enum(HIDEABLE)).default([]),

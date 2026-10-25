@@ -74,7 +74,6 @@ export default async function OrderPage({
           wishes={order.wishes}
           canUndo={order.history.length > 0}
           library={photoLibrary(order)}
-          uploads={order.uploads}
           defaults={{ accent: baseStyle.colors.accent, font: baseStyle.display, layout: baseStyle.layout }}
           effects={{
             current: spec.effects,
