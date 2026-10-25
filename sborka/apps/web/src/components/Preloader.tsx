@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap, markReady, prefersReducedMotion } from "./motion";
 import s from "./Preloader.module.css";
 
@@ -10,9 +10,11 @@ const SEEN_KEY = "sborka-seen";
 /**
  * Прелоадер: знак собирается из четырёх блоков, счётчик идёт до 100,
  * затем экран уходит вверх колоннами. Показывается один раз за сессию.
+ * Убирается через состояние, а не удалением узла: иначе React падает при переходе на другую страницу.
  */
 export function Preloader() {
   const root = useRef<HTMLDivElement>(null);
+  const [gone, setGone] = useState(false);
 
   useEffect(() => {
     const el = root.current;
@@ -23,7 +25,7 @@ export function Preloader() {
     } catch {}
 
     if (!el || seen || prefersReducedMotion()) {
-      el?.remove();
+      setGone(true);
       html.classList.remove("is-loading");
       markReady();
       return;
@@ -41,7 +43,7 @@ export function Preloader() {
             try {
               sessionStorage.setItem(SEEN_KEY, "1");
             } catch {}
-            el.remove();
+            setGone(true);
           },
         })
         .from("[data-ch]", {
@@ -85,6 +87,7 @@ export function Preloader() {
     return () => ctx.revert();
   }, []);
 
+  if (gone) return null;
   return (
     <div ref={root} className={s.preloader} role="status" aria-label="Загрузка">
       <div className={s.cols} aria-hidden="true">

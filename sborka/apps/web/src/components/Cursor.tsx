@@ -14,14 +14,17 @@ export function Cursor() {
   const label = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    if (!isFinePointer() || prefersReducedMotion() || !dot.current || !ring.current) return;
+    const dotEl = dot.current;
+    const ringEl = ring.current;
+    const labelEl = label.current;
+    if (!isFinePointer() || prefersReducedMotion() || !dotEl || !ringEl || !labelEl) return;
     const html = document.documentElement;
     html.classList.add("has-cursor");
 
-    const dx = gsap.quickTo(dot.current, "x", { duration: 0.08, ease: "power3" });
-    const dy = gsap.quickTo(dot.current, "y", { duration: 0.08, ease: "power3" });
-    const rx = gsap.quickTo(ring.current, "x", { duration: 0.45, ease: "power3" });
-    const ry = gsap.quickTo(ring.current, "y", { duration: 0.45, ease: "power3" });
+    const dx = gsap.quickTo(dotEl, "x", { duration: 0.08, ease: "power3" });
+    const dy = gsap.quickTo(dotEl, "y", { duration: 0.08, ease: "power3" });
+    const rx = gsap.quickTo(ringEl, "x", { duration: 0.45, ease: "power3" });
+    const ry = gsap.quickTo(ringEl, "y", { duration: 0.45, ease: "power3" });
 
     const onMove = (e: PointerEvent) => {
       dx(e.clientX);
@@ -33,11 +36,11 @@ export function Cursor() {
     const onOver = (e: Event) => {
       const target = (e.target as Element).closest("a, button, summary, label, [data-cursor]");
       const text = target?.getAttribute("data-cursor") ?? "";
-      ring.current!.dataset.state = text ? "label" : target ? "hover" : "";
-      label.current!.textContent = text;
+      ringEl.dataset.state = text ? "label" : target ? "hover" : "";
+      labelEl.textContent = text;
     };
-    const onDown = () => ring.current!.classList.add(s.down);
-    const onUp = () => ring.current!.classList.remove(s.down);
+    const onDown = () => ringEl.classList.add(s.down);
+    const onUp = () => ringEl.classList.remove(s.down);
     const onLeave = () => html.classList.remove("cursor-visible");
 
     window.addEventListener("pointermove", onMove, { passive: true });

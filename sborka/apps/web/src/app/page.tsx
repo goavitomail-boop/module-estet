@@ -2,6 +2,7 @@ import { Cursor } from "@/components/Cursor";
 import { Grain } from "@/components/Grain";
 import { Preloader } from "@/components/Preloader";
 import { SmoothScroll } from "@/components/SmoothScroll";
+import { AddOns } from "@/components/landing/AddOns";
 import { Examples } from "@/components/landing/Examples";
 import { Faq } from "@/components/landing/Faq";
 import { FinalCta } from "@/components/landing/FinalCta";
@@ -42,6 +43,7 @@ export default async function Home() {
         <LiveDemo specs={specs} />
         <Examples specs={specs} photos={photos} />
         <Pricing />
+        <AddOns />
         <Reviews />
         <Faq />
         <FinalCta />
