@@ -1722,3 +1722,28 @@
     width: 200px;
   }
 }
+
+/* 3D-сцена первого экрана (дополнение «3D-графика») */
+/* Только первый экран: у высоких композиций ниже идут фото, сцена за ними была бы не видна */
+.scene {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: min(100%, 100svh);
+  pointer-events: none;
+}
+
+.scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scene[data-scene="scene-wave"] {
+  top: min(30%, 30svh);
+  height: min(70%, 70svh);
+  -webkit-mask-image: linear-gradient(transparent, #000 35%);
+  mask-image: linear-gradient(transparent, #000 35%);
+}

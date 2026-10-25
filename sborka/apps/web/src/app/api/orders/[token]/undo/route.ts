@@ -3,7 +3,7 @@ import { fail, isEditable } from "@/lib/http";
 import { rebuildVersions } from "@/lib/orders";
 import { store } from "@/lib/store";
 
-/** «Отменить»: возвращает ответы брифа и настройки к состоянию до последней правки. */
+/** «Отменить»: возвращает ответы брифа, настройки и дополнения к состоянию до последней правки. */
 export async function POST(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
   const order = await store.findOrderByToken(token);
@@ -18,6 +18,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ token: string
     o.history = o.history.slice(0, -1);
     o.brief = prev.brief;
     o.custom = prev.custom;
+    // Правка могла добавить 3D-графику или убрать платную фишку — возвращаем и состав заказа
+    if (prev.addons) o.addons = prev.addons;
     o.versions = versions;
     o.rev += 1;
   });

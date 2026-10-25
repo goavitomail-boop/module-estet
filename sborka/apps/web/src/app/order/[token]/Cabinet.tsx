@@ -13,7 +13,8 @@ import type { OrderStatus, Revision, Wish } from "@/lib/store";
 import "@/sites/fonts";
 import { AddTab } from "./AddTab";
 import { BuildShow } from "./BuildShow";
-import { EditorPanel, type EditorContext } from "./EditorPanel";
+import { isScene, type EffectGroup, type SiteEffects } from "@/lib/sites/effects";
+import { EditorPanel, type EditorContext, type EffectsData } from "./EditorPanel";
 import { EditTab, type EditData, type SaveEdit } from "./EditTab";
 import { OrderTab, type VersionCard } from "./OrderTab";
 import { spotOf, Stage, type Device, type Spotlight } from "./Stage";
@@ -50,6 +51,10 @@ interface Props {
   uploads: string[];
   /** Оформление варианта без правок клиента — для «Как было». */
   defaults: { accent: string; font: string; layout: string };
+  effects: EffectsData & {
+    /** Первый блок с этой группой эффектов — к нему подъехать после выбора. */
+    blocks: Partial<Record<EffectGroup, string>>;
+  };
 }
 
 const STATUS: Record<OrderStatus, string> = {
@@ -91,6 +96,8 @@ export function Cabinet(p: Props) {
   /** Место прокрутки и блок, который подсветить после перезагрузки в редакторе. */
   const pendingScroll = useRef<number | null>(null);
   const pendingBlock = useRef<string | null>(null);
+  /** После перезагрузки показать заставку — клиент только что её выбрал. */
+  const pendingIntro = useRef(false);
   /** Текст поправили прямо на сайте — окно с ним перезагружать не нужно. */
   const keepFrame = useRef(false);
   const [frameRev, setFrameRev] = useState(p.rev);
@@ -169,9 +176,22 @@ export function Cabinet(p: Props) {
     [scale],
   );
 
+  /** Перезапустить сайт в окне с заставкой (в редакторе она обычно выключена). */
+  const replayIntro = useCallback(() => {
+    const win = frameRef.current?.contentWindow;
+    if (!win) return;
+    win.location.replace(previewUrl.replace("&intro=0", "") + "&intro=1");
+  }, [previewUrl]);
+
   const onFrameLoad = useCallback(() => {
     const win = frameRef.current?.contentWindow;
     if (!win?.location.pathname.startsWith("/preview/")) return;
+    if (pendingIntro.current) {
+      pendingIntro.current = false;
+      pendingScroll.current = null;
+      replayIntro();
+      return;
+    }
     if (pendingScroll.current !== null) {
       const y = pendingScroll.current;
       const ek = pendingBlock.current;
@@ -196,7 +216,7 @@ export function Cabinet(p: Props) {
       pendingTour.current = false;
       setTimeout(() => setTouring(true), TOUR_DELAY_MS);
     }
-  }, [showOnSite, scale]);
+  }, [showOnSite, scale, replayIntro]);
 
   const closeTour = useCallback(() => setTouring(false), []);
 
@@ -281,6 +301,11 @@ export function Cabinet(p: Props) {
       }
       if (msg.type === "move") editOnSite({ section: "move", key: msg.key, dir: msg.dir }, { block: msg.key });
       if (msg.type === "hide") editOnSite({ section: "hide", key: msg.key });
+      if (msg.type === "effects" && msg.group) {
+        setEditorContext({ kind: "effects", group: msg.group as EffectGroup, block: msg.key });
+        panelRef.current?.scrollTo({ top: 0 });
+        if (window.innerWidth <= 1100) panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -316,6 +341,19 @@ export function Cabinet(p: Props) {
       flash("Отменено");
       reloadKeeping();
     }
+  }
+
+  /** Новый набор эффектов: сайт перезагружается у блока, который поменялся; 3D-сцена меняет состав заказа. */
+  async function changeEffects(next: SiteEffects, group: EffectGroup, block?: string) {
+    const before = isScene(p.effects.current.fx);
+    const after = isScene(next.fx);
+    if (group === "intro" && next.intro !== "none") pendingIntro.current = true;
+    const target = block ?? p.effects.blocks[group];
+    const opts = group === "fx" || group === "intro" ? { top: 0 } : target ? { block: target } : {};
+    const ok = await editOnSite({ section: "effects", effects: next }, opts);
+    if (!ok) pendingIntro.current = false;
+    else if (after && !before) flash(`3D-графика добавлена в заказ: +${rub(p.effects.scenePrice)}`);
+    else if (before && !after) flash("3D-графика убрана из заказа");
   }
 
   async function changeAddons(next: AddonSelection[], anchors: string[]) {
@@ -498,6 +536,9 @@ export function Cabinet(p: Props) {
                 library={p.library}
                 uploads={p.uploads}
                 services={p.edit.services}
+                effects={p.effects}
+                onEffects={changeEffects}
+                onReplayIntro={replayIntro}
                 canUndo={p.canUndo}
                 busy={busy}
                 onStyle={(style: SiteStyle) =>

@@ -1,5 +1,6 @@
 import { plural } from "@/lib/plural";
 import { SIGNATURES } from "@/sites/signature";
+import type { SiteEffects } from "./effects";
 import type { Block, FeatureKind, SiteSpec } from "./schema";
 import { DISPLAY_FONTS, textOn } from "./style";
 import { getTheme, heroLayout, type HeroLayout } from "./themes";
@@ -99,6 +100,28 @@ export function describeStyle(spec: SiteSpec): StyleInfo {
       accentText: spec.style.accent ? textOn(spec.style.accent) : theme.accentText,
       line: theme.line,
     },
+  };
+}
+
+/** Эффекты, которые стоят на сайте сами (почерк сферы и тема), — чтобы в редакторе было видно, что выбрано сейчас. */
+export function effectDefaults(spec: SiteSpec): Required<SiteEffects> {
+  const theme = getTheme(spec.themeId);
+  const sig = SIGNATURES[spec.niche];
+  const services = spec.blocks.find((b) => b.type === "services");
+  return {
+    fx: sig.fx,
+    intro: sig.intro,
+    motion: theme.motion,
+    cursor: sig.cursor,
+    fab: sig.fab,
+    decor: theme.decor,
+    gallery: sig.gallery,
+    steps: sig.steps,
+    reviews: sig.reviews,
+    faq: sig.faq,
+    services: (services?.type === "services" && services.style) || theme.serviceStyle,
+    cinema: sig.cinema,
+    highlight: sig.highlight,
   };
 }
 

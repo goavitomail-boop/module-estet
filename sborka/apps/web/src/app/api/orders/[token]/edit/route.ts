@@ -3,7 +3,8 @@ import { z } from "zod";
 import { fail, isEditable, readJson } from "@/lib/http";
 import { notifyOwner, photoLibrary, rebuildVersions, siteSpec, snapshot } from "@/lib/orders";
 import { blockKeys, CustomSchema, FieldPath, HIDEABLE, PhotoUrl, type Hideable } from "@/lib/sites/customize";
-import { BriefSchema, StyleSchema } from "@/lib/sites/schema";
+import { isScene } from "@/lib/sites/effects";
+import { BriefSchema, EffectsSchema, StyleSchema } from "@/lib/sites/schema";
 import { store, type Order } from "@/lib/store";
 
 const brief = BriefSchema.shape;
@@ -33,6 +34,7 @@ const Body = z.discriminatedUnion("section", [
   z.object({ section: z.literal("move"), key: z.string().max(40), dir: z.enum(["up", "down"]) }),
   z.object({ section: z.literal("hide"), key: z.string().max(40) }),
   z.object({ section: z.literal("style"), style: StyleSchema }),
+  z.object({ section: z.literal("effects"), effects: EffectsSchema }),
 ]);
 type Edit = z.infer<typeof Body>;
 
@@ -103,6 +105,14 @@ function apply(order: Order, data: Edit): string | null {
     case "style":
       c.style = data.style;
       break;
+    case "effects": {
+      c.effects = data.effects;
+      // 3D-сцена — платное дополнение: выбрали сцену — добавляем в заказ, убрали — снимаем
+      const has3d = order.addons.some((a) => a.id === "scene3d");
+      if (isScene(data.effects.fx) && !has3d) order.addons = [...order.addons, { id: "scene3d" }];
+      if (!isScene(data.effects.fx) && has3d) order.addons = order.addons.filter((a) => a.id !== "scene3d");
+      break;
+    }
   }
   return null;
 }
@@ -133,7 +143,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     o.versions = versions;
     o.rev += 1;
   });
-  if (!["text", "image", "move", "style"].includes(body.data.section)) {
+  if (!["text", "image", "move", "style", "effects"].includes(body.data.section)) {
     notifyOwner(`Заказ ${next.brief.businessName}: клиент изменил «${body.data.section}»`);
   }
   return NextResponse.json({ rev: updated?.rev, canUndo: (updated?.history.length ?? 0) > 0 });

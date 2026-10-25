@@ -137,5 +137,8 @@ export function photoLibrary(order: Order) {
 
 /** Запоминает состояние перед правкой, чтобы её можно было отменить. */
 export function snapshot(order: Order) {
-  return [...order.history, { brief: structuredClone(order.brief), custom: structuredClone(order.custom) }].slice(-20);
+  return [
+    ...order.history,
+    { brief: structuredClone(order.brief), custom: structuredClone(order.custom), addons: structuredClone(order.addons) },
+  ].slice(-20);
 }

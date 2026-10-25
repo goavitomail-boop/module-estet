@@ -7,6 +7,7 @@ import {
   ChatCircleDotsIcon,
   CheckIcon,
   CreditCardIcon,
+  CubeIcon,
   DeviceMobileIcon,
   LightningIcon,
   MapPinIcon,
@@ -41,6 +42,7 @@ const FEATURES = [
 ];
 
 const EXTRAS = [
+  { icon: CubeIcon, kind: "cube", title: "3D-графика", text: "Объёмная сцена на первом экране в цветах вашего сайта.", price: rub(ADDONS.scene3d.price) },
   { icon: StackIcon, kind: "stack", title: "Дополнительная страница", text: "Прайс, портфолио или отдельная страница услуги.", price: rub(ADDONS.page.price) },
   { icon: MapPinIcon, kind: "pin", title: "Яндекс Карты и Метрика", text: "Карта проезда на сайте и статистика посещений.", price: rub(ADDONS.maps.price) },
   { icon: CreditCardIcon, kind: "card", title: "Онлайн-оплата", text: "Предоплата картой или по СБП прямо на сайте.", price: rub(ADDONS.payments.price) },

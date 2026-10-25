@@ -1,15 +1,31 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { EffectGroup, SiteEffects } from "@/lib/sites/effects";
 import { ACCENTS, DISPLAY_FONTS, HERO_LAYOUTS, RADII, type DisplayFont, type HeroLayoutId, type Radius, type SiteStyle } from "@/lib/sites/style";
+import { EffectsPanel } from "./EffectsPanel";
 import { ServicesEditor, type SaveEdit } from "./EditTab";
 import e from "./editor.module.css";
 
-export type EditorContext = { kind: "design" } | { kind: "photo"; path: string; src: string } | { kind: "service"; name: string };
+export type EditorContext =
+  | { kind: "design" }
+  | { kind: "effects"; group?: EffectGroup; block?: string }
+  | { kind: "photo"; path: string; src: string }
+  | { kind: "service"; name: string };
+
+export interface EffectsData {
+  /** Что стоит на сайте сейчас. */
+  current: SiteEffects;
+  /** Как задумано для сферы, без выбора клиента. */
+  defaults: Required<SiteEffects>;
+  /** Группы блоков, которые есть на сайте. */
+  groups: EffectGroup[];
+  scenePrice: number;
+}
 
 /**
  * Панель режима «Редактировать на сайте»: подсказки, «Отменить», оформление,
- * выбор фото и список услуг — смотря на что нажали на сайте.
+ * анимации и эффекты, выбор фото и список услуг — смотря на что нажали на сайте.
  */
 export function EditorPanel({
   context,
@@ -19,9 +35,12 @@ export function EditorPanel({
   library,
   uploads,
   services,
+  effects,
   canUndo,
   busy,
   onStyle,
+  onEffects,
+  onReplayIntro,
   onPhoto,
   onUpload,
   onUndo,
@@ -36,9 +55,12 @@ export function EditorPanel({
   library: string[];
   uploads: string[];
   services: { name: string; price: string }[];
+  effects: EffectsData;
   canUndo: boolean;
   busy: string | null;
   onStyle: (style: SiteStyle) => void;
+  onEffects: (effects: SiteEffects, group: EffectGroup, block?: string) => void;
+  onReplayIntro: () => void;
   onPhoto: (path: string, src: string) => void;
   onUpload: (file: File) => Promise<string | null>;
   onUndo: () => void;
@@ -69,10 +91,36 @@ export function EditorPanel({
             <b>Фото</b> — нажмите на фото, чтобы выбрать другое или загрузить своё.
           </li>
           <li>
-            <b>Блоки</b> — наведите на блок: стрелки меняют порядок, «Скрыть» убирает его.
+            <b>Блоки</b> — наведите на блок: стрелки меняют порядок, «Скрыть» убирает его, «Эффект» — вид и анимация.
           </li>
         </ul>
       </section>
+
+      {(context.kind === "design" || context.kind === "effects") && (
+        <div className={e.modes} role="tablist" aria-label="Что настраиваем">
+          <button type="button" role="tab" aria-selected={context.kind === "design"} onClick={() => setContext({ kind: "design" })}>
+            Оформление
+          </button>
+          <button type="button" role="tab" aria-selected={context.kind === "effects"} onClick={() => setContext({ kind: "effects" })}>
+            Анимации и эффекты
+          </button>
+        </div>
+      )}
+
+      {context.kind === "effects" && (
+        <EffectsPanel
+          key={context.group ?? "all"}
+          effects={effects.current}
+          defaults={effects.defaults}
+          groups={effects.groups}
+          focus={context.group}
+          scenePrice={effects.scenePrice}
+          busy={busy}
+          onChange={(next, group) => onEffects(next, group, context.block)}
+          onReplayIntro={onReplayIntro}
+          onAll={() => setContext({ kind: "effects" })}
+        />
+      )}
 
       {context.kind === "photo" && (
         <PhotoPicker

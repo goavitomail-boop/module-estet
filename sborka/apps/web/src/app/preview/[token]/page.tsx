@@ -27,7 +27,8 @@ export default async function PreviewPage({
     <SiteRenderer
       spec={siteSpec(order, Number(v) || undefined)}
       mode={paid ? "example" : "preview"}
-      intro={intro !== "0" && edit !== "1"}
+      // В редакторе заставка не мешает правкам; intro=1 — «Показать заставку» из редактора
+      intro={intro === "1" || (intro !== "0" && edit !== "1")}
       edit={edit === "1" && isEditable(order) ? { addons } : undefined}
     />
   );

@@ -5,10 +5,10 @@ import { useEffect } from "react";
 /**
  * Режим редактирования прототипа в кабинете. Работает внутри окна с сайтом:
  * подсвечивает то, что можно поменять, даёт править текст прямо на месте,
- * а о фото, услугах и блоках сообщает кабинету — там открываются нужные настройки.
+ * а о фото, услугах, блоках и эффектах сообщает кабинету — там открываются нужные настройки.
  *
- * Разметка в рендерере: data-ek — ключ блока, data-ef — поле текста (относительно блока,
- * «/» в начале — от корня сайта), data-ei — фото, data-svc — услуга из списка.
+ * Разметка в рендерере: data-ek — ключ блока, data-efx — группа эффектов блока, data-ef — поле текста
+ * (относительно блока, «/» в начале — от корня сайта), data-ei — фото, data-svc — услуга из списка.
  */
 
 export type EditMessage =
@@ -17,6 +17,7 @@ export type EditMessage =
   | { type: "service"; name: string }
   | { type: "move"; key: string; dir: "up" | "down" }
   | { type: "hide"; key: string }
+  | { type: "effects"; key: string; group: string }
   | { type: "ready" };
 
 const CSS = `
@@ -32,6 +33,7 @@ html[data-editing] [contenteditable]:focus { box-shadow: 0 0 0 8px rgba(200,255,
 .eb-bar button { min-width: 30px; height: 30px; padding: 0 10px; border: 0; border-radius: 999px; background: rgba(255,255,255,.08); color: inherit; font: inherit; cursor: pointer; }
 .eb-bar button:hover:not(:disabled) { background: #c8ff3d; color: #0a0a0d; }
 .eb-bar button:disabled { opacity: .3; cursor: not-allowed; }
+.eb-bar button[data-act="fx"] { background: rgba(200,255,61,.16); color: #c8ff3d; }
 `;
 
 const CHIP = {
@@ -94,7 +96,7 @@ export function EditBridge() {
     chip.className = "eb-chip";
     const bar = doc.createElement("div");
     bar.className = "eb-bar";
-    bar.innerHTML = `<span></span><button type="button" data-act="up" aria-label="Выше">↑</button><button type="button" data-act="down" aria-label="Ниже">↓</button><button type="button" data-act="hide"></button>`;
+    bar.innerHTML = `<span></span><button type="button" data-act="up" aria-label="Выше">↑</button><button type="button" data-act="down" aria-label="Ниже">↓</button><button type="button" data-act="fx">✦ Эффект</button><button type="button" data-act="hide"></button>`;
     doc.body.append(box, chip, bar);
 
     const post = (msg: EditMessage) => window.parent.postMessage({ source: "sborka-edit", ...msg }, location.origin);
@@ -122,14 +124,19 @@ export function EditBridge() {
       const i = blocks.indexOf(hoverBlock);
       const label = bar.querySelector("span")!;
       label.textContent = hoverBlock.dataset.el ?? "";
-      const [up, down, hide] = Array.from(bar.querySelectorAll("button"));
+      const [up, down, fx, hide] = Array.from(bar.querySelectorAll("button"));
+      // Первый экран не двигается и не скрывается — у него только эффект
+      const hero = hoverBlock.dataset.ek === "hero";
+      up.style.display = down.style.display = hero ? "none" : "";
       up.disabled = i <= 0;
       down.disabled = i === -1 || i >= blocks.length - 1;
+      fx.style.display = hoverBlock.dataset.efx ? "" : "none";
       const eh = hoverBlock.dataset.eh ?? "";
       hide.style.display = eh ? "" : "none";
       hide.textContent = eh.startsWith("addon:") ? `Убрать · −${eh.slice(6)} ₽` : "Скрыть";
       bar.style.display = "flex";
-      bar.style.top = `${Math.max(12, r.top + 12)}px`;
+      // У первого экрана сверху шапка сайта — панель ставим внизу
+      bar.style.top = hero ? `${Math.max(12, Math.min(innerHeight, r.bottom) - bar.offsetHeight - 16)}px` : `${Math.max(12, r.top + 12)}px`;
       bar.style.left = `${Math.min(innerWidth - bar.offsetWidth - 12, r.right - bar.offsetWidth - 12)}px`;
     };
 
@@ -138,10 +145,11 @@ export function EditBridge() {
       const e = lastEvent;
       if (!e) return;
       const wrap = (e.target as Element | null)?.closest<HTMLElement>("[data-ek]") ?? null;
-      const movable = wrap && wrap.dataset.ek !== "hero" && wrap.dataset.ek !== "contacts" ? wrap : null;
+      const ek = wrap?.dataset.ek;
+      const withBar = wrap && ek !== "contacts" && (ek !== "hero" || wrap.dataset.efx) ? wrap : null;
       if (!bar.contains(e.target as Node)) {
-        hoverBlock = movable;
-        if (!movable) bar.style.display = "none";
+        hoverBlock = withBar;
+        if (!withBar) bar.style.display = "none";
         placeBar();
       }
       const t = editing ? null : findTarget(e.target);
@@ -198,7 +206,8 @@ export function EditBridge() {
         const act = target.closest<HTMLButtonElement>("button")?.dataset.act;
         const key = hoverBlock?.dataset.ek;
         if (act && key) {
-          if (act === "hide") post({ type: "hide", key });
+          if (act === "fx") post({ type: "effects", key, group: hoverBlock?.dataset.efx ?? "" });
+          else if (act === "hide") post({ type: "hide", key });
           else post({ type: "move", key, dir: act as "up" | "down" });
         }
         return;

@@ -53,8 +53,8 @@ export interface Order {
   wishes: Wish[];
   /** Фото, загруженные клиентом. */
   uploads: string[];
-  /** Прошлые состояния для «Отменить»: ответы брифа и настройки, последние 20. */
-  history: { brief: Brief; custom: Custom }[];
+  /** Прошлые состояния для «Отменить»: ответы брифа, настройки и дополнения, последние 20. */
+  history: { brief: Brief; custom: Custom; addons?: AddonSelection[] }[];
   /** Номер изменения: растёт при каждой правке, чтобы окно с прототипом обновилось. */
   rev: number;
   paymentId?: string;

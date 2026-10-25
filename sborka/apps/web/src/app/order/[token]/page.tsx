@@ -3,8 +3,11 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { baseSpec, photoLibrary, revisionsLeft, siteSpec, variantsLeft } from "@/lib/orders";
 import { getPaymentProvider } from "@/lib/payments";
+import { ADDONS } from "@/lib/addons";
+import { blockEffect, type EffectGroup } from "@/lib/sites/effects";
+import { blockKeys } from "@/lib/sites/keys";
 import { availableAddons, blockOptions } from "@/lib/sites/catalog";
-import { buildShow, describeStyle, tourSteps } from "@/lib/sites/presentation";
+import { buildShow, describeStyle, effectDefaults, tourSteps } from "@/lib/sites/presentation";
 import { store } from "@/lib/store";
 import { Cabinet } from "./Cabinet";
 
@@ -28,6 +31,13 @@ export default async function OrderPage({
   const feature = base.blocks.find((b) => b.type === "feature");
   const baseStyle = describeStyle(base);
   const { brief } = order;
+  // Группы эффектов блоков, которые есть на сайте, и первый блок каждой — к нему подъехать после выбора
+  const keys = blockKeys(spec.blocks);
+  const effectBlocks: Partial<Record<EffectGroup, string>> = {};
+  spec.blocks.forEach((b, i) => {
+    const group = blockEffect(b);
+    if (group && !effectBlocks[group]) effectBlocks[group] = keys[i];
+  });
 
   return (
     <>
@@ -66,6 +76,13 @@ export default async function OrderPage({
           library={photoLibrary(order)}
           uploads={order.uploads}
           defaults={{ accent: baseStyle.colors.accent, font: baseStyle.display, layout: baseStyle.layout }}
+          effects={{
+            current: spec.effects,
+            defaults: effectDefaults(base),
+            groups: Object.keys(effectBlocks) as EffectGroup[],
+            blocks: effectBlocks,
+            scenePrice: ADDONS.scene3d.price,
+          }}
         />
       </main>
     </>

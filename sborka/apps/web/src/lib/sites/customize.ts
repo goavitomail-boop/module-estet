@@ -3,7 +3,8 @@ import { FEATURE_ADDONS, type AddonSelection } from "../addons";
 import { blockKeys, HIDEABLE } from "./keys";
 import { photos } from "./presentation";
 import type { Block, BlockInput, Brief, SiteSpec } from "./schema";
-import { BlockSchema, StyleSchema } from "./schema";
+import { isScene } from "./effects";
+import { BlockSchema, EffectsSchema, StyleSchema } from "./schema";
 
 export { blockKeys, HIDEABLE, type Hideable } from "./keys";
 
@@ -38,6 +39,7 @@ export const CustomSchema = z.object({
   /** Порядок блоков — ключи блоков сверху вниз. */
   order: z.array(z.string().max(40)).max(40).default([]),
   style: StyleSchema.default({}),
+  effects: EffectsSchema.default({}),
   team: z
     .array(z.object({ name: text(40).min(1, "Укажите имя"), role: text(60).default("") }))
     .max(8, "Не больше 8 человек")
@@ -194,5 +196,12 @@ export function customize(spec: SiteSpec, { custom, addons, services }: { custom
   applyOverrides(out, keys, custom.texts, false);
   applyOverrides(out, keys, custom.images, true);
   out.style = { ...out.style, ...custom.style };
+
+  // 3D-сцена — платное дополнение: без него её нет, с ним по умолчанию — 3D-капля
+  const effects = { ...custom.effects };
+  const has3d = addons.some((a) => a.id === "scene3d");
+  if (isScene(effects.fx) && !has3d) delete effects.fx;
+  if (has3d && !isScene(effects.fx)) effects.fx = "scene-orb";
+  out.effects = effects;
   return out;
 }

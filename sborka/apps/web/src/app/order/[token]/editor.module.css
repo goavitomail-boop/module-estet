@@ -346,3 +346,233 @@
   font-size: 10px;
   font-weight: 700;
 }
+
+/* Оформление / Анимации и эффекты */
+.modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.modes button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-2);
+  font: 600 var(--fs-small) / 1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.modes button[aria-selected="true"] {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+/* Варианты эффекта */
+.fxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.fxOption {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--ink);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.fxOption:hover:not(:disabled) {
+  border-color: var(--text-3);
+}
+
+.fxOption[aria-checked="true"] {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 1px var(--lime);
+}
+
+.fxOption[role="checkbox"][aria-checked="true"]::after {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  color: var(--lime);
+  font-weight: 700;
+}
+
+.fxOption[data-paid] {
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgba(200, 255, 61, 0.12), transparent 70%),
+    var(--ink);
+}
+
+.fxOption b {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding-right: 14px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.fxOption em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.fxOption small {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.fxTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.fxTags i {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.fxTags .fxPaid {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+@media (max-width: 420px) {
+  .fxGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Пример эффекта: ролик при наведении на вариант */
+.fxCell {
+  position: relative;
+  display: grid;
+}
+
+.peekButton {
+  display: none;
+}
+
+@media (hover: none) {
+  .peekButton {
+    display: block;
+    justify-self: start;
+    margin-top: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: none;
+    color: var(--text-2);
+    font: 600 12px / 1 var(--font-body);
+    cursor: pointer;
+  }
+}
+
+.peek {
+  position: fixed;
+  z-index: 60;
+  width: 400px;
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(200, 255, 61, 0.45);
+  border-radius: var(--r-l);
+  background: var(--surface);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  animation: peek-in 0.22s var(--ease) both;
+}
+
+.peek[data-touch] {
+  width: auto;
+  pointer-events: auto;
+}
+
+@keyframes peek-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.peekMedia {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(110deg, var(--ink) 30%, rgba(255, 255, 255, 0.06) 50%, var(--ink) 70%) 0 0 / 300% 100%;
+  animation: peek-wait 1.2s linear infinite;
+}
+
+.peekMedia[data-ready] {
+  animation: none;
+}
+
+@keyframes peek-wait {
+  to {
+    background-position: -150% 0;
+  }
+}
+
+.peekMedia video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.peekMedia[data-ready] video {
+  opacity: 1;
+}
+
+.peek figcaption {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px 12px;
+}
+
+.peek figcaption b {
+  font-size: 14px;
+}
+
+.peek figcaption span {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.peekShade {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: rgba(0, 0, 0, 0.5);
+}

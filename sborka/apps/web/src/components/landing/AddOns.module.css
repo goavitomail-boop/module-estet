@@ -683,6 +683,16 @@
   animation: ao-stack 0.8s var(--ease);
 }
 
+.extra:hover .extraIcon[data-kind="cube"] svg {
+  animation: ao-cube 1s var(--ease);
+}
+
+@keyframes ao-cube {
+  60% {
+    rotate: 1 1 0 180deg;
+  }
+}
+
 .extra:hover .extraIcon[data-kind="shield"] {
   animation: ao-shield 1.2s ease-out;
 }
@@ -733,7 +743,7 @@
   }
 
   .extras {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .extra {

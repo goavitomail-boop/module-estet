@@ -12,7 +12,7 @@ import s from "./site.module.css";
  * — шапка поверх фото становится плотной после прокрутки (data-scrolled);
  * — прогресс закреплённых секций (data-progress, data-hscroll) и проявление текста (data-hl) в --p;
  * — свой курсор, «магнитные» кнопки (data-magnetic) и наклон фото за курсором (data-tilt).
- * При prefers-reduced-motion всё показывается сразу, без движения.
+ * При prefers-reduced-motion или выключенных анимациях (нет data-anim) всё показывается сразу, без движения.
  */
 export function SiteMotion() {
   const ref = useRef<HTMLSpanElement>(null);
@@ -21,7 +21,7 @@ export function SiteMotion() {
     const root = ref.current?.closest<HTMLElement>("[data-site]");
     if (!root) return;
     const reveal = Array.from(root.querySelectorAll<HTMLElement>("[data-r]"));
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches || !root.hasAttribute("data-anim");
     if (reduced || !("IntersectionObserver" in window)) {
       reveal.forEach((el) => el.setAttribute("data-in", ""));
       return;

@@ -2,6 +2,7 @@ import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { QuotesIcon } from "@phosphor-icons/react/ssr";
 import { NICHES } from "@/lib/sites/niches";
 import type { Block, IconName, SiteSpec } from "@/lib/sites/schema";
+import { blockEffect, isScene, type EffectGroup, type HeroFx, type Scene } from "@/lib/sites/effects";
 import { blockKeys, HIDEABLE } from "@/lib/sites/keys";
 import { BLOCK_LABEL, FEATURE_LABEL } from "@/lib/sites/presentation";
 import { DISPLAY_FONTS, RADII, textOn } from "@/lib/sites/style";
@@ -13,6 +14,7 @@ import { MediaFx, SectionFx } from "./HeroFx";
 import { BookingForm, BookingModal, type BookingService } from "./interactive/Booking";
 import { Lightbox, ReviewsSlider } from "./interactive/Extras";
 import { Breathe, Calculator, Hotspots, Lookbook, MenuShowcase, Navigator, PalettePicker, Postcard, Quiz, Wipe } from "./interactive/Features";
+import { Scene3D } from "./Scene3D";
 import { SIGNATURES, type Signature } from "./signature";
 import { SiteMotion } from "./SiteMotion";
 import f from "./fx.module.css";
@@ -35,8 +37,10 @@ interface Ctx {
   /** Анимации включены (страница примера, прототип). */
   anim: boolean;
   layout: HeroLayout;
-  /** Почерк ниши: эффекты, интро и вид блоков. */
+  /** Почерк ниши: эффекты, интро и вид блоков — с учётом того, что клиент выбрал сам. */
   sig: Signature;
+  /** Эффект первого экрана: из почерка, выбранный клиентом, 3D-сцена или ничего. */
+  fx: HeroFx | Scene | "none";
   /** Услуги с ценами — для окна записи и интерактивных блоков. */
   services: BookingService[];
 }
@@ -83,6 +87,23 @@ export function SiteRenderer({
   const layout = spec.style.hero ?? heroLayout(theme, spec.heroVariant);
   const header = layout === "overlay" ? "overlay" : theme.header === "overlay" ? "bar" : theme.header;
   const shape = theme.heroShape === "fade" ? "rounded" : theme.heroShape;
+  // Эффекты, которые клиент выбрал сам, поверх почерка сферы
+  const fx = spec.effects;
+  const base = SIGNATURES[spec.niche];
+  const sig: Signature = {
+    ...base,
+    gallery: fx.gallery ?? base.gallery,
+    steps: fx.steps ?? base.steps,
+    reviews: fx.reviews ?? base.reviews,
+    faq: fx.faq ?? base.faq,
+    cinema: fx.cinema ?? base.cinema,
+    highlight: fx.highlight ?? base.highlight,
+    cursor: fx.cursor ?? base.cursor,
+    fab: fx.fab && fx.fab !== "none" ? fx.fab : base.fab,
+    intro: fx.intro && fx.intro !== "none" ? fx.intro : base.intro,
+  };
+  const animate = motion && fx.motion !== "none";
+  const showIntro = animate && intro && fx.intro !== "none";
   const ctx: Ctx = {
     spec,
     theme,
@@ -92,10 +113,11 @@ export function SiteRenderer({
     live: mode === "live",
     phoneHref: `tel:${spec.contacts.phone.replace(/[^\d+]/g, "")}`,
     location: [spec.business.city, spec.contacts.address].filter(Boolean).join(", "),
-    decor: new Set(theme.decor),
-    anim: motion,
+    decor: new Set(fx.decor ?? theme.decor),
+    anim: animate,
     layout,
-    sig: SIGNATURES[spec.niche],
+    sig,
+    fx: fx.fx ?? base.fx,
     services: serviceList(spec),
   };
   const seen = new Set<string>();
@@ -111,12 +133,12 @@ export function SiteRenderer({
       data-hero={layout}
       data-header={header}
       data-upper={theme.upper ? "" : undefined}
-      data-motion={theme.motion}
-      data-anim={motion ? "" : undefined}
-      data-intro={motion && intro ? undefined : "off"}
+      data-motion={fx.motion ?? theme.motion}
+      data-anim={animate ? "" : undefined}
+      data-intro={showIntro ? undefined : "off"}
       data-cursor={edit ? "none" : ctx.sig.cursor}
     >
-      {motion && intro && <Intro ctx={ctx} />}
+      {showIntro && <Intro ctx={ctx} />}
       {ctx.decor.has("lines") && (
         <div className={s.gridLines} aria-hidden="true">
           <div className={s.wrap} />
@@ -126,7 +148,7 @@ export function SiteRenderer({
       <Header ctx={ctx} />
 
       <main>
-        <EditArea on={!!edit} ek="hero" label="Первый экран">
+        <EditArea on={!!edit} ek="hero" label="Первый экран" fx="fx">
           <Hero ctx={ctx} layout={layout} />
         </EditArea>
         {ctx.decor.has("marquee") && <Marquee ctx={ctx} />}
@@ -141,7 +163,14 @@ export function SiteRenderer({
           const ek = keys[i];
           const hide = ek in edit.addons ? `addon:${edit.addons[ek]}` : (HIDEABLE as readonly string[]).includes(block.type) ? "hide" : "";
           return (
-            <EditArea key={i} on ek={ek} label={block.type === "feature" ? FEATURE_LABEL[block.kind] : BLOCK_LABEL[block.type]} hide={hide}>
+            <EditArea
+              key={i}
+              on
+              ek={ek}
+              label={block.type === "feature" ? FEATURE_LABEL[block.kind] : BLOCK_LABEL[block.type]}
+              hide={hide}
+              fx={blockEffect(block)}
+            >
               <BlockView block={block} id={id} ctx={ctx} />
             </EditArea>
           );
@@ -172,7 +201,7 @@ export function SiteRenderer({
         <div className={s.watermark} style={{ backgroundImage: WATERMARK }} aria-hidden="true" />
       )}
       {/* В миниатюрах лендинга окна и плавающая кнопка не нужны */}
-      {motion && <Fab ctx={ctx} />}
+      {motion && fx.fab !== "none" && <Fab ctx={ctx} />}
       {motion && <BookingModal config={ctx.sig.booking} services={ctx.services} masters={masters(spec)} live={ctx.live} />}
       {motion && ctx.sig.gallery === "masonry" && <Lightbox />}
       {motion && <SiteMotion />}
@@ -181,11 +210,25 @@ export function SiteRenderer({
   );
 }
 
-/** Обёртка блока в режиме редактирования: ключ, название и можно ли скрыть. Без рамки, на вёрстку не влияет. */
-function EditArea({ on, ek, label, hide, children }: { on: boolean; ek: string; label: string; hide?: string; children: ReactNode }) {
+/** Обёртка блока в режиме редактирования: ключ, название, можно ли скрыть и какие эффекты выбрать. Без рамки, на вёрстку не влияет. */
+function EditArea({
+  on,
+  ek,
+  label,
+  hide,
+  fx,
+  children,
+}: {
+  on: boolean;
+  ek: string;
+  label: string;
+  hide?: string;
+  fx?: EffectGroup;
+  children: ReactNode;
+}) {
   if (!on) return children;
   return (
-    <div data-ek={ek} data-el={label} data-eh={hide || undefined} style={{ display: "contents" }}>
+    <div data-ek={ek} data-el={label} data-eh={hide || undefined} data-efx={fx} style={{ display: "contents" }}>
       {children}
     </div>
   );
@@ -261,9 +304,14 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
   );
   const actions = <HeroActions ctx={ctx} ghost={layout !== "split"} />;
   const note = ctx.mode === "preview" && <span className={s.artNote}>Здесь будет ваше фото</span>;
-  const fx = <SectionFx fx={ctx.sig.fx} images={[spec.images.hero, ...spec.images.side].filter((x): x is string => Boolean(x))} />;
-  const mediaFx = <MediaFx fx={ctx.sig.fx} name={spec.business.name} />;
-  const blobs = ctx.decor.has("blobs") && ctx.sig.fx !== "aurora" && (
+  const fx =
+    ctx.fx === "none" ? null : isScene(ctx.fx) ? (
+      <Scene3D kind={ctx.fx} />
+    ) : (
+      <SectionFx fx={ctx.fx} images={[spec.images.hero, ...spec.images.side].filter((x): x is string => Boolean(x))} />
+    );
+  const mediaFx = ctx.fx === "none" || isScene(ctx.fx) ? null : <MediaFx fx={ctx.fx} name={spec.business.name} />;
+  const blobs = ctx.decor.has("blobs") && ctx.fx !== "aurora" && (
     <div className={s.blobs} aria-hidden="true">
       <i />
       <i />
@@ -683,7 +731,7 @@ function More({ label }: { label: string }) {
 /* ——— Услуги ——— */
 
 function ServicesBlock({ block, id, ctx }: { block: Extract<Block, { type: "services" }>; id?: string; ctx: Ctx }) {
-  const style = block.style ?? ctx.theme.serviceStyle;
+  const style = ctx.spec.effects.services ?? block.style ?? ctx.theme.serviceStyle;
   const head = <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} action={<More label={ctx.spec.contacts.formCta} />} />;
 
   if (style === "list") {

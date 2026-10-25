@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CURSORS, DECORS, FABS, FAQS, GALLERIES, HERO_FX, INTROS, MOTIONS, REVIEWS_KINDS, SCENES, SERVICE_STYLES, STEPS_KINDS } from "./effects";
 import { DISPLAY_FONTS, HERO_LAYOUTS, RADII, type DisplayFont, type HeroLayoutId, type Radius } from "./style";
 
 export const NICHE_IDS = [
@@ -223,6 +224,23 @@ export const StyleSchema = z.object({
   hero: z.enum(Object.keys(HERO_LAYOUTS) as [HeroLayoutId, ...HeroLayoutId[]]).optional(),
 });
 
+/** Эффекты и анимации, которые клиент выбрал сам: только из библиотеки effects.ts. */
+export const EffectsSchema = z.object({
+  fx: z.enum([...HERO_FX, ...SCENES, "none"]).optional(),
+  intro: z.enum([...INTROS, "none"]).optional(),
+  motion: z.enum([...MOTIONS, "none"]).optional(),
+  cursor: z.enum([...CURSORS, "none"]).optional(),
+  fab: z.enum([...FABS, "none"]).optional(),
+  decor: z.array(z.enum(DECORS)).max(DECORS.length).optional(),
+  gallery: z.enum(GALLERIES).optional(),
+  steps: z.enum(STEPS_KINDS).optional(),
+  reviews: z.enum(REVIEWS_KINDS).optional(),
+  faq: z.enum(FAQS).optional(),
+  services: z.enum(SERVICE_STYLES).optional(),
+  cinema: z.boolean().optional(),
+  highlight: z.boolean().optional(),
+});
+
 /**
  * Описание собранного сайта. Это то, что вернёт ИИ (или шаблонный генератор);
  * рендерер превращает его в страницу.
@@ -233,6 +251,8 @@ const SiteSpecObject = z.object({
     heroVariant: z.enum(["split", "stacked"]),
     /** Что клиент поменял во внешнем виде сам: акцент, шрифт, скругления, первый экран. */
     style: StyleSchema.default({}),
+    /** Эффекты и анимации, выбранные клиентом поверх почерка сферы. */
+    effects: EffectsSchema.default({}),
     /**
      * Фото первого экрана. Без него рисуется абстрактная композиция.
      * side — дополнительные фото для коллажа в первом экране.
