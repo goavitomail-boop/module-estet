@@ -52,6 +52,14 @@ export const cleaning: Niche = {
         ),
       },
       {
+        type: "feature",
+        kind: "wipe",
+        eyebrow: "Попробуйте",
+        title: "Проведите по фото — и станет чисто",
+        lead: "Так выглядит кухня после нашей генеральной уборки.",
+        image: "@gallery-1|about|hero",
+      },
+      {
         type: "strip",
         items: [
           { icon: "spray", title: "Свои средства", text: "Безопасные для детей и животных" },

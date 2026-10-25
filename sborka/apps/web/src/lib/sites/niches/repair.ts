@@ -1,4 +1,4 @@
-import { contacts, demoOnly, services, type Niche } from "./types";
+import { contacts, demoOnly, perMeter, services, type Niche } from "./types";
 
 export const repair: Niche = {
   id: "repair",
@@ -50,6 +50,19 @@ export const repair: Niche = {
           ["home", "wrench", "drop", "ruler"],
         ),
       },
+      // Калькулятор — только если в прайсе есть цены за м²
+      ...b.services
+        .map((s) => ({ title: s.name, value: perMeter(s.price) }))
+        .filter((r) => r.value)
+        .slice(0, 1)
+        .map(() => ({
+          type: "feature" as const,
+          kind: "calculator" as const,
+          eyebrow: "Калькулятор",
+          title: "Сколько стоит ваш ремонт",
+          lead: "Предварительная оценка работ. Точную смету составим после бесплатного замера.",
+          items: b.services.map((s) => ({ title: s.name, value: perMeter(s.price) })).filter((r) => r.value),
+        })),
       {
         type: "strip",
         items: [

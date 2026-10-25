@@ -8,3 +8,4 @@ import "@fontsource-variable/golos-text";
 import "@fontsource-variable/playfair-display";
 import "@fontsource-variable/unbounded";
 import "@fontsource-variable/manrope";
+import "@fontsource-variable/caveat";

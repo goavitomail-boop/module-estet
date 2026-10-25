@@ -562,7 +562,7 @@
 
 .heroOverlay .heroTitle {
   font-size: clamp(46px, 6.4vw, 104px);
-  line-height: 0.98;
+  line-height: 1.02;
   max-width: 12.5em;
   margin-bottom: 40px;
 }
@@ -1223,6 +1223,16 @@
 
 .iconCards .cardBody {
   padding: 18px 28px 32px;
+}
+
+/* Капслок в узких карточках: длинные слова должны помещаться */
+.site[data-upper] .cards[data-count="4"] .cardBody h3 {
+  font-size: 18px;
+}
+
+.cards[data-count="4"] .cardButton {
+  padding: 0 16px;
+  font-size: 14px;
 }
 
 .cardButton {
@@ -2599,6 +2609,75 @@
   content: "Смотреть";
 }
 
+/* Курсор-инверсия: белый круг с mix-blend-mode */
+.site[data-cursor="blend"] .cursor {
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-color: #fff;
+  background: #fff;
+  mix-blend-mode: difference;
+}
+
+.site[data-cursor="blend"] .cursor[data-link] {
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  background: #fff;
+}
+
+.site[data-cursor="blend"] .cursor[data-view] {
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  background: #fff;
+}
+
+.site[data-cursor="blend"] .cursor[data-view]::after {
+  content: "";
+}
+
+/* Запись онлайн прямо на странице */
+.wizard {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 48px;
+  padding: 40px;
+  border-radius: 32px;
+  border: 1px solid var(--s-line);
+  background: var(--s-bg);
+  box-shadow: 0 30px 70px -50px color-mix(in srgb, var(--s-text) 60%, transparent);
+}
+
+.wizardAside {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding-right: 24px;
+  border-right: 1px solid var(--s-line);
+}
+
+.wizardAside > svg {
+  color: var(--s-accent);
+}
+
+.wizardAside p {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--s-muted);
+}
+
+.wizardAside span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.wizardAside span svg {
+  color: var(--s-accent);
+}
+
 /* Интро при открытии сайта */
 .intro {
   display: none;
@@ -2683,6 +2762,43 @@
 @keyframes sm-clip-side {
   from {
     clip-path: inset(0 100% 0 0);
+  }
+}
+
+@keyframes sm-intro-fade {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes sm-split-top {
+  to {
+    translate: 0 -100%;
+  }
+}
+
+@keyframes sm-split-bottom {
+  to {
+    translate: 0 100%;
+  }
+}
+
+@keyframes sm-circle {
+  from {
+    clip-path: circle(150% at 50% 50%);
+  }
+  to {
+    clip-path: circle(0% at 50% 50%);
+    visibility: hidden;
+  }
+}
+
+@keyframes sm-letter {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+    translate: 0 30px;
   }
 }
 
@@ -2809,6 +2925,39 @@
 
   .site[data-anim] .introLine::after {
     animation: sm-grow 1.25s cubic-bezier(0.65, 0, 0.35, 1) 0.05s both;
+  }
+
+  /* Занавес из двух половин: темнота расходится вверх и вниз */
+  .site[data-anim] .intro[data-intro="split"] {
+    background: transparent;
+    color: var(--s-bg);
+    animation: sm-intro-fade 0.4s ease 1.45s both;
+  }
+
+  .site[data-anim] .intro[data-intro="split"] > span:first-child {
+    animation: sm-split-top 0.9s cubic-bezier(0.76, 0, 0.24, 1) 1.25s both;
+  }
+
+  .site[data-anim] .intro[data-intro="split"] > span:nth-child(2) {
+    animation: sm-split-bottom 0.9s cubic-bezier(0.76, 0, 0.24, 1) 1.25s both;
+  }
+
+  .site[data-anim] .intro[data-intro="split"] .introName {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Круг сжимается в точку и открывает сайт */
+  .site[data-anim] .intro[data-intro="circle"] {
+    background: var(--s-accent);
+    color: var(--s-accent-text);
+    animation: sm-circle 1s cubic-bezier(0.76, 0, 0.24, 1) 1.3s both;
+  }
+
+  /* Буквы проявляются из размытия по одной */
+  .site[data-anim] .intro[data-intro="letters"] .introName span {
+    animation: sm-letter 0.7s var(--ease) both;
+    animation-delay: calc(0.1s + var(--i, 0) * 55ms);
   }
 
   /* Закреплённые сцены: длина прокрутки, за которую они проигрываются */
@@ -3010,9 +3159,20 @@
     text-align: left;
   }
 
-  .stepsGrid {
+  .stepsGrid,
+  .wizard {
     grid-template-columns: 1fr;
     gap: 32px;
+  }
+
+  .wizard {
+    padding: 24px;
+  }
+
+  .wizardAside {
+    padding: 0 0 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--s-line);
   }
 
   .stepsHead {

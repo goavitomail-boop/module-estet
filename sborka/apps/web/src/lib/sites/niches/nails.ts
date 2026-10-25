@@ -54,6 +54,23 @@ export const nails: Niche = {
           ["sparkle", "heart", "leaf", "palette", "sprout"],
         ),
       },
+      {
+        type: "feature",
+        kind: "palette",
+        eyebrow: "Палитра",
+        title: "Подберите оттенок до визита",
+        lead: "Нажмите на цвет — покажем, как он смотрится на руке. Мастер подготовит его к вашему приходу.",
+        items: [
+          { title: "Пыльная роза", color: "#C48C8E" },
+          { title: "Молочный", color: "#EFE4D8" },
+          { title: "Нюд", color: "#D6B19A" },
+          { title: "Бордо", color: "#6B1E2E" },
+          { title: "Лаванда", color: "#B4A3D1" },
+          { title: "Шалфей", color: "#97AC94" },
+          { title: "Красный", color: "#B0122C" },
+          { title: "Графит", color: "#38383E" },
+        ],
+      },
       { type: "strip", quote: "Маленькие ритуалы для хорошего настроения", caption: "Забота · Эстетика · Гармония" },
       {
         type: "steps",

@@ -120,6 +120,8 @@ export function SiteMotion() {
         el.style.setProperty("--p", p.toFixed(4));
       }
       root.toggleAttribute("data-scrolled", window.scrollY > 40);
+      // Плавающая кнопка записи — после первого экрана
+      root.toggleAttribute("data-deep", window.scrollY > vh * 0.8);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -193,8 +195,9 @@ export function SiteMotion() {
       });
     }
 
-    // Свой курсор и «магнитные» кнопки — только для мыши
-    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    // Свой курсор, наклон фото и «магнитные» кнопки — только для мыши
+    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (fine && root.dataset.cursor !== "none") {
       const ring = document.createElement("div");
       ring.className = s.cursor;
       ring.setAttribute("aria-hidden", "true");
@@ -230,7 +233,9 @@ export function SiteMotion() {
         cancelAnimationFrame(raf);
         ring.remove();
       });
+    }
 
+    if (fine) {
       // Фото первого экрана слегка поворачивается вслед за курсором
       root.querySelectorAll<HTMLElement>("[data-tilt]").forEach((el) => {
         const area = el.closest("section") ?? el;

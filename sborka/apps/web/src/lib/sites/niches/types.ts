@@ -46,3 +46,14 @@ export function demoOnly(options: BuildOptions, ...blocks: BlockInput[]): BlockI
 export function contacts(b: Brief, title: string, formCta: string) {
   return { title, phone: b.phone, address: b.address, hours: b.hours, formCta };
 }
+
+/** Услуги как пункты интерактивного блока: название, цена, описание и фото. */
+export function featureItems(items: Service[], notes: Record<string, string>, image?: (i: number) => string | undefined) {
+  return items.map((s, i) => ({ title: s.name, price: s.price, text: notes[s.name], image: image?.(i) }));
+}
+
+/** Цена за квадратный метр из строки вроде «от 4 500 ₽/м²». */
+export function perMeter(price: string) {
+  const m = price.replace(/\s/g, "").match(/(\d+)₽\/м²/);
+  return m ? Number(m[1]) : undefined;
+}

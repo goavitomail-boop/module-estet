@@ -49,6 +49,18 @@ export const psychologist: Niche = {
           ["sprout", "armchair", "laptop"],
         ),
       },
+      {
+        type: "feature",
+        kind: "breathe",
+        eyebrow: "Пауза",
+        title: "Минута, чтобы выдохнуть",
+        lead: "Нажмите «Начать» и дышите вместе с кругом. Это не терапия, но хороший способ остановиться.",
+        items: [
+          { title: "Вдох", value: 4 },
+          { title: "Задержка", value: 4 },
+          { title: "Выдох", value: 6 },
+        ],
+      },
       { type: "strip", quote: "«Быть собой — уже достаточно»", caption: "Поддержка · Понимание · Развитие" },
       {
         type: "about",

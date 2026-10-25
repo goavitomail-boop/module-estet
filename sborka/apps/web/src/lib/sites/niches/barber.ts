@@ -1,4 +1,4 @@
-import { contacts, demoOnly, services, type Niche } from "./types";
+import { contacts, demoOnly, featureItems, type Niche } from "./types";
 
 export const barber: Niche = {
   id: "barber",
@@ -39,10 +39,23 @@ export const barber: Niche = {
     },
     blocks: [
       {
-        type: "services",
+        type: "feature",
+        kind: "lookbook",
         eyebrow: "Прайс",
         title: "Услуги и цены",
-        items: services(b.services, {}, ["scissors"], ["@gallery-1", "@gallery-3", "@gallery-3", "@gallery-4"]),
+        lead: "Наведите на услугу — покажем работу.",
+        items: featureItems(
+          b.services,
+          {
+            "Мужская стрижка": "Консультация, мытьё, стрижка и укладка",
+            "Стрижка и борода": "Полный образ за один визит",
+            "Оформление бороды": "Форма, контур, горячее полотенце",
+            "Королевское бритьё": "Опасная бритва и уход за кожей",
+            "Детская стрижка": "Для мальчиков до 12 лет",
+            "Камуфляж седины": "Естественный оттенок без «эффекта краски»",
+          },
+          (i) => ["@gallery-1", "@gallery-2", "@gallery-3", "@gallery-4"][i % 4],
+        ),
       },
       { type: "strip", quote: "Стрижка — это ритуал, а не очередь", caption: "Стиль · Ремесло · Атмосфера" },
       {

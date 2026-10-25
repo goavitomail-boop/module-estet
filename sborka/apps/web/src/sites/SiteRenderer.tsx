@@ -5,7 +5,13 @@ import type { Block, IconName, SiteSpec } from "@/lib/sites/schema";
 import { getTheme, type Decor, type HeroLayout, type SiteTheme } from "@/lib/sites/themes";
 import { Icon } from "./icons";
 import { MoodArt } from "./MoodArt";
+import { MediaFx, SectionFx } from "./HeroFx";
+import { BookingForm, BookingModal, type BookingService } from "./interactive/Booking";
+import { Lightbox, ReviewsSlider } from "./interactive/Extras";
+import { Breathe, Calculator, Hotspots, Lookbook, MenuShowcase, Navigator, PalettePicker, Postcard, Quiz, Wipe } from "./interactive/Features";
+import { SIGNATURES, type Signature } from "./signature";
 import { SiteMotion } from "./SiteMotion";
+import f from "./fx.module.css";
 import s from "./site.module.css";
 import "./fonts";
 
@@ -25,6 +31,10 @@ interface Ctx {
   /** Анимации включены (страница примера, прототип). */
   anim: boolean;
   layout: HeroLayout;
+  /** Почерк ниши: эффекты, интро и вид блоков. */
+  sig: Signature;
+  /** Услуги с ценами — для окна записи и интерактивных блоков. */
+  services: BookingService[];
 }
 
 /** Композиция первого экрана для третьего и четвёртого вариантов, чтобы они не повторяли первые два. */
@@ -75,6 +85,8 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
     decor: new Set(theme.decor),
     anim: motion,
     layout,
+    sig: SIGNATURES[spec.niche],
+    services: serviceList(spec),
   };
   const seen = new Set<string>();
 
@@ -90,6 +102,7 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
       data-upper={theme.upper ? "" : undefined}
       data-motion={theme.motion}
       data-anim={motion ? "" : undefined}
+      data-cursor={ctx.sig.cursor}
     >
       {motion && <Intro ctx={ctx} />}
       {ctx.decor.has("lines") && (
@@ -133,6 +146,10 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
       {mode === "preview" && (
         <div className={s.watermark} style={{ backgroundImage: WATERMARK }} aria-hidden="true" />
       )}
+      {/* В миниатюрах лендинга окна и плавающая кнопка не нужны */}
+      {motion && <Fab ctx={ctx} />}
+      {motion && <BookingModal config={ctx.sig.booking} services={ctx.services} masters={masters(spec)} live={ctx.live} />}
+      {motion && ctx.sig.gallery === "masonry" && <Lightbox />}
       {motion && <SiteMotion />}
     </div>
   );
@@ -142,7 +159,7 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
 
 function Header({ ctx }: { ctx: Ctx }) {
   const { spec, theme } = ctx;
-  const services = spec.blocks.find((b) => b.type === "services");
+  const services = spec.blocks.find((b) => b.type === "services") ?? spec.blocks.find((b) => b.type === "feature");
   const about = spec.blocks.find((b) => b.type === "about");
   const logo = (
     <span className={s.logo}>
@@ -155,7 +172,7 @@ function Header({ ctx }: { ctx: Ctx }) {
   );
   const nav = (
     <nav className={s.nav} aria-label="Разделы сайта">
-      {services && <a href="#services">{services.eyebrow || services.title}</a>}
+      {services && <a href={`#${services.type}`}>{services.eyebrow || services.title}</a>}
       {about && <a href="#about">{about.title}</a>}
       <a href="#contacts">Контакты</a>
     </nav>
@@ -208,7 +225,9 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
   );
   const actions = <HeroActions ctx={ctx} ghost={layout !== "split"} />;
   const note = ctx.mode === "preview" && <span className={s.artNote}>Здесь будет ваше фото</span>;
-  const blobs = ctx.decor.has("blobs") && (
+  const fx = <SectionFx fx={ctx.sig.fx} images={[spec.images.hero, ...spec.images.side].filter((x): x is string => Boolean(x))} />;
+  const mediaFx = <MediaFx fx={ctx.sig.fx} name={spec.business.name} />;
+  const blobs = ctx.decor.has("blobs") && ctx.sig.fx !== "aurora" && (
     <div className={s.blobs} aria-hidden="true">
       <i />
       <i />
@@ -222,6 +241,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
         <div className={s.overlayBg} data-px="0.12">
           <Media src={spec.images.hero} ctx={ctx} eager />
         </div>
+        {fx}
         <div className={`${s.wrap} ${s.overlayInner}`}>
           {eyebrow}
           {title}
@@ -242,6 +262,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
   if (layout === "editorial") {
     return (
       <section className={`${s.hero} ${s.heroEditorial}`}>
+        {fx}
         <div className={s.wrap}>
           <div className={s.edMeta} data-e="" style={order(1)}>
             <span>{spec.hero.eyebrow || spec.business.tagline}</span>
@@ -260,6 +281,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
                 {note}
               </div>
               {ctx.decor.has("badge") && <Badge ctx={ctx} />}
+              {mediaFx}
             </div>
             <div className={s.edAside}>
               {sub}
@@ -276,6 +298,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
     return (
       <section className={`${s.hero} ${s.heroCentered}`}>
         {blobs}
+        {fx}
         <div className={`${s.wrap} ${s.centerText}`}>
           {eyebrow}
           {title}
@@ -289,6 +312,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
           </div>
           {ctx.decor.has("badge") && <Badge ctx={ctx} />}
           <Chips ctx={ctx} />
+          {mediaFx}
         </div>
         <div className={s.wrap}>
           <Features ctx={ctx} />
@@ -302,12 +326,14 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
     return (
       <section className={`${s.hero} ${s.heroCollage}`}>
         {blobs}
+        {fx}
         <div className={`${s.wrap} ${s.collageGrid}`}>
           <div className={`${s.collageItem} ${s.collageLeft}`} data-e="media" data-tilt="" style={order(2)}>
             <div className={s.collageFloat}>
               <Media src={spec.images.hero} ctx={ctx} eager />
               {note}
             </div>
+            {mediaFx}
           </div>
           <div className={s.centerText}>
             {eyebrow}
@@ -339,6 +365,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
   return (
     <section className={`${s.hero} ${s.heroSplit}`}>
       {blobs}
+      {fx}
       <div className={`${s.wrap} ${s.heroGrid}`}>
         <div className={s.heroText}>
           {eyebrow}
@@ -360,6 +387,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
           </div>
           {ctx.decor.has("badge") && <Badge ctx={ctx} />}
           <Chips ctx={ctx} />
+          {mediaFx}
         </div>
       </div>
     </section>
@@ -369,7 +397,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
 function HeroActions({ ctx, ghost }: { ctx: Ctx; ghost: boolean }) {
   return (
     <div className={s.heroActions} data-e="" style={order(4)}>
-      <a className={s.button} href="#contacts" data-magnetic="">
+      <a className={s.button} href="#contacts" data-magnetic="" data-open="booking">
         <span>{ctx.spec.hero.cta}</span>
         <Icon name="arrow" size={20} weight="bold" />
       </a>
@@ -462,8 +490,7 @@ function Badge({ ctx }: { ctx: Ctx }) {
 
 /** Бегущая строка с услугами. */
 function Marquee({ ctx }: { ctx: Ctx }) {
-  const services = ctx.spec.blocks.find((b) => b.type === "services");
-  const words = services?.items.length ? services.items.map((i) => i.name) : ctx.spec.hero.features.map((f) => f.text);
+  const words = ctx.services.length ? ctx.services.map((i) => i.name) : ctx.spec.hero.features.map((x) => x.text);
   if (!words.length) return null;
   let list = words;
   while (list.length < 10) list = list.concat(words);
@@ -493,9 +520,51 @@ function Marquee({ ctx }: { ctx: Ctx }) {
  */
 function Intro({ ctx }: { ctx: Ctx }) {
   const { spec } = ctx;
+  const kind = ctx.sig.intro;
+  const name = <Split text={spec.business.name} />;
+  if (kind === "counter") {
+    return (
+      <div className={s.intro} data-intro="counter" aria-hidden="true">
+        <span className={f.introCounter} />
+        <p className={s.introName}>{name}</p>
+      </div>
+    );
+  }
+  if (kind === "split") {
+    return (
+      <div className={s.intro} data-intro="split" aria-hidden="true">
+        <span className={f.introSplit} />
+        <span className={f.introSplit} />
+        <p className={s.introName}>{name}</p>
+      </div>
+    );
+  }
+  if (kind === "circle") {
+    return (
+      <div className={s.intro} data-intro="circle" aria-hidden="true">
+        <Icon name={ctx.icon} size={56} weight={ctx.theme.iconWeight} />
+        <p className={s.introName}>{name}</p>
+      </div>
+    );
+  }
+  if (kind === "letters") {
+    let n = 0;
+    return (
+      <div className={s.intro} data-intro="letters" aria-hidden="true">
+        <p className={`${s.introName} ${f.introLetters}`}>
+          {Array.from(spec.business.name).map((ch, i) => (
+            <span key={i} style={order(ch === " " ? n : n++)}>
+              {ch === " " ? "\u00a0" : ch}
+            </span>
+          ))}
+        </p>
+        <span className={s.introLine} />
+      </div>
+    );
+  }
   const photos = [spec.images.hero, ...spec.images.side].filter((src): src is string => Boolean(src)).slice(0, 4);
   return (
-    <div className={s.intro} aria-hidden="true">
+    <div className={s.intro} data-intro="photos" aria-hidden="true">
       {photos.length > 0 && (
         <div className={s.introPhotos}>
           {photos.map((src, i) => (
@@ -504,9 +573,7 @@ function Intro({ ctx }: { ctx: Ctx }) {
           ))}
         </div>
       )}
-      <p className={s.introName}>
-        <Split text={spec.business.name} />
-      </p>
+      <p className={s.introName}>{name}</p>
       <span className={s.introLine} />
     </div>
   );
@@ -525,7 +592,7 @@ function BlockView({ block, id, ctx }: { block: Block; id?: string; ctx: Ctx }) 
     case "gallery":
       return <GalleryBlock block={block} id={id} ctx={ctx} />;
     case "steps":
-      return <StepsBlock block={block} id={id} />;
+      return <StepsBlock block={block} id={id} ctx={ctx} />;
     case "team":
       return <TeamBlock block={block} id={id} />;
     case "reviews":
@@ -539,7 +606,9 @@ function BlockView({ block, id, ctx }: { block: Block; id?: string; ctx: Ctx }) 
     case "cta":
       return <CtaBlock block={block} />;
     case "faq":
-      return <FaqBlock block={block} id={id} />;
+      return <FaqBlock block={block} id={id} ctx={ctx} />;
+    case "feature":
+      return <FeatureBlock block={block} id={id} ctx={ctx} />;
   }
 }
 
@@ -568,7 +637,7 @@ function Head({ eyebrow, title, lead, action, center }: { eyebrow?: string; titl
 
 function More({ label }: { label: string }) {
   return (
-    <a href="#contacts" className={s.more} data-r="up">
+    <a href="#contacts" className={s.more} data-r="up" data-open="booking">
       {label}
       <Icon name="arrow" size={18} weight="bold" />
     </a>
@@ -660,12 +729,12 @@ function ServiceCard({ item, style, index, ctx }: { item: Item; style: "photo" |
         <p className={s.cardPrice}>{item.price}</p>
         {item.note && <p className={s.cardNote}>{item.note}</p>}
         {style === "icon" ? (
-          <a href="#contacts" className={s.cardButton}>
+          <a href="#contacts" className={s.cardButton} data-open="booking" data-service={item.name}>
             {cta}
             <Icon name="arrow" size={18} weight="bold" />
           </a>
         ) : (
-          <a href="#contacts" className={s.cardPlus} aria-label={`${cta}: ${item.name}`}>
+          <a href="#contacts" className={s.cardPlus} aria-label={`${cta}: ${item.name}`} data-open="booking" data-service={item.name}>
             <Icon name="plus" size={18} weight="bold" />
           </a>
         )}
@@ -723,7 +792,7 @@ function StripBlock({ block, ctx }: { block: Extract<Block, { type: "strip" }>; 
       : ctx.layout === "collage"
         ? (side[1] ?? side[0] ?? hero)
         : (hero ?? side[0]);
-  if (photo) {
+  if (photo && ctx.sig.cinema) {
     // Фото раскрывается из карточки на весь экран, поверх проявляется цитата
     return (
       <section className={s.cinema} data-progress="">
@@ -775,9 +844,15 @@ function AboutBlock({ block, id, ctx }: { block: Extract<Block, { type: "about" 
           <h2 className={s.h2} data-r="words">
             <Split text={block.title} />
           </h2>
-          <p className={s.aboutText} data-hl="" style={{ "--n": wordCount(block.text) } as CSSProperties}>
-            <Split text={block.text} />
-          </p>
+          {ctx.sig.highlight ? (
+            <p className={s.aboutText} data-hl="" style={{ "--n": wordCount(block.text) } as CSSProperties}>
+              <Split text={block.text} />
+            </p>
+          ) : (
+            <p className={s.lead} data-r="up">
+              {block.text}
+            </p>
+          )}
           {block.points.length > 0 && (
             <ul className={s.reasons} data-r="stagger">
               {block.points.map((r, i) => (
@@ -797,8 +872,99 @@ function AboutBlock({ block, id, ctx }: { block: Extract<Block, { type: "about" 
 /* ——— Галерея ——— */
 
 function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "gallery" }>; id?: string; ctx: Ctx }) {
-  // Энергичные и элегантные темы листают галерею вбок, пока секция закреплена
-  if (ctx.theme.motion !== "soft" && block.images.some((img) => img.src)) {
+  const kind = ctx.sig.gallery;
+  const images = block.images.filter((img): img is { src: string; caption?: string } => Boolean(img.src));
+  const head = <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />;
+
+  if (kind === "polaroid" && images.length) {
+    // Снимки разложены на столе, при наведении выпрямляются
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          {head}
+          <ul className={f.polaroids} data-r="stagger">
+            {images.map((img, i) => (
+              <li key={img.src} className={f.polaroid} style={order(i)} data-view="">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+                {img.caption && <span>{img.caption}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  }
+
+  if (kind === "filmstrip" && images.length) {
+    // Две ленты фото едут навстречу друг другу; при наведении фото становится цветным
+    const row = (list: typeof images, hidden?: boolean) => (
+      <div className={f.filmRow} aria-hidden={hidden || undefined}>
+        {[...list, ...list, ...list, ...list].map((img, i) => (
+          <figure key={i}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.src} alt={i < list.length && !hidden ? (img.caption ?? "") : ""} loading="lazy" />
+            {img.caption && <figcaption>{img.caption}</figcaption>}
+          </figure>
+        ))}
+      </div>
+    );
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>{head}</div>
+        <div className={f.film} data-r="up">
+          {row(images)}
+          {row([...images].reverse(), true)}
+        </div>
+      </section>
+    );
+  }
+
+  if (kind === "masonry" && images.length) {
+    // Колонки разной высоты; по клику — просмотр во весь экран
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          {head}
+          <ul className={f.masonry} data-r="stagger">
+            {images.map((img, i) => (
+              <li key={img.src} style={order(i)}>
+                <a href={img.src} data-full={img.src} data-caption={img.caption ?? ""} data-view="">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+                  {img.caption && <span>{img.caption}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  }
+
+  if (kind === "arches" && images.length) {
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          {head}
+          <ul className={f.arches} style={{ "--n": Math.min(images.length, 4) } as CSSProperties} data-r="stagger">
+            {images.slice(0, 4).map((img, i) => (
+              <li key={img.src} className={f.arch} style={order(i)} data-view="">
+                <div className={f.archImg}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+                </div>
+                {img.caption && <span>{img.caption}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  }
+
+  // Галерея листается вбок, пока секция закреплена
+  if (kind === "hscroll" && images.length) {
     return (
       <section id={id} className={s.hgallery} data-hscroll="">
         <div className={s.hSticky}>
@@ -856,7 +1022,65 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
 
 /* ——— Этапы ——— */
 
-function StepsBlock({ block, id }: { block: Extract<Block, { type: "steps" }>; id?: string }) {
+function StepsBlock({ block, id, ctx }: { block: Extract<Block, { type: "steps" }>; id?: string; ctx: Ctx }) {
+  const head = <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />;
+  if (ctx.sig.steps === "timeline") {
+    // Линия по центру заполняется по мере прокрутки
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          {head}
+          <ol className={f.timeline} data-hl="">
+            {block.items.map((st, i) => (
+              <li key={st.title} className={f.tlItem}>
+                <span className={f.tlDot}>{String(i + 1).padStart(2, "0")}</span>
+                <div data-r="up">
+                  <h3>{st.title}</h3>
+                  <p>{st.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    );
+  }
+  if (ctx.sig.steps === "row") {
+    return (
+      <section id={id} className={`${s.section} ${s.tinted}`}>
+        <div className={s.wrap}>
+          {head}
+          <ol className={f.row} data-r="stagger">
+            {block.items.map((st, i) => (
+              <li key={st.title} className={f.rowItem} style={order(i)}>
+                <span className={f.rowNum}>{i + 1}</span>
+                <h3>{st.title}</h3>
+                <p>{st.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    );
+  }
+  if (ctx.sig.steps === "big") {
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          {head}
+          <ol className={f.big} data-r="stagger">
+            {block.items.map((st, i) => (
+              <li key={st.title} className={f.bigItem} style={order(i)}>
+                <span className={f.bigNum}>{String(i + 1).padStart(2, "0")}</span>
+                <h3>{st.title}</h3>
+                <p>{st.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id={id} className={`${s.section} ${s.tinted}`}>
       <div className={s.wrap}>
@@ -916,6 +1140,92 @@ function TeamBlock({ block, id }: { block: Extract<Block, { type: "team" }>; id?
 /* ——— Отзывы ——— */
 
 function ReviewsBlock({ block, id, ctx }: { block: Extract<Block, { type: "reviews" }>; id?: string; ctx: Ctx }) {
+  const head = <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />;
+  const kind = ctx.sig.reviews;
+  if (kind === "notes") {
+    // Записки от гостей на цветной бумаге, приклеенные скотчем
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          {head}
+          <ul className={f.notes} data-r="stagger">
+            {block.items.map((r, i) => (
+              <li key={r.name} className={f.note} style={order(i)}>
+                <p>{r.text}</p>
+                <footer>
+                  — {r.name}
+                  {r.meta && <small>{r.meta}</small>}
+                </footer>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  }
+  if (kind === "marquee") {
+    const card = (r: (typeof block.items)[number], key: number) => (
+      <figure key={key} className={f.reviewCard}>
+        <span className={f.reviewStars} aria-hidden="true">
+          ★★★★★
+        </span>
+        <p>{r.text}</p>
+        <footer>
+          {r.name}
+          <span>{r.meta}</span>
+        </footer>
+      </figure>
+    );
+    const list = [...block.items, ...block.items, ...block.items];
+    return (
+      <section id={id} className={`${s.section} ${s.tinted}`}>
+        <div className={s.wrap}>{head}</div>
+        <div className={f.reviewRows} data-r="up">
+          <div className={f.reviewRow}>{[...list, ...list].map(card)}</div>
+          <div className={f.reviewRow} aria-hidden="true">
+            {[...list, ...list].reverse().map(card)}
+          </div>
+        </div>
+      </section>
+    );
+  }
+  if (kind === "slider") {
+    return (
+      <section id={id} className={`${s.section} ${s.tinted}`}>
+        <div className={s.wrap}>
+          {head}
+          <ReviewsSlider items={block.items} />
+        </div>
+      </section>
+    );
+  }
+  if (kind === "chat") {
+    // Отзывы как сообщения в мессенджере
+    return (
+      <section id={id} className={s.section}>
+        <div className={`${s.wrap} ${s.listGrid}`}>
+          {head}
+          <ol className={f.chat} data-r="stagger">
+            {block.items.map((r, i) => (
+              <li key={r.name} className={f.bubble} style={order(i)}>
+                <b>
+                  {r.name}
+                  {r.meta && ` · ${r.meta}`}
+                </b>
+                <p>{r.text}</p>
+                <small>✓✓</small>
+              </li>
+            ))}
+            <li className={f.typing} aria-label="Новый отзыв печатается">
+              <i />
+              <i />
+              <i />
+            </li>
+          </ol>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id={id} className={`${s.section} ${s.tinted}`}>
       <div className={s.wrap}>
@@ -969,7 +1279,7 @@ function PricingBlock({ block, id, ctx }: { block: Extract<Block, { type: "prici
                   </li>
                 ))}
               </ul>
-              <a href="#contacts" className={p.featured ? s.button : s.buttonOutline}>
+              <a href="#contacts" className={p.featured ? s.button : s.buttonOutline} data-open="booking">
                 <span>Выбрать</span>
                 <Icon name="arrow" size={18} weight={ctx.theme.iconWeight === "thin" ? "light" : "bold"} />
               </a>
@@ -1038,7 +1348,7 @@ function CtaBlock({ block }: { block: Extract<Block, { type: "cta" }> }) {
             </h2>
             {block.text && <p>{block.text}</p>}
           </div>
-          <a href="#contacts" className={s.ctaButton} data-magnetic="">
+          <a href="#contacts" className={s.ctaButton} data-magnetic="" data-open="booking">
             <span>{block.button}</span>
             <Icon name="arrow" size={20} weight="bold" />
           </a>
@@ -1050,7 +1360,46 @@ function CtaBlock({ block }: { block: Extract<Block, { type: "cta" }> }) {
 
 /* ——— Вопросы ——— */
 
-function FaqBlock({ block, id }: { block: Extract<Block, { type: "faq" }>; id?: string }) {
+function FaqBlock({ block, id, ctx }: { block: Extract<Block, { type: "faq" }>; id?: string; ctx: Ctx }) {
+  if (ctx.sig.faq === "numbered") {
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          <h2 className={s.h2} data-r="words">
+            <Split text={block.title} />
+          </h2>
+          <div className={f.faqNum} data-r="stagger" style={{ marginTop: 40 }}>
+            {block.items.map((q, i) => (
+              <details key={q.q} style={order(i)}>
+                <summary>
+                  <i>{String(i + 1).padStart(2, "0")}</i>
+                  {q.q}
+                </summary>
+                <p>{q.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+  if (ctx.sig.faq === "cards") {
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          <Head title={block.title} />
+          <ul className={f.faqCards} data-r="stagger">
+            {block.items.map((q, i) => (
+              <li key={q.q} className={f.faqCard} style={order(i)}>
+                <h3>{q.q}</h3>
+                <p>{q.a}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id={id} className={s.section}>
       <div className={`${s.wrap} ${s.faqGrid}`}>
@@ -1068,6 +1417,115 @@ function FaqBlock({ block, id }: { block: Extract<Block, { type: "faq" }>; id?: 
       </div>
     </section>
   );
+}
+
+/* ——— Интерактивные блоки ——— */
+
+function FeatureBlock({ block, id, ctx }: { block: Extract<Block, { type: "feature" }>; id?: string; ctx: Ctx }) {
+  const head = <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />;
+  const wrap = (body: ReactNode, tinted?: boolean) => (
+    <section id={id} className={`${s.section} ${tinted ? s.tinted : ""}`}>
+      <div className={s.wrap}>
+        {head}
+        <div data-r="up">{body}</div>
+      </div>
+    </section>
+  );
+  const { items } = block;
+  switch (block.kind) {
+    case "menu":
+      return wrap(<MenuShowcase items={items} fallback={ctx.spec.images.hero} />);
+    case "palette":
+      return wrap(<PalettePicker items={items} />);
+    case "calculator":
+      return wrap(<Calculator items={items} />);
+    case "hotspots":
+      return wrap(<Hotspots items={items} image={block.image ?? ctx.spec.images.hero} />, true);
+    case "breathe":
+      return wrap(<Breathe items={items} />, true);
+    case "quiz":
+      return wrap(
+        <Quiz
+          items={items}
+          services={(ctx.spec.blocks.find((b) => b.type === "services")?.items ?? []).map((x) => ({ name: x.name, price: x.price, note: x.note }))}
+        />,
+      );
+    case "navigator":
+      return wrap(<Navigator items={items} />);
+    case "lookbook":
+      return wrap(<Lookbook items={items} />);
+    case "wipe":
+      return wrap(<Wipe image={block.image ?? ctx.spec.images.side[0] ?? ctx.spec.images.hero} />);
+    case "wizard":
+      return wrap(
+        <div className={s.wizard}>
+          <div className={s.wizardAside}>
+            <Icon name={ctx.icon} size={40} weight={ctx.theme.iconWeight} />
+            <p>{ctx.sig.booking.lead}</p>
+            <span>
+              <Icon name="phone" size={18} weight={ctx.theme.iconWeight} />
+              <Phone ctx={ctx} />
+            </span>
+            {ctx.spec.contacts.hours && (
+              <span>
+                <Icon name="clock" size={18} weight={ctx.theme.iconWeight} />
+                {ctx.spec.contacts.hours}
+              </span>
+            )}
+          </div>
+          <BookingForm config={ctx.sig.booking} services={ctx.services} masters={masters(ctx.spec)} live={ctx.live} />
+        </div>,
+        true,
+      );
+    case "postcard":
+      return wrap(<Postcard items={items} image={ctx.spec.images.side[0] ?? ctx.spec.images.hero} signature={ctx.spec.business.name} />);
+  }
+}
+
+/** Плавающая кнопка записи: появляется, когда первый экран прокручен. */
+function Fab({ ctx }: { ctx: Ctx }) {
+  const label = ctx.sig.fabLabel;
+  const kind = ctx.sig.fab;
+  if (kind === "circle") {
+    const text = `${label} · ${label} · `.toUpperCase();
+    return (
+      <a href="#contacts" className={`${f.fab} ${f.fabCircle}`} data-open="booking" aria-label={label}>
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <path id={`fab-${ctx.spec.niche}`} d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
+          </defs>
+          <text>
+            <textPath href={`#fab-${ctx.spec.niche}`} textLength="234" lengthAdjust="spacing">
+              {text}
+            </textPath>
+          </text>
+        </svg>
+        <Icon name={ctx.icon} size={30} weight={ctx.theme.iconWeight} />
+      </a>
+    );
+  }
+  const cls = kind === "pill" ? f.fabPill : kind === "square" ? f.fabSquare : f.fabTab;
+  return (
+    <a href="#contacts" className={`${f.fab} ${cls}`} data-open="booking">
+      {kind === "pill" && <Icon name="calendar" size={20} weight="bold" />}
+      {label}
+    </a>
+  );
+}
+
+/** Услуги с ценами из блока услуг или интерактивного блока. */
+function serviceList(spec: SiteSpec): BookingService[] {
+  const services = spec.blocks.find((b) => b.type === "services");
+  if (services) return services.items.map((i) => ({ name: i.name, price: i.price }));
+  const feature = spec.blocks.find((b) => b.type === "feature" && b.items.some((i) => i.price));
+  if (feature?.type === "feature") return feature.items.map((i) => ({ name: i.title, price: i.price ?? "" }));
+  return [];
+}
+
+/** Мастера из блока команды — для выбора в окне записи. */
+function masters(spec: SiteSpec) {
+  const team = spec.blocks.find((b) => b.type === "team");
+  return team?.type === "team" ? team.people.map((p) => ({ name: p.name, role: p.role })) : [];
 }
 
 /* ——— Контакты ——— */

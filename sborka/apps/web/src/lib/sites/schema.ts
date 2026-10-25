@@ -50,6 +50,21 @@ export const ICON_NAMES = [
 export const IconSchema = z.enum(ICON_NAMES);
 export type IconName = (typeof ICON_NAMES)[number];
 
+export const FEATURE_KINDS = [
+  "menu",
+  "palette",
+  "calculator",
+  "hotspots",
+  "breathe",
+  "quiz",
+  "navigator",
+  "lookbook",
+  "wipe",
+  "wizard",
+  "postcard",
+] as const;
+export type FeatureKind = (typeof FEATURE_KINDS)[number];
+
 const Title = {
   eyebrow: z.string().default(""),
   title: z.string(),
@@ -141,6 +156,33 @@ export const BlockSchema = z.discriminatedUnion("type", [
     type: z.literal("faq"),
     title: z.string(),
     items: z.array(z.object({ q: z.string(), a: z.string() })),
+  }),
+  /**
+   * Интерактивный блок — «фишка» сайта: витрина меню, подбор оттенка, калькулятор,
+   * точки на фото, дыхательная практика, тест, навигатор по ситуациям, лукбук,
+   * «протрите стекло», запись по шагам, открытка к букету.
+   */
+  z.object({
+    type: z.literal("feature"),
+    kind: z.enum(FEATURE_KINDS),
+    ...Title,
+    image: z.string().optional(),
+    items: z
+      .array(
+        z.object({
+          title: z.string(),
+          text: z.string().optional(),
+          price: z.string().optional(),
+          /** Число для расчёта: цена за м², длительность и т. п. */
+          value: z.number().optional(),
+          color: z.string().optional(),
+          image: z.string().optional(),
+          /** Положение точки на фото, в процентах. */
+          x: z.number().optional(),
+          y: z.number().optional(),
+        }),
+      )
+      .default([]),
   }),
 ]);
 export type Block = z.infer<typeof BlockSchema>;

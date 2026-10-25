@@ -1,4 +1,4 @@
-import { contacts, demoOnly, services, type Niche } from "./types";
+import { contacts, demoOnly, featureItems, type Niche } from "./types";
 
 export const coffee: Niche = {
   id: "coffee",
@@ -37,10 +37,12 @@ export const coffee: Niche = {
     },
     blocks: [
       {
-        type: "services",
+        type: "feature",
+        kind: "menu",
         eyebrow: "Меню",
         title: "Наши любимые",
-        items: services(
+        lead: "Наведите на позицию — покажем, как она выглядит на витрине.",
+        items: featureItems(
           b.services,
           {
             Капучино: "Классика с насыщенным вкусом и бархатной пенкой.",
@@ -49,7 +51,7 @@ export const coffee: Niche = {
             "Торт на заказ": "Соберём начинку и оформление под ваш праздник.",
             Чизкейк: "Нежный, на песочной основе, с ягодным соусом.",
           },
-          ["cup", "sprout", "gift", "bean"],
+          (i) => `@service-${i + 1}|gallery-${i + 1}|hero`,
         ),
       },
       ...demoOnly(o, {
