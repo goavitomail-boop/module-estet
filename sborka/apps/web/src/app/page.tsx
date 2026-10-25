@@ -24,7 +24,9 @@ const PRELOADER_SCRIPT = `try{var d=document.documentElement;if(sessionStorage.g
 
 export default async function Home() {
   const generator = getGenerator();
-  const specs = await Promise.all(NICHE_IDS.map((id) => generator.generate({ brief: demoBrief(id), variant: 0, demo: true })));
+  // Примеры на главной — 12 сфер с собственными шаблонами; «Другое» собирается по брифу
+  const ids = NICHE_IDS.filter((id) => id !== "other");
+  const specs = await Promise.all(ids.map((id) => generator.generate({ brief: demoBrief(id), variant: 0, demo: true })));
   const photos = showcasePhotos();
 
   return (

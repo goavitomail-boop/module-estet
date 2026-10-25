@@ -14,8 +14,14 @@ export const NICHE_IDS = [
   "dental",
   "photo",
   "florist",
+  /** Любая другая сфера: универсальный шаблон по описанию клиента. */
+  "other",
 ] as const;
 export type NicheId = (typeof NICHE_IDS)[number];
+
+/** Как к бизнесу приходят клиенты — от этого зависят тексты, кнопки и этапы. */
+export const FLOWS = ["booking", "order", "consult"] as const;
+export type Flow = (typeof FLOWS)[number];
 
 export const ServiceSchema = z.object({
   name: z.string().trim().min(1, "Укажите название услуги").max(60, "Не длиннее 60 символов"),
@@ -38,6 +44,9 @@ export const BriefSchema = z.object({
   address: z.string().trim().max(120, "Не длиннее 120 символов").default(""),
   hours: z.string().trim().max(80, "Не длиннее 80 символов").default(""),
   wishes: z.string().trim().max(1000, "Не длиннее 1000 символов").default(""),
+  /** Для «Другой сферы»: чем занимается бизнес, своими словами. */
+  kind: z.string().trim().max(40, "Не длиннее 40 символов").default(""),
+  flow: z.enum(FLOWS).default("booking"),
 });
 export type Brief = z.infer<typeof BriefSchema>;
 export type BriefInput = z.input<typeof BriefSchema>;

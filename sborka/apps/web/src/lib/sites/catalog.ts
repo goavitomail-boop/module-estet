@@ -27,8 +27,8 @@ export interface NicheOptions {
   feature?: FeatureKind;
   /** Дополнения, доступные этой сфере. */
   addons: AddonId[];
-  /** Основной и альтернативный стиль. */
-  styles: [StyleInfo, StyleInfo];
+  /** Стили на выбор: у сфер с шаблоном — два, у «Другого» — четыре. */
+  styles: StyleInfo[];
 }
 
 /** Блоки шаблона; команда, отзывы и цифры появляются только из данных клиента. */
@@ -72,7 +72,8 @@ export function availableAddons(feature?: FeatureKind): AddonId[] {
 export async function nicheOptions(id: NicheId): Promise<NicheOptions> {
   const generator = getGenerator();
   const brief = demoBrief(id);
-  const [main, alt] = await Promise.all([generator.generate({ brief, variant: 0 }), generator.generate({ brief, variant: 1 })]);
+  const variants = await Promise.all(NICHES[id].themes.map((_, variant) => generator.generate({ brief, variant })));
+  const main = variants[0];
   const feature = main.blocks.find((b) => b.type === "feature");
   const kind = feature?.type === "feature" ? feature.kind : undefined;
   return {
@@ -82,7 +83,7 @@ export async function nicheOptions(id: NicheId): Promise<NicheOptions> {
     blocks: blockOptions(main),
     feature: kind,
     addons: availableAddons(kind),
-    styles: [describeStyle(main), describeStyle(alt)],
+    styles: variants.map(describeStyle),
   };
 }
 

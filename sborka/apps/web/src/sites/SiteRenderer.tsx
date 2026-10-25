@@ -79,7 +79,7 @@ export function SiteRenderer({
     "--s-radius": spec.style.radius ? RADII[spec.style.radius].value : theme.radius,
   } as CSSProperties;
   // У альтернативной темы композиции зеркалятся, чтобы варианты отличались сильнее.
-  const variant = NICHES[spec.niche].themes.indexOf(spec.themeId) === 1 ? 1 : 0;
+  const variant = NICHES[spec.niche].themes.indexOf(spec.themeId) % 2 === 1 ? 1 : 0;
   const layout = spec.style.hero ?? heroLayout(theme, spec.heroVariant);
   const header = layout === "overlay" ? "overlay" : theme.header === "overlay" ? "bar" : theme.header;
   const shape = theme.heroShape === "fade" ? "rounded" : theme.heroShape;

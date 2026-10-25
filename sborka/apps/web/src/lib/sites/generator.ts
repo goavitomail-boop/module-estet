@@ -49,8 +49,8 @@ export class TemplateGenerator implements SiteGenerator {
     const copy = resolveImages(niche.build(brief, { demo }), niche.id);
     return SiteSpecSchema.parse({
       niche: niche.id,
-      themeId: niche.themes[variant % 2],
-      heroVariant: Math.floor(variant / 2) % 2 === 0 ? "split" : "stacked",
+      themeId: niche.themes[variant % niche.themes.length],
+      heroVariant: Math.floor(variant / niche.themes.length) % 2 === 0 ? "split" : "stacked",
       images: {
         hero: nicheImage(niche.id, "hero"),
         side: ["gallery-1", "gallery-2", "about"].map((slot) => nicheImage(niche.id, slot)).filter((src) => src !== undefined),

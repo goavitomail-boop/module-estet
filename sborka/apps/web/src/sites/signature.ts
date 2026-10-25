@@ -353,4 +353,28 @@ export const SIGNATURES: Record<NicheId, Signature> = {
       ],
     },
   },
+  // «Другое»: спокойный почерк, который подходит любой сфере
+  other: {
+    fx: "aurora",
+    intro: "circle",
+    gallery: "bento",
+    steps: "row",
+    reviews: "grid",
+    faq: "accordion",
+    cinema: false,
+    highlight: true,
+    fab: "pill",
+    fabLabel: "Связаться",
+    cursor: "none",
+    booking: {
+      title: "Заявка",
+      lead: "Выберите услугу и удобное время — мы свяжемся и всё подтвердим.",
+      submit: "Отправить",
+      done: "Заявка отправлена. Мы свяжемся с вами, чтобы всё подтвердить.",
+      steps: [
+        { title: "Услуга", fields: [{ kind: "services", label: "Что нужно" }] },
+        { title: "Когда удобно", fields: [{ kind: "days", label: "День" }, { kind: "times", label: "Время", times: ["10:00", "12:00", "14:00", "16:00", "18:00"] }] },
+      ],
+    },
+  },
 };

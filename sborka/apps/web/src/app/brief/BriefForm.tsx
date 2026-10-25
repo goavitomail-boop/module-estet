@@ -9,7 +9,7 @@ import { ADDON_GROUPS, ADDONS, LEAD_CHANNELS, LEAD_LABEL, LeadsSchema, type Addo
 import type { NicheOptions } from "@/lib/sites/catalog";
 import type { Hideable } from "@/lib/sites/customize";
 import { NICHES } from "@/lib/sites/niches";
-import { BriefSchema, type NicheId } from "@/lib/sites/schema";
+import { BriefSchema, type Flow, type NicheId } from "@/lib/sites/schema";
 // Гарнитуры тем — для образцов «Аа» в выборе стиля
 import "@/sites/fonts";
 import s from "./brief.module.css";
@@ -19,7 +19,7 @@ type Errors = Record<string, string>;
 
 const STEPS = [
   { title: "Чем вы занимаетесь?", why: "От сферы зависят блоки, тексты и интерактивная фишка сайта.", fields: ["niche"] },
-  { title: "Расскажите о бизнесе", why: "Из этого напишем тексты: заголовок, рассказ о вас, подписи к блокам.", fields: ["businessName", "city", "about"] },
+  { title: "Расскажите о бизнесе", why: "Из этого напишем тексты: заголовок, рассказ о вас, подписи к блокам.", fields: ["kind", "businessName", "city", "about"] },
   { title: "Услуги и цены", why: "Они появятся на сайте и в окне записи. Типичные услуги мы уже подставили — поправьте под себя.", fields: ["services"] },
   { title: "Что будет на сайте", why: "Мы уже включили всё, что обычно нужно в вашей сфере. Уберите лишнее или добавьте то, что пригодится.", fields: [] },
   { title: "Куда присылать заявки", why: "Когда клиент запишется на сайте, вы сразу об этом узнаете. Можно выбрать несколько способов.", fields: ["leads"] },
@@ -27,6 +27,18 @@ const STEPS = [
 ] as const;
 
 const DRAFT_KEY = "sborka-brief";
+
+/** От ответа зависят кнопки сайта, этапы работы и вопросы-ответы. */
+const FLOW_OPTIONS: { id: Flow; title: string; text: string }[] = [
+  { id: "booking", title: "Записываются на время", text: "Стрижка, урок, приём, тренировка — клиент выбирает день и час." },
+  { id: "order", title: "Оставляют заявку или заказ", text: "Ремонт, доставка, изготовление — сначала обсуждаем задачу и цену." },
+  { id: "consult", title: "Приходят за консультацией", text: "Сначала разговор: разбираемся в ситуации и предлагаем план." },
+];
+
+/** Услуги для первого шага: у сфер с шаблоном — типичные, у «Другого» — пустые строки. */
+function startServices(id: NicheId): Service[] {
+  return id === "other" ? [{ name: "", price: "" }, { name: "", price: "" }, { name: "", price: "" }] : NICHES[id].demo.services;
+}
 
 /** Бриф из шести коротких шагов: у каждого шага объяснение «зачем», внизу — итог заказа. */
 export function BriefForm({
@@ -41,8 +53,9 @@ export function BriefForm({
   const router = useRouter();
   const [step, setStep] = useState(initialNiche ? 1 : 0);
   const [niche, setNiche] = useState<NicheId | undefined>(initialNiche);
-  const [values, setValues] = useState({ businessName: "", city: "", about: "", phone: "", address: "", hours: "", wishes: "" });
-  const [services, setServices] = useState<Service[]>(initialNiche ? NICHES[initialNiche].demo.services : []);
+  const [values, setValues] = useState({ kind: "", businessName: "", city: "", about: "", phone: "", address: "", hours: "", wishes: "" });
+  const [flow, setFlow] = useState<Flow>("booking");
+  const [services, setServices] = useState<Service[]>(initialNiche ? startServices(initialNiche) : []);
   const [servicesTouched, setServicesTouched] = useState(false);
   const [hidden, setHidden] = useState<Hideable[]>([]);
   const [addons, setAddons] = useState<AddonSelection[]>([]);
@@ -90,7 +103,7 @@ export function BriefForm({
 
   const chooseNiche = (id: NicheId) => {
     setNiche(id);
-    if (!servicesTouched) setServices(NICHES[id].demo.services);
+    if (!servicesTouched) setServices(startServices(id));
     setHidden([]);
     setAddons((list) => list.filter((a) => options[id].addons.includes(a.id)));
     setStyle(0);
@@ -100,6 +113,8 @@ export function BriefForm({
   const brief = {
     niche,
     ...values,
+    kind: niche === "other" ? values.kind : "",
+    flow,
     services: services
       .filter((sv) => sv.name.trim() || sv.price.trim())
       .map((sv) => ({ ...sv, price: sv.price.trim() || (sv.name.trim() ? "по запросу" : "") })),
@@ -115,6 +130,7 @@ export function BriefForm({
         if (fields.has(String(issue.path[0])) && !found[key]) found[key] = issue.message;
       }
     }
+    if (fields.has("kind") && niche === "other" && values.kind.trim().length < 2) found.kind = "Напишите, чем вы занимаетесь";
     if (fields.has("leads")) {
       const l = LeadsSchema.safeParse(leads);
       if (!l.success) for (const issue of l.error.issues) found[`leads.${issue.path.join(".") || "channels"}`] ??= issue.message;
@@ -193,30 +209,66 @@ export function BriefForm({
       <h1 ref={headingRef} tabIndex={-1} className={s.title}>
         {STEPS[step].title}
       </h1>
-      <p className={s.why}>{STEPS[step].why}</p>
+      <p className={s.why}>
+        {step === 2 && niche === "other"
+          ? "Они появятся на сайте и в окне записи. Впишите 2–6 главных услуг — цену можно не указывать."
+          : STEPS[step].why}
+      </p>
 
       {step === 0 && (
         <fieldset className={s.fieldset}>
           <legend className="visually-hidden">Сфера бизнеса</legend>
           <div className={s.niches}>
             {Object.values(options).map((n) => (
-              <label key={n.id} className={s.niche}>
+              <label key={n.id} className={`${s.niche} ${n.id === "other" ? s.nicheOther : ""}`}>
                 <input type="radio" name="niche" value={n.id} checked={niche === n.id} onChange={() => chooseNiche(n.id)} />
-                {n.photo && (
+                {n.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={n.photo} alt="" loading="lazy" />
+                ) : (
+                  <span className={s.otherArt} aria-hidden="true">
+                    <i />
+                    <i />
+                    <b>?</b>
+                  </span>
                 )}
-                <span>{n.label}</span>
+                <span>{n.id === "other" ? "Другое — опишу сам" : n.label}</span>
               </label>
             ))}
           </div>
-          <p className="field-hint">Нет вашей сферы? Выберите похожую — тексты всё равно будут про вас.</p>
+          <p className="field-hint">Нет вашей сферы? Выберите «Другое» — на следующем шаге расскажете о себе своими словами.</p>
           {err("niche")}
         </fieldset>
       )}
 
       {step === 1 && (
         <div className={s.fields}>
+          {niche === "other" && (
+            <>
+              <div className="field">
+                <label className="field-label" htmlFor="kind">
+                  Чем вы занимаетесь?
+                </label>
+                <input id="kind" className="input" value={values.kind} onChange={set("kind")} placeholder="Например: автошкола, ремонт телефонов, курсы английского" maxLength={40} {...invalid("kind")} />
+                <p className="field-hint">Коротко, как сказали бы знакомому. По этим словам подберём иконку и тексты.</p>
+                {err("kind")}
+              </div>
+              <fieldset className={s.fieldset}>
+                <legend className="field-label">Как к вам приходят клиенты?</legend>
+                <div className={s.flows}>
+                  {FLOW_OPTIONS.map((f) => (
+                    <label key={f.id} className={s.flow}>
+                      <input type="radio" name="flow" checked={flow === f.id} onChange={() => setFlow(f.id)} />
+                      <span>
+                        <b>{f.title}</b>
+                        <small>{f.text}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </>
+          )}
           <div className="field">
             <label className="field-label" htmlFor="businessName">
               Название
@@ -258,6 +310,7 @@ export function BriefForm({
                     id={`service-${i}-name`}
                     className="input"
                     value={sv.name}
+                    placeholder={niche === "other" ? ["Например: консультация", "Например: выезд мастера", "Например: абонемент"][i % 3] : undefined}
                     onChange={(e) => {
                       setServicesTouched(true);
                       setServices((list) => list.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)));

@@ -45,9 +45,11 @@ export function BuildShow({ data, onDone }: { data: BuildShowData; onDone: () =>
       ),
     },
     {
-      title: "Подбираем фото",
-      detail: `${data.photos.length} ${plural(data.photos.length, "фото", "фото", "фото")} под вашу сферу`,
-      extra: (
+      title: data.photos.length ? "Подбираем фото" : "Готовим места для фото",
+      detail: data.photos.length
+        ? `${data.photos.length} ${plural(data.photos.length, "фото", "фото", "фото")} под вашу сферу`
+        : "Пока — композиции в цветах сайта, свои фото загрузите в редакторе",
+      extra: data.photos.length > 0 && (
         <span className={b.thumbs}>
           {data.photos.slice(0, 5).map((src) => (
             // eslint-disable-next-line @next/next/no-img-element

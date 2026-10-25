@@ -1,4 +1,4 @@
-import type { BlockInput, Brief, IconName, NicheId, SiteSpecInput } from "../schema";
+import type { BlockInput, Brief, BriefInput, IconName, NicheId, SiteSpecInput } from "../schema";
 
 export type Copy = Omit<SiteSpecInput, "niche" | "themeId" | "heroVariant" | "images">;
 export type Service = Brief["services"][number];
@@ -15,10 +15,10 @@ export interface Niche {
   id: NicheId;
   /** Название сферы в брифе и на лендинге. */
   label: string;
-  /** Пара тем: основная и альтернативная (для «другого варианта»). */
-  themes: [string, string];
+  /** Темы: основная и альтернативные (для «другого варианта»). Обычно две, у «Другого» — четыре. */
+  themes: readonly string[];
   /** Демо-бизнес для портфолио. Вымышленный, подписывается как пример. */
-  demo: Omit<Brief, "niche">;
+  demo: Omit<BriefInput, "niche">;
   /** Подсказки для полей брифа. */
   placeholders: { businessName: string; about: string };
   build: (brief: Brief, options: BuildOptions) => Copy;

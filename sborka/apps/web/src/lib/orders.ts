@@ -5,6 +5,7 @@ import { availableAddons } from "./sites/catalog";
 import { CustomSchema, customize, HIDEABLE } from "./sites/customize";
 import { getGenerator } from "./sites/generator";
 import { nichePhotos } from "./sites/images";
+import { NICHES } from "./sites/niches";
 import { BriefSchema, SiteSpecSchema, type Brief, type SiteSpec } from "./sites/schema";
 import { store, type Order } from "./store";
 
@@ -16,13 +17,20 @@ export const LIMITS = {
 };
 
 /** Что приходит из брифа: ответы о бизнесе, выбранный стиль, лишние блоки, дополнения и куда слать заявки. */
-export const NewOrderSchema = z.object({
-  brief: BriefSchema,
-  style: z.number().int().min(0).max(1).default(0),
-  hidden: z.array(z.enum(HIDEABLE)).default([]),
-  addons: z.array(AddonSelectionSchema).max(20).default([]),
-  leads: LeadsSchema,
-});
+export const NewOrderSchema = z
+  .object({
+    brief: BriefSchema,
+    style: z.number().int().min(0).max(3).default(0),
+    hidden: z.array(z.enum(HIDEABLE)).default([]),
+    addons: z.array(AddonSelectionSchema).max(20).default([]),
+    leads: LeadsSchema,
+  })
+  .superRefine((v, ctx) => {
+    // Для «Другой сферы» без описания текстам не из чего собраться
+    if (v.brief.niche === "other" && v.brief.kind.length < 2) {
+      ctx.addIssue({ code: "custom", path: ["brief", "kind"], message: "Напишите, чем вы занимаетесь" });
+    }
+  });
 export type NewOrder = z.infer<typeof NewOrderSchema>;
 
 /** Своя фишка сферы в собранном сайте. */
@@ -51,7 +59,8 @@ export function cleanAddons(list: AddonSelection[], spec: SiteSpec): AddonSelect
 
 export async function createOrder(input: NewOrder): Promise<Order> {
   const { brief } = input;
-  const spec = await getGenerator().generate({ brief, variant: input.style });
+  const style = input.style % NICHES[brief.niche].themes.length;
+  const spec = await getGenerator().generate({ brief, variant: style });
   const now = new Date().toISOString();
   const order: Order = {
     id: randomUUID(),
@@ -59,7 +68,7 @@ export async function createOrder(input: NewOrder): Promise<Order> {
     createdAt: now,
     status: "ready",
     brief,
-    versions: [{ n: 1, variant: input.style, spec, createdAt: now, reason: "brief" }],
+    versions: [{ n: 1, variant: style, spec, createdAt: now, reason: "brief" }],
     currentVersion: 1,
     revisions: [],
     custom: CustomSchema.parse({ hidden: input.hidden }),

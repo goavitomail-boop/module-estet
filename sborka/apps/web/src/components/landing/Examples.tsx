@@ -8,7 +8,8 @@ import { ShowcaseSite } from "./ShowcaseSite";
 import { SiteThumb } from "./SiteThumb";
 import s from "./Examples.module.css";
 
-const META: Record<NicheId, { label: string; kind: string; tag: string }> = {
+/** Подписи к примерам на главной. «Другое» здесь не показываем — у него нет своего портфолио. */
+const META: Record<Exclude<NicheId, "other">, { label: string; kind: string; tag: string }> = {
   coffee: { label: "Кофейня", kind: "Кафе", tag: "#cozy" },
   nails: { label: "Салон красоты", kind: "Услуги", tag: "#elegant" },
   repair: { label: "Ремонт квартир", kind: "Услуги", tag: "#strict" },
@@ -58,6 +59,7 @@ export function Examples({ specs, photos }: { specs: SiteSpec[]; photos: Showcas
 
       <ul className={`container ${s.grid}`}>
         {specs.map((spec) => {
+          if (spec.niche === "other") return null;
           const m = META[spec.niche];
           return (
             <li key={spec.niche} className={s.card}>

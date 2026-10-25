@@ -155,6 +155,97 @@
   outline-offset: 3px;
 }
 
+/* «Другое»: вместо фото — абстрактная карточка со знаком вопроса */
+.otherArt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1b2a12, #0e100d 60%);
+}
+
+.otherArt i {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--lime);
+  opacity: 0.25;
+}
+
+.otherArt i:first-child {
+  width: 70%;
+  height: 90%;
+  left: -18%;
+  bottom: -40%;
+}
+
+.otherArt i:nth-child(2) {
+  width: 40%;
+  height: 52%;
+  right: -10%;
+  top: -14%;
+  opacity: 0.12;
+}
+
+.otherArt b {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 44px;
+  color: var(--lime);
+}
+
+.nicheOther {
+  border-style: dashed;
+  border-color: rgba(200, 255, 61, 0.45);
+}
+
+/* Как к вам приходят клиенты */
+.flows {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.flow {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.flow:hover {
+  border-color: var(--text-3);
+}
+
+.flow:has(input:checked) {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 1px var(--lime);
+}
+
+.flow input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--lime);
+}
+
+.flow span {
+  display: grid;
+  gap: 4px;
+}
+
+.flow small {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
 /* «Что будет на сайте» */
 .sections {
   display: grid;
