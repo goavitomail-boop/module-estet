@@ -2,7 +2,11 @@ import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { QuotesIcon } from "@phosphor-icons/react/ssr";
 import { NICHES } from "@/lib/sites/niches";
 import type { Block, IconName, SiteSpec } from "@/lib/sites/schema";
+import { blockKeys, HIDEABLE } from "@/lib/sites/keys";
+import { BLOCK_LABEL, FEATURE_LABEL } from "@/lib/sites/presentation";
+import { DISPLAY_FONTS, RADII, textOn } from "@/lib/sites/style";
 import { getTheme, heroLayout, type Decor, type HeroLayout, type SiteTheme } from "@/lib/sites/themes";
+import { EditBridge } from "./EditBridge";
 import { Icon } from "./icons";
 import { MoodArt } from "./MoodArt";
 import { MediaFx, SectionFx } from "./HeroFx";
@@ -49,30 +53,34 @@ export function SiteRenderer({
   mode,
   motion = true,
   intro = true,
+  edit,
 }: {
   spec: SiteSpec;
   mode: SiteMode;
   motion?: boolean;
   /** Заставка с названием при открытии. В кабинете после правок её не повторяем. */
   intro?: boolean;
+  /** Режим редактирования в кабинете: ключи платных фишек и их цены — для кнопки «Убрать». */
+  edit?: { addons: Record<string, number> };
 }) {
   const theme = getTheme(spec.themeId);
+  const font = spec.style.display ? DISPLAY_FONTS[spec.style.display] : null;
   const vars = {
     "--s-bg": theme.bg,
     "--s-surface": theme.surface,
     "--s-text": theme.text,
     "--s-muted": theme.muted,
-    "--s-accent": theme.accent,
-    "--s-accent-text": theme.accentText,
+    "--s-accent": spec.style.accent ?? theme.accent,
+    "--s-accent-text": spec.style.accent ? textOn(spec.style.accent) : theme.accentText,
     "--s-line": theme.line,
-    "--s-display": theme.display,
-    "--s-display-weight": theme.displayWeight,
+    "--s-display": font?.css ?? theme.display,
+    "--s-display-weight": font?.weight ?? theme.displayWeight,
     "--s-body": theme.body,
-    "--s-radius": theme.radius,
+    "--s-radius": spec.style.radius ? RADII[spec.style.radius].value : theme.radius,
   } as CSSProperties;
   // У альтернативной темы композиции зеркалятся, чтобы варианты отличались сильнее.
   const variant = NICHES[spec.niche].themes.indexOf(spec.themeId) === 1 ? 1 : 0;
-  const layout = heroLayout(theme, spec.heroVariant);
+  const layout = spec.style.hero ?? heroLayout(theme, spec.heroVariant);
   const header = layout === "overlay" ? "overlay" : theme.header === "overlay" ? "bar" : theme.header;
   const shape = theme.heroShape === "fade" ? "rounded" : theme.heroShape;
   const ctx: Ctx = {
@@ -91,6 +99,7 @@ export function SiteRenderer({
     services: serviceList(spec),
   };
   const seen = new Set<string>();
+  const keys = blockKeys(spec.blocks);
 
   return (
     <div
@@ -105,7 +114,7 @@ export function SiteRenderer({
       data-motion={theme.motion}
       data-anim={motion ? "" : undefined}
       data-intro={motion && intro ? undefined : "off"}
-      data-cursor={ctx.sig.cursor}
+      data-cursor={edit ? "none" : ctx.sig.cursor}
     >
       {motion && intro && <Intro ctx={ctx} />}
       {ctx.decor.has("lines") && (
@@ -117,7 +126,9 @@ export function SiteRenderer({
       <Header ctx={ctx} />
 
       <main>
-        <Hero ctx={ctx} layout={layout} />
+        <EditArea on={!!edit} ek="hero" label="Первый экран">
+          <Hero ctx={ctx} layout={layout} />
+        </EditArea>
         {ctx.decor.has("marquee") && <Marquee ctx={ctx} />}
 
         {spec.blocks.map((block, i) => {
@@ -126,10 +137,19 @@ export function SiteRenderer({
           const key = block.type === "feature" && seen.has("feature") ? `feature-${block.kind}` : block.type;
           const id = seen.has(key) ? undefined : key;
           seen.add(key);
-          return <BlockView key={i} block={block} id={id} ctx={ctx} />;
+          if (!edit) return <BlockView key={i} block={block} id={id} ctx={ctx} />;
+          const ek = keys[i];
+          const hide = ek in edit.addons ? `addon:${edit.addons[ek]}` : (HIDEABLE as readonly string[]).includes(block.type) ? "hide" : "";
+          return (
+            <EditArea key={i} on ek={ek} label={block.type === "feature" ? FEATURE_LABEL[block.kind] : BLOCK_LABEL[block.type]} hide={hide}>
+              <BlockView block={block} id={id} ctx={ctx} />
+            </EditArea>
+          );
         })}
 
-        <Contacts ctx={ctx} />
+        <EditArea on={!!edit} ek="contacts" label="Контакты">
+          <Contacts ctx={ctx} />
+        </EditArea>
       </main>
 
       <footer className={s.footer}>
@@ -156,6 +176,17 @@ export function SiteRenderer({
       {motion && <BookingModal config={ctx.sig.booking} services={ctx.services} masters={masters(spec)} live={ctx.live} />}
       {motion && ctx.sig.gallery === "masonry" && <Lightbox />}
       {motion && <SiteMotion />}
+      {edit && <EditBridge />}
+    </div>
+  );
+}
+
+/** Обёртка блока в режиме редактирования: ключ, название и можно ли скрыть. Без рамки, на вёрстку не влияет. */
+function EditArea({ on, ek, label, hide, children }: { on: boolean; ek: string; label: string; hide?: string; children: ReactNode }) {
+  if (!on) return children;
+  return (
+    <div data-ek={ek} data-el={label} data-eh={hide || undefined} style={{ display: "contents" }}>
+      {children}
     </div>
   );
 }
@@ -214,17 +245,17 @@ function Header({ ctx }: { ctx: Ctx }) {
 function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
   const { spec } = ctx;
   const eyebrow = spec.hero.eyebrow && (
-    <p className={s.eyebrow} data-e="" style={order(1)}>
+    <p className={s.eyebrow} data-e="" data-ef="eyebrow" style={order(1)}>
       {spec.hero.eyebrow}
     </p>
   );
   const title = (
-    <h1 className={s.heroTitle} style={{ "--len": spec.hero.title.length } as CSSProperties}>
+    <h1 className={s.heroTitle} data-ef="title" style={{ "--len": spec.hero.title.length } as CSSProperties}>
       <Split text={spec.hero.title} accent={spec.hero.accent} />
     </h1>
   );
   const sub = (
-    <p className={s.heroSub} data-e="" style={order(3)}>
+    <p className={s.heroSub} data-e="" data-ef="subtitle" style={order(3)}>
       {spec.hero.subtitle}
     </p>
   );
@@ -244,7 +275,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
     return (
       <section className={`${s.hero} ${s.heroOverlay}`}>
         <div className={s.overlayBg} data-px="0.12">
-          <Media src={spec.images.hero} ctx={ctx} eager />
+          <Media src={spec.images.hero} ctx={ctx} eager ei="/images.hero" />
         </div>
         {fx}
         <div className={`${s.wrap} ${s.overlayInner}`}>
@@ -282,7 +313,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
           <div className={s.edGrid}>
             <div className={s.edMedia} data-tilt="">
               <div className={s.heroMedia} data-e="media" data-px="0.08">
-                <Media src={spec.images.hero} ctx={ctx} eager />
+                <Media src={spec.images.hero} ctx={ctx} eager ei="/images.hero" />
                 {note}
               </div>
               {ctx.decor.has("badge") && <Badge ctx={ctx} />}
@@ -312,7 +343,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
         </div>
         <div className={`${s.wrap} ${s.centerMediaWrap}`}>
           <div className={s.heroMedia} data-e="media" data-px="0.1">
-            <Media src={spec.images.hero} ctx={ctx} eager />
+            <Media src={spec.images.hero} ctx={ctx} eager ei="/images.hero" />
             {note}
           </div>
           {ctx.decor.has("badge") && <Badge ctx={ctx} />}
@@ -335,7 +366,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
         <div className={`${s.wrap} ${s.collageGrid}`}>
           <div className={`${s.collageItem} ${s.collageLeft}`} data-e="media" data-tilt="" style={order(2)}>
             <div className={s.collageFloat}>
-              <Media src={spec.images.hero} ctx={ctx} eager />
+              <Media src={spec.images.hero} ctx={ctx} eager ei="/images.hero" />
               {note}
             </div>
             {mediaFx}
@@ -348,12 +379,12 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
           </div>
           <div className={`${s.collageItem} ${s.collageRight}`} data-e="media" data-tilt="" style={order(4)}>
             <div className={s.collageFloat}>
-              <Media src={first} ctx={{ ...ctx, variant: ctx.variant + 1 }} />
+              <Media src={first} ctx={{ ...ctx, variant: ctx.variant + 1 }} ei="/images.side.0" />
             </div>
             {second && (
               <div className={s.collageSmall}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={second} alt="" />
+                <img src={second} alt="" data-ei="/images.side.1" />
               </div>
             )}
             {ctx.decor.has("badge") && <Badge ctx={ctx} />}
@@ -387,7 +418,7 @@ function Hero({ ctx, layout }: { ctx: Ctx; layout: HeroLayout }) {
         </div>
         <div className={s.heroMediaWrap} data-tilt="">
           <div className={s.heroMedia} data-e="media" data-px="0.08">
-            <Media src={spec.images.hero} ctx={ctx} eager />
+            <Media src={spec.images.hero} ctx={ctx} eager ei="/images.hero" />
             {note}
           </div>
           {ctx.decor.has("badge") && <Badge ctx={ctx} />}
@@ -403,7 +434,7 @@ function HeroActions({ ctx, ghost }: { ctx: Ctx; ghost: boolean }) {
   return (
     <div className={s.heroActions} data-e="" style={order(4)}>
       <a className={s.button} href="#contacts" data-magnetic="" data-open="booking">
-        <span>{ctx.spec.hero.cta}</span>
+        <span data-ef="cta">{ctx.spec.hero.cta}</span>
         <Icon name="arrow" size={20} weight="bold" />
       </a>
       {ghost && (
@@ -428,7 +459,7 @@ function Features({ ctx, numbered }: { ctx: Ctx; numbered?: boolean }) {
           ) : (
             <Icon name={f.icon} size={26} weight={ctx.theme.iconWeight} />
           )}
-          <span>{f.text}</span>
+          <span data-ef={`features.${i}.text`}>{f.text}</span>
         </li>
       ))}
     </ul>
@@ -622,15 +653,15 @@ function Head({ eyebrow, title, lead, action, center }: { eyebrow?: string; titl
     <div className={`${s.blockHead} ${center ? s.blockHeadCenter : ""}`}>
       <div>
         {eyebrow && (
-          <p className={s.eyebrow} data-r="up">
+          <p className={s.eyebrow} data-r="up" data-ef="eyebrow">
             {eyebrow}
           </p>
         )}
-        <h2 className={s.h2} data-r="words">
+        <h2 className={s.h2} data-r="words" data-ef="title">
           <Split text={title} />
         </h2>
         {lead && (
-          <p className={s.blockLead} data-r="up">
+          <p className={s.blockLead} data-r="up" data-ef="lead">
             {lead}
           </p>
         )}
@@ -678,11 +709,11 @@ function ServicesBlock({ block, id, ctx }: { block: Extract<Block, { type: "serv
               <figure key={item.name} className={s.archCard} style={order(i + 1)}>
                 <div className={s.archMedia}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} alt="" loading="lazy" />
+                  <img src={item.image} alt="" loading="lazy" data-ei={`items.${block.items.indexOf(item)}.image`} />
                 </div>
                 <figcaption>
-                  <span>{item.name}</span>
-                  <b>{item.price}</b>
+                  <span data-svc={item.name}>{item.name}</span>
+                  <b data-svc={item.name}>{item.price}</b>
                 </figcaption>
               </figure>
             ))}
@@ -703,7 +734,7 @@ function ServicesBlock({ block, id, ctx }: { block: Extract<Block, { type: "serv
         {cards.length > 0 && (
           <ul className={`${s.cards} ${style === "icon" ? s.iconCards : s.photoCards}`} data-count={cards.length} data-r="stagger">
             {cards.map((item, i) => (
-              <ServiceCard key={item.name} item={item} style={style} index={i} ctx={ctx} />
+              <ServiceCard key={item.name} item={item} style={style} index={i} ctx={ctx} photo={`items.${block.items.indexOf(item)}.image`} />
             ))}
           </ul>
         )}
@@ -713,7 +744,7 @@ function ServicesBlock({ block, id, ctx }: { block: Extract<Block, { type: "serv
   );
 }
 
-function ServiceCard({ item, style, index, ctx }: { item: Item; style: "photo" | "icon"; index: number; ctx: Ctx }) {
+function ServiceCard({ item, style, index, ctx, photo: photoPath }: { item: Item; style: "photo" | "icon"; index: number; ctx: Ctx; photo: string }) {
   const photo = style === "photo" && item.image;
   const cta = ctx.spec.contacts.formCta;
   return (
@@ -721,7 +752,7 @@ function ServiceCard({ item, style, index, ctx }: { item: Item; style: "photo" |
       {photo ? (
         <div className={s.cardMedia}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.image} alt="" loading="lazy" />
+          <img src={item.image} alt="" loading="lazy" data-ei={photoPath} />
         </div>
       ) : (
         <span className={s.cardIcon}>
@@ -730,8 +761,10 @@ function ServiceCard({ item, style, index, ctx }: { item: Item; style: "photo" |
       )}
       <div className={s.cardBody}>
         {style === "icon" && <span className={s.cardIndex}>{String(index + 1).padStart(2, "0")}</span>}
-        <h3>{item.name}</h3>
-        <p className={s.cardPrice}>{item.price}</p>
+        <h3 data-svc={item.name}>{item.name}</h3>
+        <p className={s.cardPrice} data-svc={item.name}>
+          {item.price}
+        </p>
         {item.note && <p className={s.cardNote}>{item.note}</p>}
         {style === "icon" ? (
           <a href="#contacts" className={s.cardButton} data-open="booking" data-service={item.name}>
@@ -754,12 +787,12 @@ function PriceList({ items, hover }: { items: Item[]; hover?: boolean }) {
     <ul className={s.priceList} data-r="stagger">
       {items.map((item, i) => (
         <li key={item.name} style={order(i)} data-img={hover ? item.image : undefined}>
-          <span className={s.priceName}>
+          <span className={s.priceName} data-svc={item.name}>
             {item.name}
             {item.note && <small>{item.note}</small>}
           </span>
           <span className={s.leader} aria-hidden="true" />
-          <b>{item.price}</b>
+          <b data-svc={item.name}>{item.price}</b>
         </li>
       ))}
     </ul>
@@ -779,8 +812,8 @@ function StripBlock({ block, ctx }: { block: Extract<Block, { type: "strip" }>; 
                 <Icon name={it.icon} size={28} weight={ctx.theme.iconWeight} />
               </span>
               <span>
-                <b>{it.title}</b>
-                <small>{it.text}</small>
+                <b data-ef={`items.${i}.title`}>{it.title}</b>
+                <small data-ef={`items.${i}.text`}>{it.text}</small>
               </span>
             </li>
           ))}
@@ -808,10 +841,14 @@ function StripBlock({ block, ctx }: { block: Extract<Block, { type: "strip" }>; 
           </div>
           <div className={`${s.wrap} ${s.cinemaText}`}>
             <QuotesIcon className={s.cinemaMark} size={56} weight="fill" aria-hidden="true" />
-            <p className={s.cinemaQuote} style={{ "--n": wordCount(block.quote) } as CSSProperties}>
+            <p className={s.cinemaQuote} data-ef="quote" style={{ "--n": wordCount(block.quote) } as CSSProperties}>
               <Split text={block.quote} />
             </p>
-            {block.caption && <p className={s.quoteCaption}>{block.caption}</p>}
+            {block.caption && (
+              <p className={s.quoteCaption} data-ef="caption">
+                {block.caption}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -822,10 +859,14 @@ function StripBlock({ block, ctx }: { block: Extract<Block, { type: "strip" }>; 
       <div className={s.wrap}>
         <div className={s.quoteBand} data-r="up">
           <QuotesIcon className={s.quoteMark} size={44} weight="fill" aria-hidden="true" />
-          <p className={s.quote} data-r="words">
+          <p className={s.quote} data-r="words" data-ef="quote">
             <Split text={block.quote} />
           </p>
-          {block.caption && <p className={s.quoteCaption}>{block.caption}</p>}
+          {block.caption && (
+              <p className={s.quoteCaption} data-ef="caption">
+                {block.caption}
+              </p>
+            )}
         </div>
       </div>
     </section>
@@ -841,20 +882,20 @@ function AboutBlock({ block, id, ctx }: { block: Extract<Block, { type: "about" 
       <div className={`${s.wrap} ${s.aboutGrid}`}>
         <div className={s.aboutMediaWrap}>
           <div className={s.aboutMedia} data-r="img" data-px="0.08">
-            <Media src={block.image} ctx={{ ...ctx, variant: ctx.variant + 1 }} />
+            <Media src={block.image} ctx={{ ...ctx, variant: ctx.variant + 1 }} ei="image" />
           </div>
           {badge && <Badge ctx={ctx} />}
         </div>
         <div>
-          <h2 className={s.h2} data-r="words">
+          <h2 className={s.h2} data-r="words" data-ef="title">
             <Split text={block.title} />
           </h2>
           {ctx.sig.highlight ? (
-            <p className={s.aboutText} data-hl="" style={{ "--n": wordCount(block.text) } as CSSProperties}>
+            <p className={s.aboutText} data-hl="" data-ef="text" style={{ "--n": wordCount(block.text) } as CSSProperties}>
               <Split text={block.text} />
             </p>
           ) : (
-            <p className={s.lead} data-r="up">
+            <p className={s.lead} data-r="up" data-ef="text">
               {block.text}
             </p>
           )}
@@ -862,8 +903,8 @@ function AboutBlock({ block, id, ctx }: { block: Extract<Block, { type: "about" 
             <ul className={s.reasons} data-r="stagger">
               {block.points.map((r, i) => (
                 <li key={r.title} style={order(i)}>
-                  <h3>{r.title}</h3>
-                  <p>{r.text}</p>
+                  <h3 data-ef={`points.${i}.title`}>{r.title}</h3>
+                  <p data-ef={`points.${i}.text`}>{r.text}</p>
                 </li>
               ))}
             </ul>
@@ -891,8 +932,8 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
             {images.map((img, i) => (
               <li key={img.src} className={f.polaroid} style={order(i)} data-view="">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
-                {img.caption && <span>{img.caption}</span>}
+                <img src={img.src} alt={img.caption ?? ""} loading="lazy" data-ei={`images.${block.images.indexOf(img)}.src`} />
+                {img.caption && <span data-ef={`images.${block.images.indexOf(img)}.caption`}>{img.caption}</span>}
               </li>
             ))}
           </ul>
@@ -908,7 +949,7 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
         {[...list, ...list, ...list, ...list].map((img, i) => (
           <figure key={i}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.src} alt={i < list.length && !hidden ? (img.caption ?? "") : ""} loading="lazy" />
+            <img src={img.src} alt={i < list.length && !hidden ? (img.caption ?? "") : ""} loading="lazy" data-ei={`images.${block.images.indexOf(img)}.src`} />
             {img.caption && <figcaption>{img.caption}</figcaption>}
           </figure>
         ))}
@@ -936,8 +977,8 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
               <li key={img.src} style={order(i)}>
                 <a href={img.src} data-full={img.src} data-caption={img.caption ?? ""} data-view="">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
-                  {img.caption && <span>{img.caption}</span>}
+                  <img src={img.src} alt={img.caption ?? ""} loading="lazy" data-ei={`images.${block.images.indexOf(img)}.src`} />
+                  {img.caption && <span data-ef={`images.${block.images.indexOf(img)}.caption`}>{img.caption}</span>}
                 </a>
               </li>
             ))}
@@ -957,9 +998,9 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
               <li key={img.src} className={f.arch} style={order(i)} data-view="">
                 <div className={f.archImg}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+                  <img src={img.src} alt={img.caption ?? ""} loading="lazy" data-ei={`images.${block.images.indexOf(img)}.src`} />
                 </div>
-                {img.caption && <span>{img.caption}</span>}
+                {img.caption && <span data-ef={`images.${block.images.indexOf(img)}.caption`}>{img.caption}</span>}
               </li>
             ))}
           </ul>
@@ -982,7 +1023,7 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
                 <div className={s.hMedia}>
                   {img.src ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+                    <img src={img.src} alt={img.caption ?? ""} loading="lazy" data-ei={`images.${block.images.indexOf(img)}.src`} />
                   ) : (
                     <Placeholder ctx={ctx} />
                   )}
@@ -1007,7 +1048,7 @@ function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "galle
             <li key={i} className={s.galleryItem} style={order(i)} data-view="">
               {img.src ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+                <img src={img.src} alt={img.caption ?? ""} loading="lazy" data-ei={`images.${block.images.indexOf(img)}.src`} />
               ) : (
                 <Placeholder ctx={ctx} />
               )}
@@ -1040,8 +1081,8 @@ function StepsBlock({ block, id, ctx }: { block: Extract<Block, { type: "steps" 
               <li key={st.title} className={f.tlItem}>
                 <span className={f.tlDot}>{String(i + 1).padStart(2, "0")}</span>
                 <div data-r="up">
-                  <h3>{st.title}</h3>
-                  <p>{st.text}</p>
+                  <h3 data-ef={`items.${i}.title`}>{st.title}</h3>
+                  <p data-ef={`items.${i}.text`}>{st.text}</p>
                 </div>
               </li>
             ))}
@@ -1059,8 +1100,8 @@ function StepsBlock({ block, id, ctx }: { block: Extract<Block, { type: "steps" 
             {block.items.map((st, i) => (
               <li key={st.title} className={f.rowItem} style={order(i)}>
                 <span className={f.rowNum}>{i + 1}</span>
-                <h3>{st.title}</h3>
-                <p>{st.text}</p>
+                <h3 data-ef={`items.${i}.title`}>{st.title}</h3>
+                <p data-ef={`items.${i}.text`}>{st.text}</p>
               </li>
             ))}
           </ol>
@@ -1077,8 +1118,8 @@ function StepsBlock({ block, id, ctx }: { block: Extract<Block, { type: "steps" 
             {block.items.map((st, i) => (
               <li key={st.title} className={f.bigItem} style={order(i)}>
                 <span className={f.bigNum}>{String(i + 1).padStart(2, "0")}</span>
-                <h3>{st.title}</h3>
-                <p>{st.text}</p>
+                <h3 data-ef={`items.${i}.title`}>{st.title}</h3>
+                <p data-ef={`items.${i}.text`}>{st.text}</p>
               </li>
             ))}
           </ol>
@@ -1099,8 +1140,8 @@ function StepsBlock({ block, id, ctx }: { block: Extract<Block, { type: "steps" 
               <li key={st.title} style={order(i)}>
                 <span className={s.stepNum}>{String(i + 1).padStart(2, "0")}</span>
                 <div>
-                  <h3>{st.title}</h3>
-                  <p>{st.text}</p>
+                  <h3 data-ef={`items.${i}.title`}>{st.title}</h3>
+                  <p data-ef={`items.${i}.text`}>{st.text}</p>
                 </div>
                 <span className={s.stepOf}>
                   {i + 1} / {block.items.length}
@@ -1348,13 +1389,13 @@ function CtaBlock({ block }: { block: Extract<Block, { type: "cta" }> }) {
       <div className={s.wrap}>
         <div className={s.cta} data-r="up">
           <div>
-            <h2 data-r="words">
+            <h2 data-r="words" data-ef="title">
               <Split text={block.title} />
             </h2>
-            {block.text && <p>{block.text}</p>}
+            {block.text && <p data-ef="text">{block.text}</p>}
           </div>
           <a href="#contacts" className={s.ctaButton} data-magnetic="" data-open="booking">
-            <span>{block.button}</span>
+            <span data-ef="button">{block.button}</span>
             <Icon name="arrow" size={20} weight="bold" />
           </a>
         </div>
@@ -1370,7 +1411,7 @@ function FaqBlock({ block, id, ctx }: { block: Extract<Block, { type: "faq" }>; 
     return (
       <section id={id} className={s.section}>
         <div className={s.wrap}>
-          <h2 className={s.h2} data-r="words">
+          <h2 className={s.h2} data-r="words" data-ef="title">
             <Split text={block.title} />
           </h2>
           <div className={f.faqNum} data-r="stagger" style={{ marginTop: 40 }}>
@@ -1378,9 +1419,9 @@ function FaqBlock({ block, id, ctx }: { block: Extract<Block, { type: "faq" }>; 
               <details key={q.q} style={order(i)}>
                 <summary>
                   <i>{String(i + 1).padStart(2, "0")}</i>
-                  {q.q}
+                  <span data-ef={`items.${i}.q`}>{q.q}</span>
                 </summary>
-                <p>{q.a}</p>
+                <p data-ef={`items.${i}.a`}>{q.a}</p>
               </details>
             ))}
           </div>
@@ -1396,8 +1437,8 @@ function FaqBlock({ block, id, ctx }: { block: Extract<Block, { type: "faq" }>; 
           <ul className={f.faqCards} data-r="stagger">
             {block.items.map((q, i) => (
               <li key={q.q} className={f.faqCard} style={order(i)}>
-                <h3>{q.q}</h3>
-                <p>{q.a}</p>
+                <h3 data-ef={`items.${i}.q`}>{q.q}</h3>
+                <p data-ef={`items.${i}.a`}>{q.a}</p>
               </li>
             ))}
           </ul>
@@ -1408,14 +1449,16 @@ function FaqBlock({ block, id, ctx }: { block: Extract<Block, { type: "faq" }>; 
   return (
     <section id={id} className={s.section}>
       <div className={`${s.wrap} ${s.faqGrid}`}>
-        <h2 className={s.h2} data-r="words">
+        <h2 className={s.h2} data-r="words" data-ef="title">
           <Split text={block.title} />
         </h2>
         <div className={s.faq} data-r="stagger">
           {block.items.map((f, i) => (
             <details key={f.q} style={order(i)}>
-              <summary>{f.q}</summary>
-              <p>{f.a}</p>
+              <summary>
+                <span data-ef={`items.${i}.q`}>{f.q}</span>
+              </summary>
+              <p data-ef={`items.${i}.a`}>{f.a}</p>
             </details>
           ))}
         </div>
@@ -1544,7 +1587,7 @@ function Contacts({ ctx }: { ctx: Ctx }) {
     <section id="contacts" className={`${s.section} ${s.contacts}`}>
       <div className={`${s.wrap} ${s.contactsGrid}`}>
         <div>
-          <h2 className={s.h2} data-r="words">
+          <h2 className={s.h2} data-r="words" data-ef="title">
             <Split text={spec.contacts.title} />
           </h2>
           <ul className={s.contactList} data-r="stagger">
@@ -1599,10 +1642,11 @@ function Contacts({ ctx }: { ctx: Ctx }) {
 
 /* ——— Общие ——— */
 
-function Media({ src, ctx, eager }: { src?: string; ctx: Ctx; eager?: boolean }) {
+/** Фото или заглушка. ei — адрес фото для замены в режиме редактирования. */
+function Media({ src, ctx, eager, ei }: { src?: string; ctx: Ctx; eager?: boolean; ei?: string }) {
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img className={s.photo} src={src} alt="" loading={eager ? "eager" : "lazy"} />;
+    return <img className={s.photo} src={src} alt="" loading={eager ? "eager" : "lazy"} data-ei={ei} />;
   }
   return <MoodArt niche={ctx.spec.niche} variant={ctx.variant} icon={ctx.icon} />;
 }

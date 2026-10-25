@@ -1,23 +1,29 @@
 import { z } from "zod";
 import { FEATURE_ADDONS, type AddonSelection } from "../addons";
+import { blockKeys, HIDEABLE } from "./keys";
 import { photos } from "./presentation";
 import type { Block, BlockInput, Brief, SiteSpec } from "./schema";
-import { BlockSchema } from "./schema";
+import { BlockSchema, StyleSchema } from "./schema";
+
+export { blockKeys, HIDEABLE, type Hideable } from "./keys";
 
 /**
- * Настройки клиента поверх собранного сайта: что скрыть, свои тексты первого экрана,
- * команда, отзывы и цифры, платные фишки. Применяются к любому варианту,
- * поэтому правки не теряются при переключении вариантов.
+ * Настройки клиента поверх собранного сайта: что скрыть, свои тексты и фото,
+ * порядок блоков, внешний вид, команда, отзывы, цифры и платные фишки.
+ * Применяются к любому варианту, поэтому правки не теряются при смене варианта.
  */
-
-/** Блоки шаблона, которые клиент может убрать. Услуги и контакты остаются всегда. */
-export const HIDEABLE = ["feature", "strip", "steps", "gallery", "about", "schedule", "cta", "faq"] as const;
-export type Hideable = (typeof HIDEABLE)[number];
 
 const text = (max: number) => z.string().trim().max(max, `Не длиннее ${max} символов`);
 
+/** Адрес поля на сайте: «hero.title», «faq.items.2.a», «feature-quiz.title». */
+export const FieldPath = z.string().regex(/^[a-z][a-z0-9-]*(\.[a-zA-Z0-9]+){1,4}$/, "Неизвестное поле").max(80);
+
+/** Фото — только из нашей библиотеки или загруженные клиентом. */
+export const PhotoUrl = z.string().regex(/^\/(images\/niches\/[\w.-]+|api\/uploads\/[\w-]+\/[\w.-]+)$/, "Неизвестное фото");
+
 export const CustomSchema = z.object({
   hidden: z.array(z.enum(HIDEABLE)).default([]),
+  /** Тексты первого экрана из вкладки «Изменить» (старый формат; новые правки — в texts). */
   hero: z
     .object({
       title: text(120).optional(),
@@ -25,6 +31,13 @@ export const CustomSchema = z.object({
       cta: text(30).optional(),
     })
     .default({}),
+  /** Свои тексты по адресу поля. */
+  texts: z.record(FieldPath, text(600)).default({}),
+  /** Свои фото по адресу поля. */
+  images: z.record(FieldPath, PhotoUrl).default({}),
+  /** Порядок блоков — ключи блоков сверху вниз. */
+  order: z.array(z.string().max(40)).max(40).default([]),
+  style: StyleSchema.default({}),
   team: z
     .array(z.object({ name: text(40).min(1, "Укажите имя"), role: text(60).default("") }))
     .max(8, "Не больше 8 человек")
@@ -108,22 +121,52 @@ function featureBlock(id: keyof typeof FEATURE_ADDONS, spec: SiteSpec, services:
   }
 }
 
+/** Ставит значение по адресу, только если такое поле есть: старые правки не ломают новую структуру. */
+function setPath(root: unknown, parts: string[], value: string, allowNew: boolean) {
+  let node = root as Record<string, unknown> | unknown[] | undefined;
+  for (const part of parts.slice(0, -1)) {
+    if (node === null || typeof node !== "object") return;
+    node = (node as Record<string, unknown>)[part] as typeof node;
+  }
+  if (node === null || typeof node !== "object") return;
+  const last = parts[parts.length - 1];
+  const current = (node as Record<string, unknown>)[last];
+  if (typeof current === "string" || (allowNew && current === undefined)) (node as Record<string, unknown>)[last] = value;
+}
+
+/** Правки текстов и фото по адресам полей. */
+function applyOverrides(spec: SiteSpec, keys: string[], overrides: Record<string, string>, images: boolean) {
+  for (const [path, value] of Object.entries(overrides)) {
+    const [head, ...rest] = path.split(".");
+    if (head === "hero" || head === "contacts" || head === "images") {
+      if (head === "hero" && rest[0] === "title" && !images) spec.hero.accent = undefined;
+      setPath(spec, [head, ...rest], value, images);
+      continue;
+    }
+    const i = keys.indexOf(head);
+    if (i !== -1) setPath(spec.blocks[i], rest, value, images);
+  }
+}
+
 export function customize(spec: SiteSpec, { custom, addons, services }: { custom: Custom; addons: AddonSelection[]; services: Brief["services"] }): SiteSpec {
-  const hero = {
-    ...spec.hero,
+  // Глубокая копия: базовый сайт заказа не должен меняться
+  const out: SiteSpec = structuredClone(spec);
+  out.hero = {
+    ...out.hero,
     ...(custom.hero.title ? { title: custom.hero.title, accent: undefined } : {}),
     ...(custom.hero.subtitle ? { subtitle: custom.hero.subtitle } : {}),
     ...(custom.hero.cta ? { cta: custom.hero.cta } : {}),
   };
-  const blocks = spec.blocks.filter((b) => !(HIDEABLE as readonly string[]).includes(b.type) || !custom.hidden.includes(b.type as Hideable));
+  const hidden = new Set<string>(custom.hidden);
+  let blocks = out.blocks.filter((b) => !hidden.has(b.type));
 
-  if (custom.team.length && !blocks.some((b) => b.type === "team")) {
+  if (custom.team.length && !hidden.has("team") && !blocks.some((b) => b.type === "team")) {
     insert(blocks, BlockSchema.parse({ type: "team", eyebrow: "Команда", title: "Кто будет с вами работать", people: custom.team }), RANK.team);
   }
-  if (custom.stats.length && !blocks.some((b) => b.type === "stats")) {
+  if (custom.stats.length && !hidden.has("stats") && !blocks.some((b) => b.type === "stats")) {
     insert(blocks, BlockSchema.parse({ type: "stats", items: custom.stats }), RANK.stats);
   }
-  if (custom.reviews.length && !blocks.some((b) => b.type === "reviews")) {
+  if (custom.reviews.length && !hidden.has("reviews") && !blocks.some((b) => b.type === "reviews")) {
     insert(blocks, BlockSchema.parse({ type: "reviews", eyebrow: "Отзывы", title: "Что говорят клиенты", items: custom.reviews }), RANK.reviews);
   }
   for (const sel of addons) {
@@ -131,7 +174,25 @@ export function customize(spec: SiteSpec, { custom, addons, services }: { custom
     const id = sel.id as keyof typeof FEATURE_ADDONS;
     // Своя фишка сферы уже на сайте — второй такой же блок не нужен
     if (blocks.some((b) => b.type === "feature" && b.kind === FEATURE_ADDONS[id])) continue;
-    insert(blocks, BlockSchema.parse(featureBlock(id, spec, services)), RANK[id]);
+    insert(blocks, BlockSchema.parse(featureBlock(id, out, services)), RANK[id]);
   }
-  return { ...spec, hero, blocks };
+
+  // Порядок, который клиент задал стрелками; новые блоки остаются на своих местах
+  if (custom.order.length) {
+    const keys = blockKeys(blocks);
+    const pos = new Map(custom.order.map((k, i) => [k, i]));
+    const placed = blocks.map((b, i) => ({ b, key: keys[i], i }));
+    const known = placed.filter((x) => pos.has(x.key)).sort((a, z) => pos.get(a.key)! - pos.get(z.key)!);
+    const slots = placed.filter((x) => pos.has(x.key)).map((x) => x.i);
+    const result = placed.map((x) => x.b);
+    slots.forEach((slot, n) => (result[slot] = known[n].b));
+    blocks = result;
+  }
+  out.blocks = blocks;
+
+  const keys = blockKeys(blocks);
+  applyOverrides(out, keys, custom.texts, false);
+  applyOverrides(out, keys, custom.images, true);
+  out.style = { ...out.style, ...custom.style };
+  return out;
 }

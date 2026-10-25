@@ -68,8 +68,12 @@ export function MenuShowcase({ items, fallback }: { items: FeatureItem[]; fallba
               aria-pressed={i === active}
             >
               <span className={s.menuIndex}>{String(i + 1).padStart(2, "0")}</span>
-              <span className={s.menuName}>{it.title}</span>
-              <span className={s.menuPrice}>{it.price}</span>
+              <span className={s.menuName} data-svc={it.price ? it.title : undefined}>
+                {it.title}
+              </span>
+              <span className={s.menuPrice} data-svc={it.price ? it.title : undefined}>
+                {it.price}
+              </span>
             </button>
             <div className={s.menuMore}>
               <div>
@@ -450,11 +454,13 @@ export function Lookbook({ items }: { items: FeatureItem[] }) {
           <li key={it.title} data-on={i === active || undefined} onMouseEnter={() => setActive(i)}>
             <a href="#contacts" data-open="booking" data-service={it.title} onFocus={() => setActive(i)}>
               <span className={s.lookIndex}>{String(i + 1).padStart(2, "0")}</span>
-              <span className={s.lookName}>
+              <span className={s.lookName} data-svc={it.price ? it.title : undefined}>
                 {it.title}
                 {it.text && <small>{it.text}</small>}
               </span>
-              <span className={s.lookPrice}>{it.price}</span>
+              <span className={s.lookPrice} data-svc={it.price ? it.title : undefined}>
+                {it.price}
+              </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {it.image && <img className={s.lookThumb} src={it.image} alt="" loading="lazy" />}
             </a>

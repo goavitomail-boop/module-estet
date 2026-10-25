@@ -51,6 +51,10 @@ export interface Order {
   /** Куда присылать заявки с сайта. */
   leads: Leads;
   wishes: Wish[];
+  /** Фото, загруженные клиентом. */
+  uploads: string[];
+  /** Прошлые состояния для «Отменить»: ответы брифа и настройки, последние 20. */
+  history: { brief: Brief; custom: Custom }[];
   /** Номер изменения: растёт при каждой правке, чтобы окно с прототипом обновилось. */
   rev: number;
   paymentId?: string;
@@ -81,6 +85,9 @@ function normalize(order: Order): Order {
   order.addons ??= [];
   order.leads ??= { channels: ["telegram"], email: "" };
   order.wishes ??= [];
+  order.uploads ??= [];
+  order.history ??= [];
+  order.custom = { ...structuredClone(EMPTY_CUSTOM), ...order.custom };
   order.rev ??= 0;
   return order;
 }

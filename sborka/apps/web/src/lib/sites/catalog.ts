@@ -31,7 +31,10 @@ export interface NicheOptions {
   styles: [StyleInfo, StyleInfo];
 }
 
-const BLOCK_INFO: Record<Exclude<Hideable, "feature">, { label: string; why: string }> = {
+/** Блоки шаблона; команда, отзывы и цифры появляются только из данных клиента. */
+type TemplateBlock = Exclude<Hideable, "feature" | "team" | "reviews" | "stats">;
+
+const BLOCK_INFO: Record<TemplateBlock, { label: string; why: string }> = {
   strip: { label: "Лента с девизом", why: "Яркая полоса с короткой фразой о вас: разбивает страницу и запоминается." },
   steps: { label: "Как проходит работа", why: "Шаги от заявки до результата. Снимает вопрос «а что будет дальше?»." },
   gallery: { label: "Фото работ", why: "Показывает результат лучше любых слов. Пока поставим подходящие фото, свои замените позже." },
@@ -53,10 +56,10 @@ export function blockOptions(spec: SiteSpec): BlockOption[] {
   const seen = new Set<string>();
   const list: BlockOption[] = [];
   for (const b of spec.blocks) {
-    if (!(HIDEABLE as readonly string[]).includes(b.type) || seen.has(b.type)) continue;
+    if (!(HIDEABLE as readonly string[]).includes(b.type) || !(b.type === "feature" || b.type in BLOCK_INFO) || seen.has(b.type)) continue;
     seen.add(b.type);
     if (b.type === "feature") list.push({ type: "feature", label: `Фишка: ${FEATURE_LABEL[b.kind].toLowerCase()}`, why: FEATURE_TEXT[b.kind] });
-    else list.push({ type: b.type as Exclude<Hideable, "feature">, ...BLOCK_INFO[b.type as Exclude<Hideable, "feature">] });
+    else list.push({ type: b.type as TemplateBlock, ...BLOCK_INFO[b.type as TemplateBlock] });
   }
   return list;
 }

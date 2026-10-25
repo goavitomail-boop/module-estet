@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DISPLAY_FONTS, HERO_LAYOUTS, RADII, type DisplayFont, type HeroLayoutId, type Radius } from "./style";
 
 export const NICHE_IDS = [
   "coffee",
@@ -202,6 +203,17 @@ function legacyToBlocks(raw: unknown) {
   return { ...old, blocks };
 }
 
+/** Внешний вид, который клиент меняет сам: только проверенные варианты из style.ts. */
+export const StyleSchema = z.object({
+  accent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Цвет в формате #RRGGBB")
+    .optional(),
+  display: z.enum(Object.keys(DISPLAY_FONTS) as [DisplayFont, ...DisplayFont[]]).optional(),
+  radius: z.enum(Object.keys(RADII) as [Radius, ...Radius[]]).optional(),
+  hero: z.enum(Object.keys(HERO_LAYOUTS) as [HeroLayoutId, ...HeroLayoutId[]]).optional(),
+});
+
 /**
  * Описание собранного сайта. Это то, что вернёт ИИ (или шаблонный генератор);
  * рендерер превращает его в страницу.
@@ -210,6 +222,8 @@ const SiteSpecObject = z.object({
     niche: z.enum(NICHE_IDS),
     themeId: z.string(),
     heroVariant: z.enum(["split", "stacked"]),
+    /** Что клиент поменял во внешнем виде сам: акцент, шрифт, скругления, первый экран. */
+    style: StyleSchema.default({}),
     /**
      * Фото первого экрана. Без него рисуется абстрактная композиция.
      * side — дополнительные фото для коллажа в первом экране.

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import { baseSpec, revisionsLeft, siteSpec, variantsLeft } from "@/lib/orders";
+import { baseSpec, photoLibrary, revisionsLeft, siteSpec, variantsLeft } from "@/lib/orders";
 import { getPaymentProvider } from "@/lib/payments";
 import { availableAddons, blockOptions } from "@/lib/sites/catalog";
 import { buildShow, describeStyle, tourSteps } from "@/lib/sites/presentation";
@@ -26,6 +26,7 @@ export default async function OrderPage({
   const base = baseSpec(order);
   const spec = siteSpec(order);
   const feature = base.blocks.find((b) => b.type === "feature");
+  const baseStyle = describeStyle(base);
   const { brief } = order;
 
   return (
@@ -61,6 +62,10 @@ export default async function OrderPage({
           custom={order.custom}
           leads={order.leads}
           wishes={order.wishes}
+          canUndo={order.history.length > 0}
+          library={photoLibrary(order)}
+          uploads={order.uploads}
+          defaults={{ accent: baseStyle.colors.accent, font: baseStyle.display, layout: baseStyle.layout }}
         />
       </main>
     </>

@@ -1,6 +1,7 @@
 import { plural } from "@/lib/plural";
 import { SIGNATURES } from "@/sites/signature";
 import type { Block, FeatureKind, SiteSpec } from "./schema";
+import { DISPLAY_FONTS, textOn } from "./style";
 import { getTheme, heroLayout, type HeroLayout } from "./themes";
 
 /**
@@ -44,7 +45,7 @@ export const FEATURE_TEXT: Record<FeatureKind, string> = {
   postcard: "Покупатель пишет текст открытки прямо на сайте и видит, как она будет выглядеть.",
 };
 
-const BLOCK_LABEL: Record<Exclude<Block["type"], "feature">, string> = {
+export const BLOCK_LABEL: Record<Exclude<Block["type"], "feature">, string> = {
   services: "Услуги и цены",
   strip: "Лента преимуществ",
   about: "О вас",
@@ -78,22 +79,24 @@ export interface StyleInfo {
   colors: { bg: string; surface: string; text: string; muted: string; accent: string; accentText: string; line: string };
 }
 
+/** Стиль варианта для карточек и экрана сборки — с учётом того, что клиент поменял сам. */
 export function describeStyle(spec: SiteSpec): StyleInfo {
   const theme = getTheme(spec.themeId);
+  const font = spec.style.display ? DISPLAY_FONTS[spec.style.display] : null;
   return {
     name: theme.name,
-    layout: LAYOUT[heroLayout(theme, spec.heroVariant)],
-    font: fontName(theme.display),
-    display: theme.display,
-    displayWeight: theme.displayWeight,
+    layout: LAYOUT[spec.style.hero ?? heroLayout(theme, spec.heroVariant)],
+    font: font?.title ?? fontName(theme.display),
+    display: font?.css ?? theme.display,
+    displayWeight: font?.weight ?? theme.displayWeight,
     body: theme.body,
     colors: {
       bg: theme.bg,
       surface: theme.surface,
       text: theme.text,
       muted: theme.muted,
-      accent: theme.accent,
-      accentText: theme.accentText,
+      accent: spec.style.accent ?? theme.accent,
+      accentText: spec.style.accent ? textOn(spec.style.accent) : theme.accentText,
       line: theme.line,
     },
   };

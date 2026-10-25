@@ -4,6 +4,7 @@ import { AddonSelectionSchema, ADDONS, LeadsSchema, quote, type AddonSelection }
 import { availableAddons } from "./sites/catalog";
 import { CustomSchema, customize, HIDEABLE } from "./sites/customize";
 import { getGenerator } from "./sites/generator";
+import { nichePhotos } from "./sites/images";
 import { BriefSchema, SiteSpecSchema, type Brief, type SiteSpec } from "./sites/schema";
 import { store, type Order } from "./store";
 
@@ -65,6 +66,8 @@ export async function createOrder(input: NewOrder): Promise<Order> {
     addons: cleanAddons(input.addons, spec),
     leads: input.leads,
     wishes: [],
+    uploads: [],
+    history: [],
     rev: 0,
   };
   await store.insertOrder(order);
@@ -116,4 +119,14 @@ export async function rebuildVersions(brief: Brief, versions: Order["versions"])
  */
 export function notifyOwner(message: string) {
   console.info(`[сборка] ${message}`);
+}
+
+/** Фото, из которых клиент может выбирать: библиотека его сферы и его загрузки. */
+export function photoLibrary(order: Order) {
+  return [...order.uploads, ...nichePhotos(order.brief.niche)];
+}
+
+/** Запоминает состояние перед правкой, чтобы её можно было отменить. */
+export function snapshot(order: Order) {
+  return [...order.history, { brief: structuredClone(order.brief), custom: structuredClone(order.custom) }].slice(-20);
 }

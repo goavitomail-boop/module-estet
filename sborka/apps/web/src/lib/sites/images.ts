@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { NicheId } from "./schema";
 
@@ -12,4 +12,16 @@ export function nicheImage(niche: NicheId, slot: string): string | undefined {
     if (existsSync(path.join(DIR, file))) return `/images/niches/${file}`;
   }
   return undefined;
+}
+
+/** Все фото сферы из библиотеки — для выбора фото в кабинете. */
+export function nichePhotos(niche: NicheId): string[] {
+  try {
+    return readdirSync(DIR)
+      .filter((f) => f.startsWith(`${niche}-`) && EXT.some((ext) => f.endsWith(`.${ext}`)))
+      .sort()
+      .map((f) => `/images/niches/${f}`);
+  } catch {
+    return [];
+  }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Choice } from "@/components/order/Choice";
 import type { BlockOption } from "@/lib/sites/catalog";
 import type { Custom, Hideable } from "@/lib/sites/customize";
@@ -74,12 +74,24 @@ function SaveButton({ busy, action, disabled }: { busy: string | null; action: s
   );
 }
 
-function ServicesEditor({ initial, onSave, busy }: { initial: Service[]; onSave: SaveEdit; busy: string | null }) {
+/** Список услуг; focus — услуга, на которую нажали на сайте: поле её цены получает фокус. */
+export function ServicesEditor({ initial, onSave, busy, focus }: { initial: Service[]; onSave: SaveEdit; busy: string | null; focus?: string }) {
   const [list, setList] = useState(initial);
   const valid = list.length > 0 && list.every((x) => x.name.trim());
+  const form = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const i = focus ? initial.findIndex((x) => x.name === focus) : -1;
+    if (i === -1) return;
+    const input = form.current?.querySelector<HTMLInputElement>(`[aria-label="Цена услуги ${i + 1}"]`);
+    input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    input?.focus({ preventScroll: true });
+    input?.select();
+  }, [focus, initial]);
   return (
     <Section title="Услуги и цены" hint="Добавить, убрать, поменять цену" open>
       <form
+        ref={form}
         className={s.form}
         onSubmit={(e) => {
           e.preventDefault();

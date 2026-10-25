@@ -53,6 +53,54 @@
   color: var(--lime-ink);
 }
 
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-pill);
+  background: var(--glass);
+  color: var(--text);
+  font: 600 var(--fs-small) / 1 var(--font-body);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.editButton:hover {
+  border-color: var(--lime);
+}
+
+.editButton[aria-pressed="true"] {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--lime-ink);
+}
+
+/* Подсказка поверх окна с сайтом в режиме редактирования */
+.editHint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 4;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  background: rgba(10, 12, 9, 0.88);
+  border: 1px solid rgba(200, 255, 61, 0.45);
+  color: var(--lime);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+
 .open {
   display: grid;
   place-items: center;
