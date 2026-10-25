@@ -1,6 +1,77 @@
+/* Бриф слева, живое превью сайта справа */
+.layout {
+  display: grid;
+  gap: 48px;
+}
+
 .form {
   max-width: 720px;
+  min-width: 0;
   padding: 48px 0 96px;
+}
+
+.previewCol {
+  display: none;
+}
+
+.previewNote {
+  margin-top: 12px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  text-align: center;
+}
+
+/* На телефоне превью открывается поверх брифа */
+.previewSheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--ink);
+  animation: sheet-in 0.4s var(--ease) both;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheetBody {
+  min-height: 0;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@media (min-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 720px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .previewCol {
+    display: block;
+    position: sticky;
+    top: 24px;
+    height: calc(100svh - 120px);
+    margin-top: 48px;
+  }
+
+  .previewCol > :first-child {
+    height: calc(100% - 32px);
+  }
+
+  .previewButton {
+    display: none;
+  }
 }
 
 .progress {
