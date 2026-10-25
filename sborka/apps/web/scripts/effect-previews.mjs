@@ -20,7 +20,7 @@ const OUT = new URL("../public/effects/", import.meta.url).pathname;
 const W = 1200;
 const H = 750;
 
-/** Кадр крупнее: эффект на фото или в углу. Координаты — в окне 1200×750, пропорции 16:10. */
+/** Кадр крупнее: эффект на фото или в углу. Координаты — в окне 1200×750, пропорции 16:10. h — композиция первого экрана. */
 const RIGHT = { x: 400, y: 0, w: 800, h: 500 };
 const PHOTO = { x: 400, y: 60, w: 800, h: 500 };
 
@@ -39,6 +39,18 @@ const FX_HOME = {
   trail: { niche: "photo" },
   petals: { niche: "florist" },
   "scene-orb": { niche: "barber" },
+  "scene-glass": { niche: "dental", h: "centered" },
+  "scene-crystal": { niche: "coffee", v: 1 },
+  "scene-knot": { niche: "fitness" },
+  "scene-rings": { niche: "legal", v: 1, h: "overlay" },
+  "scene-shapes": { niche: "cleaning", h: "overlay" },
+  "scene-silk": { niche: "florist", v: 1 },
+  "scene-helix": { niche: "dental", v: 1, h: "centered" },
+  "scene-globe": { niche: "photo", v: 1, h: "overlay" },
+  "scene-strings": { niche: "psychologist" },
+  "scene-warp": { niche: "auto", crop: { x: 200, y: 125, w: 800, h: 500 } },
+  "scene-cubes": { niche: "repair", v: 1, crop: { x: 200, y: 250, w: 800, h: 500 } },
+  "scene-terrain": { niche: "other", v: 2, crop: { x: 160, y: 200, w: 880, h: 550 } },
   "scene-particles": { niche: "other", v: 3 },
   "scene-wave": { niche: "other", v: 3, crop: { x: 200, y: 250, w: 800, h: 500 } },
 };
@@ -226,8 +238,8 @@ async function record(browser, group, id) {
   const t0 = Date.now();
   const clock = () => (Date.now() - t0) / 1000;
   const site = siteFor(group, id);
-  const { niche, v } = site;
-  const url = `${BASE}/dev/effects?niche=${niche}&v=${v}&e=${encodeURIComponent(JSON.stringify(effectsFor(group, id)))}`;
+  const { niche, v, h } = site;
+  const url = `${BASE}/dev/effects?niche=${niche}&v=${v}${h ? `&h=${h}` : ""}&e=${encodeURIComponent(JSON.stringify(effectsFor(group, id)))}`;
   const clip = await play(page, group, id, url, clock);
   const video = page.video();
   await context.close();

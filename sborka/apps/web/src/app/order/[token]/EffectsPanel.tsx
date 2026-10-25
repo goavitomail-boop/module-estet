@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { rub } from "@/lib/addons";
-import { EFFECT_GROUPS, SITE_GROUPS, type EffectGroup, type SiteEffects } from "@/lib/sites/effects";
+import { EFFECT_GROUPS, SITE_GROUPS, type EffectGroup, type EffectOption, type SiteEffects } from "@/lib/sites/effects";
 import e from "./editor.module.css";
 
 type Defaults = Required<SiteEffects>;
@@ -149,6 +149,55 @@ export function EffectsPanel({
         const current = valueOf(effects, defaults, group);
         const base = valueOf({}, defaults, group);
         const multi = group === "decor";
+        const card = (o: EffectOption) => {
+          const on = multi ? (current as string[]).includes(o.id) : current === o.id;
+          const original = multi ? (base as string[]).includes(o.id) : base === o.id;
+          const clip = clipOf(group, o.id);
+          return (
+            <div key={o.id} className={e.fxCell}>
+              <button
+                type="button"
+                role={multi ? "checkbox" : "radio"}
+                aria-checked={on}
+                className={e.fxOption}
+                data-paid={o.paid || undefined}
+                disabled={busy !== null}
+                onPointerEnter={(ev) => ev.pointerType === "mouse" && hover(ev.currentTarget, group, o.id, o.title)}
+                onPointerLeave={(ev) => ev.pointerType === "mouse" && unhover()}
+                onFocus={(ev) => ev.currentTarget.matches(":focus-visible") && show(ev.currentTarget, group, o.id, o.title, false)}
+                onBlur={unhover}
+                onClick={() => {
+                  if (!multi && on) return;
+                  onChange(multi ? withDecor(effects, defaults, o.id) : withValue(effects, defaults, group, o.id), group);
+                }}
+              >
+                <b>
+                  {o.title}
+                  {original && <em>как было</em>}
+                </b>
+                <small>{o.text}</small>
+                {(o.paid || o.heavy) && (
+                  <span className={e.fxTags}>
+                    {o.paid && <i className={e.fxPaid}>3D</i>}
+                    {o.heavy && !o.paid && <i>Тяжелее остальных</i>}
+                  </span>
+                )}
+              </button>
+              {clip && (
+                // На телефоне наводить нечем — пример открывается кнопкой
+                <button
+                  type="button"
+                  className={e.peekButton}
+                  onClick={(ev) => show(ev.currentTarget.parentElement!, group, o.id, o.title, true)}
+                >
+                  ▶ Пример
+                </button>
+              )}
+            </div>
+          );
+        };
+        const plain = info.options.filter((o) => !o.paid);
+        const scenes = info.options.filter((o) => o.paid);
         return (
           <section key={group} className={e.block} aria-labelledby={`fx-${group}`}>
             <h3 id={`fx-${group}`} className={e.h3}>
@@ -157,58 +206,21 @@ export function EffectsPanel({
             {info.lead && <p className={e.hint}>{info.lead}</p>}
             {group === "cursor" && <p className={e.hint}>В редакторе курсор обычный — свой появится, когда нажмёте «Готово».</p>}
             <div className={e.fxGrid} role={multi ? "group" : "radiogroup"} aria-labelledby={`fx-${group}`}>
-              {info.options.map((o) => {
-                const on = multi ? (current as string[]).includes(o.id) : current === o.id;
-                const original = multi ? (base as string[]).includes(o.id) : base === o.id;
-                const clip = clipOf(group, o.id);
-                return (
-                  <div key={o.id} className={e.fxCell}>
-                    <button
-                      type="button"
-                      role={multi ? "checkbox" : "radio"}
-                      aria-checked={on}
-                      className={e.fxOption}
-                      data-paid={o.paid || undefined}
-                      disabled={busy !== null}
-                      onPointerEnter={(ev) => ev.pointerType === "mouse" && hover(ev.currentTarget, group, o.id, o.title)}
-                      onPointerLeave={(ev) => ev.pointerType === "mouse" && unhover()}
-                      onFocus={(ev) => ev.currentTarget.matches(":focus-visible") && show(ev.currentTarget, group, o.id, o.title, false)}
-                      onBlur={unhover}
-                      onClick={() => {
-                        if (!multi && on) return;
-                        onChange(multi ? withDecor(effects, defaults, o.id) : withValue(effects, defaults, group, o.id), group);
-                      }}
-                    >
-                      <b>
-                        {o.title}
-                        {original && <em>как было</em>}
-                      </b>
-                      <small>{o.text}</small>
-                      {(o.paid || o.heavy) && (
-                        <span className={e.fxTags}>
-                          {o.paid && <i className={e.fxPaid}>3D · +{rub(scenePrice)}</i>}
-                          {o.heavy && !o.paid && <i>Тяжелее остальных</i>}
-                        </span>
-                      )}
-                    </button>
-                    {clip && (
-                      // На телефоне наводить нечем — пример открывается кнопкой
-                      <button
-                        type="button"
-                        className={e.peekButton}
-                        onClick={(ev) => show(ev.currentTarget.parentElement!, group, o.id, o.title, true)}
-                      >
-                        ▶ Пример
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              {plain.map(card)}
             </div>
-            {group === "fx" && (
-              <p className={e.hint}>
-                3D-сцены — дополнение «3D-графика»: выберите сцену, и оно добавится в заказ, выберите другой эффект — уберётся.
-              </p>
+            {scenes.length > 0 && (
+              <div className={e.fxScenes}>
+                <h4 id={`fx-${group}-3d`} className={e.h4}>
+                  3D-графика <span>+{rub(scenePrice)} за любую сцену</span>
+                </h4>
+                <p className={e.hint}>
+                  Объёмная сцена в цветах вашего сайта. Выберите сцену — дополнение добавится в заказ, выберите обычный эффект — уберётся.
+                  На слабых телефонах сцена упрощается.
+                </p>
+                <div className={e.fxGrid} role="radiogroup" aria-labelledby={`fx-${group}-3d`}>
+                  {scenes.map(card)}
+                </div>
+              </div>
             )}
             {group === "intro" && current !== "none" && (
               <button type="button" className={e.reset} onClick={onReplayIntro} disabled={busy !== null}>

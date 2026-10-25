@@ -1741,7 +1741,8 @@
   height: 100%;
 }
 
-.scene[data-scene="scene-wave"] {
+/* Сцены-«пол» (волна, кубы, горы) — в нижней части первого экрана, кверху растворяются */
+.scene[data-floor] {
   top: min(30%, 30svh);
   height: min(70%, 70svh);
   -webkit-mask-image: linear-gradient(transparent, #000 35%);

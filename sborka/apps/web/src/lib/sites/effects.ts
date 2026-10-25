@@ -21,8 +21,24 @@ export const HERO_FX = [
   "trail",
   "petals",
 ] as const;
-/** 3D-сцены на three.js — платное дополнение «3D-графика». */
-export const SCENES = ["scene-orb", "scene-particles", "scene-wave"] as const;
+/** 3D-сцены на three.js — платное дополнение «3D-графика». Каждая — отдельный файл в src/sites/scenes. */
+export const SCENES = [
+  "scene-orb",
+  "scene-glass",
+  "scene-crystal",
+  "scene-knot",
+  "scene-rings",
+  "scene-shapes",
+  "scene-silk",
+  "scene-helix",
+  "scene-globe",
+  "scene-particles",
+  "scene-strings",
+  "scene-warp",
+  "scene-wave",
+  "scene-cubes",
+  "scene-terrain",
+] as const;
 export const INTROS = ["photos", "counter", "split", "circle", "letters"] as const;
 export const MOTIONS = ["soft", "elegant", "bold"] as const;
 export const CURSORS = ["ring", "blend"] as const;
@@ -67,6 +83,7 @@ export interface EffectOption {
 }
 
 const o = (id: string, title: string, text: string, extra: Partial<EffectOption> = {}): EffectOption => ({ id, title, text, ...extra });
+const scene = { heavy: true, paid: true };
 
 /** Группы выбора: на каком блоке или для всего сайта, и какие варианты. */
 export const EFFECT_GROUPS = {
@@ -87,9 +104,21 @@ export const EFFECT_GROUPS = {
       o("swatches", "Орбита оттенков", "Капли цвета кружат вокруг фото."),
       o("document", "Документ с печатью", "Лист с вашим названием и печатью рядом с фото."),
       o("pole", "Барбер-шест", "Вращающийся полосатый шест — классика барбершопа."),
-      o("scene-orb", "3D-капля", "Объёмная глянцевая форма в цвете сайта. Поворачивается за курсором.", { heavy: true, paid: true }),
-      o("scene-particles", "3D-частицы", "Облако светящихся частиц, которое реагирует на курсор.", { heavy: true, paid: true }),
-      o("scene-wave", "3D-волна", "Сетка-волна, которая плавно дышит под заголовком.", { heavy: true, paid: true }),
+      o("scene-orb", "Капля", "Глянцевая форма в цвете сайта плавно перетекает и поворачивается за курсором.", scene),
+      o("scene-glass", "Стеклянные фигуры", "Прозрачные фигуры из стекла парят и переливаются, сквозь них видны цветные бусины.", scene),
+      o("scene-crystal", "Кристалл", "Гранёный кристалл с радужными бликами и осколками на орбите.", scene),
+      o("scene-knot", "Узел", "Глянцевый бесконечный узел медленно вращается.", scene),
+      o("scene-rings", "Гироскоп", "Три металлических кольца вращаются вокруг светящегося ядра.", scene),
+      o("scene-shapes", "Парящие фигуры", "Шары, кубы и кольца в цветах сайта плывут в невесомости.", scene),
+      o("scene-silk", "Шёлковая лента", "Глянцевая лента изгибается и закручивается, как ткань на ветру.", scene),
+      o("scene-helix", "Спираль", "Двойная спираль, как ДНК, — для медицины, косметологии, науки.", scene),
+      o("scene-globe", "Глобус", "Глобус из точек со светящимися маршрутами — для доставки, туризма, консалтинга.", scene),
+      o("scene-particles", "Галактика", "Облако светящихся частиц закручено спиралью и реагирует на курсор.", scene),
+      o("scene-strings", "Струны", "Тонкие линии текут волной, как звук или шёлковые нити.", scene),
+      o("scene-warp", "Гиперпрыжок", "Звёзды летят навстречу, как при прыжке в гиперпространство.", scene),
+      o("scene-wave", "Волна из точек", "Сетка из точек плавно дышит под заголовком.", scene),
+      o("scene-cubes", "Кубы", "Поле из кубиков поднимается волнами, под курсором вырастает холм.", scene),
+      o("scene-terrain", "Ретро-горы", "Сетчатые горы бегут навстречу, на горизонте — полосатое солнце. Стиль 80-х.", scene),
     ],
   },
   intro: {
