@@ -28,6 +28,13 @@ export const BriefSchema = z.object({
 export type Brief = z.infer<typeof BriefSchema>;
 export type BriefInput = z.input<typeof BriefSchema>;
 
+export const ICON_NAMES = [
+  "leaf", "heart", "calendar", "shield", "clock", "users", "doc", "camera", "sprout", "armchair", "bean", "cup",
+  "wrench", "gear", "car", "oil", "laptop", "tire", "ruler", "home", "sparkle", "lock", "phone", "pin", "arrow", "plus",
+] as const;
+export const IconSchema = z.enum(ICON_NAMES);
+export type IconName = (typeof ICON_NAMES)[number];
+
 /**
  * Описание собранного сайта. Это то, что вернёт ИИ (или шаблонный генератор);
  * рендерер превращает его в страницу.
@@ -38,12 +45,44 @@ export const SiteSpecSchema = z.object({
   heroVariant: z.enum(["split", "stacked"]),
   /** Фото для первого экрана и блока «о нас». Без них рисуется абстрактная композиция. */
   images: z.object({ hero: z.string().optional(), about: z.string().optional() }).default({}),
-  business: z.object({ name: z.string(), city: z.string() }),
-  hero: z.object({ title: z.string(), subtitle: z.string(), cta: z.string() }),
-  services: z.object({
-    title: z.string(),
-    items: z.array(z.object({ name: z.string(), price: z.string() })),
+  business: z.object({
+    name: z.string(),
+    city: z.string(),
+    /** Подпись под логотипом. */
+    tagline: z.string().default(""),
+    logoIcon: IconSchema.default("sparkle"),
   }),
+  hero: z.object({
+    eyebrow: z.string().default(""),
+    title: z.string(),
+    /** Часть заголовка, выделенная акцентным цветом. */
+    accent: z.string().optional(),
+    subtitle: z.string(),
+    cta: z.string(),
+    features: z.array(z.object({ icon: IconSchema, text: z.string() })).default([]),
+  }),
+  services: z.object({
+    eyebrow: z.string().default(""),
+    title: z.string(),
+    lead: z.string().default(""),
+    items: z.array(
+      z.object({
+        name: z.string(),
+        price: z.string(),
+        note: z.string().optional(),
+        image: z.string().optional(),
+        icon: IconSchema.optional(),
+      }),
+    ),
+  }),
+  /** Полоса между услугами и остальными блоками: цитата или ряд преимуществ. */
+  strip: z
+    .object({
+      quote: z.string().optional(),
+      caption: z.string().optional(),
+      items: z.array(z.object({ icon: IconSchema, title: z.string(), text: z.string() })).optional(),
+    })
+    .default({}),
   about: z.object({ title: z.string(), text: z.string() }),
   reasons: z.object({
     title: z.string(),
@@ -62,3 +101,4 @@ export const SiteSpecSchema = z.object({
   }),
 });
 export type SiteSpec = z.infer<typeof SiteSpecSchema>;
+export type SiteSpecInput = z.input<typeof SiteSpecSchema>;

@@ -12,6 +12,10 @@ export interface SiteTheme {
   displayWeight: number;
   body: string;
   radius: string;
+  /** Форма фото в первом экране. fade — фото во всю правую часть с растворением в фон. */
+  heroShape: "rounded" | "arch" | "sharp" | "fade";
+  /** Вид карточек услуг. */
+  serviceStyle: "photo" | "arch" | "icon";
 }
 
 const t = (theme: SiteTheme) => theme;
@@ -30,6 +34,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 500,
     body: "'Manrope Variable', system-ui, sans-serif",
     radius: "999px",
+    heroShape: "arch",
+    serviceStyle: "arch",
   }),
   "nails-dark": t({
     id: "nails-dark",
@@ -44,6 +50,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 500,
     body: "'Manrope Variable', system-ui, sans-serif",
     radius: "999px",
+    heroShape: "arch",
+    serviceStyle: "arch",
   }),
   "repair-light": t({
     id: "repair-light",
@@ -58,6 +66,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 600,
     body: "'Onest Variable', system-ui, sans-serif",
     radius: "4px",
+    heroShape: "sharp",
+    serviceStyle: "photo",
   }),
   "repair-dark": t({
     id: "repair-dark",
@@ -72,6 +82,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 600,
     body: "'Onest Variable', system-ui, sans-serif",
     radius: "4px",
+    heroShape: "sharp",
+    serviceStyle: "photo",
   }),
   "auto-dark": t({
     id: "auto-dark",
@@ -86,6 +98,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 700,
     body: "'Rubik Variable', system-ui, sans-serif",
     radius: "10px",
+    heroShape: "fade",
+    serviceStyle: "icon",
   }),
   "auto-light": t({
     id: "auto-light",
@@ -100,6 +114,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 700,
     body: "'Rubik Variable', system-ui, sans-serif",
     radius: "10px",
+    heroShape: "rounded",
+    serviceStyle: "icon",
   }),
   "psych-sage": t({
     id: "psych-sage",
@@ -114,6 +130,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 500,
     body: "'Golos Text Variable', system-ui, sans-serif",
     radius: "16px",
+    heroShape: "rounded",
+    serviceStyle: "icon",
   }),
   "psych-sand": t({
     id: "psych-sand",
@@ -128,6 +146,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 500,
     body: "'Golos Text Variable', system-ui, sans-serif",
     radius: "16px",
+    heroShape: "rounded",
+    serviceStyle: "icon",
   }),
   "coffee-cream": t({
     id: "coffee-cream",
@@ -142,6 +162,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 600,
     body: "'Onest Variable', system-ui, sans-serif",
     radius: "14px",
+    heroShape: "rounded",
+    serviceStyle: "photo",
   }),
   "coffee-dark": t({
     id: "coffee-dark",
@@ -156,6 +178,8 @@ export const THEMES: Record<string, SiteTheme> = {
     displayWeight: 600,
     body: "'Onest Variable', system-ui, sans-serif",
     radius: "14px",
+    heroShape: "rounded",
+    serviceStyle: "photo",
   }),
 };
 

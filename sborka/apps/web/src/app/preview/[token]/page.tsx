@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SiteSpecSchema } from "@/lib/sites/schema";
 import { store } from "@/lib/store";
 import { SiteRenderer } from "@/sites/SiteRenderer";
 
@@ -19,5 +20,5 @@ export default async function PreviewPage({
   const n = Number(v) || order.currentVersion;
   const version = order.versions.find((x) => x.n === n) ?? order.versions.at(-1)!;
   const paid = order.status === "paid" || order.status === "published";
-  return <SiteRenderer spec={version.spec} mode={paid ? "example" : "preview"} />;
+  return <SiteRenderer spec={SiteSpecSchema.parse(version.spec)} mode={paid ? "example" : "preview"} />;
 }

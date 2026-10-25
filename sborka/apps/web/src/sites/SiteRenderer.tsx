@@ -1,12 +1,14 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { NICHES } from "@/lib/sites/niches";
 import type { SiteSpec } from "@/lib/sites/schema";
-import { getTheme } from "@/lib/sites/themes";
+import { getTheme, type SiteTheme } from "@/lib/sites/themes";
+import { Icon } from "./icons";
 import { MoodArt } from "./MoodArt";
 import s from "./site.module.css";
 import "./fonts";
 
 export type SiteMode = "preview" | "example" | "live";
+type Item = SiteSpec["services"]["items"][number];
 
 /** Рендерит клиентский сайт из SiteSpec. */
 export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode }) {
@@ -28,51 +30,64 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
   const variant = NICHES[spec.niche].themes.indexOf(spec.themeId) === 1 ? 1 : 0;
   const live = mode === "live";
   const phoneHref = `tel:${spec.contacts.phone.replace(/[^\d+]/g, "")}`;
+  const shape = spec.heroVariant === "stacked" && theme.heroShape === "fade" ? "rounded" : theme.heroShape;
+  const location = [spec.business.city, spec.contacts.address].filter(Boolean).join(", ");
 
   return (
-    <div className={s.site} style={vars} data-niche={spec.niche}>
+    <div className={s.site} style={vars} data-niche={spec.niche} data-shape={shape}>
       <header className={s.top}>
-        <div className={s.wrap}>
-          <span className={s.brand}>{spec.business.name}</span>
+        <div className={`${s.wrap} ${s.topInner}`}>
+          <span className={s.logo}>
+            <Icon name={spec.business.logoIcon} size={30} className={s.logoIcon} />
+            <span>
+              <b>{spec.business.name}</b>
+              {spec.business.tagline && <small>{spec.business.tagline}</small>}
+            </span>
+          </span>
           <nav className={s.nav} aria-label="Разделы сайта">
-            <a href="#services">{spec.services.title}</a>
+            <a href="#services">{spec.services.eyebrow || spec.services.title}</a>
             <a href="#about">{spec.about.title}</a>
             <a href="#contacts">Контакты</a>
           </nav>
-          {live ? (
-            <a className={s.phone} href={phoneHref}>
-              {spec.contacts.phone}
-            </a>
-          ) : (
-            <span className={s.phone}>{spec.contacts.phone}</span>
-          )}
+          <span className={s.phone}>
+            <Icon name="phone" size={18} />
+            <Phone live={live} href={phoneHref} phone={spec.contacts.phone} />
+          </span>
         </div>
       </header>
 
       <main>
         <section className={`${s.hero} ${spec.heroVariant === "stacked" ? s.heroStacked : s.heroSplit}`}>
-          <div className={s.wrap}>
+          <div className={`${s.wrap} ${s.heroGrid}`}>
             <div className={s.heroText}>
-              <p className={s.location}>
-                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M7 13s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C2.5 8.8 7 13 7 13Z" fill="none" stroke="currentColor" strokeWidth="1.4" />
-                  <circle cx="7" cy="5.5" r="1.6" fill="currentColor" />
-                </svg>
-                {[spec.business.city, spec.contacts.address].filter(Boolean).join(", ")}
-              </p>
-              <h1 className={s.heroTitle}>{spec.hero.title}</h1>
+              {spec.hero.eyebrow && <p className={s.eyebrow}>{spec.hero.eyebrow}</p>}
+              <h1 className={s.heroTitle}>
+                <Accent text={spec.hero.title} accent={spec.hero.accent} />
+              </h1>
               <p className={s.heroSub}>{spec.hero.subtitle}</p>
               <a className={s.button} href="#contacts">
                 {spec.hero.cta}
+                <Icon name="arrow" size={20} />
               </a>
-            </div>
-            <div className={s.heroArt}>
-              {spec.images?.hero ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className={s.photo} src={spec.images.hero} alt="" />
-              ) : (
-                <MoodArt niche={spec.niche} variant={variant} />
+              {spec.hero.features.length > 0 && (
+                <ul className={s.features}>
+                  {spec.hero.features.map((f) => (
+                    <li key={f.text}>
+                      <Icon name={f.icon} size={26} />
+                      <span>{f.text}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
+              {location && (
+                <p className={s.location}>
+                  <Icon name="pin" size={16} />
+                  {location}
+                </p>
+              )}
+            </div>
+            <div className={s.heroMedia}>
+              <Media src={spec.images?.hero} niche={spec.niche} variant={variant} eager />
               {mode === "preview" && <span className={s.artNote}>Здесь будет ваше фото</span>}
             </div>
           </div>
@@ -80,56 +95,38 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
 
         <section id="services" className={s.section}>
           <div className={s.wrap}>
-            <h2 className={s.h2}>{spec.services.title}</h2>
-            <ul className={s.services}>
-              {spec.services.items.map((item, i) => (
-                <li key={i}>
-                  <span>{item.name}</span>
-                  <span className={s.leader} aria-hidden="true" />
-                  <span className={s.price}>{item.price}</span>
-                </li>
-              ))}
-            </ul>
+            <Services spec={spec} theme={theme} />
           </div>
         </section>
 
+        <Strip spec={spec} />
+
         <section id="about" className={`${s.section} ${s.about}`}>
-          <div className={s.wrap}>
-            <div className={s.aboutArt}>
-              {spec.images?.about ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className={s.photo} src={spec.images.about} alt="" loading="lazy" />
-              ) : (
-                <MoodArt niche={spec.niche} variant={variant + 1} />
-              )}
+          <div className={`${s.wrap} ${s.aboutGrid}`}>
+            <div className={s.aboutMedia}>
+              <Media src={spec.images?.about} niche={spec.niche} variant={variant + 1} />
             </div>
             <div>
               <h2 className={s.h2}>{spec.about.title}</h2>
               <p className={s.lead}>{spec.about.text}</p>
+              <ul className={s.reasons}>
+                {spec.reasons.items.map((r) => (
+                  <li key={r.title}>
+                    <h3>{r.title}</h3>
+                    <p>{r.text}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
 
         <section className={s.section}>
-          <div className={s.wrap}>
-            <h2 className={s.h2}>{spec.reasons.title}</h2>
-            <div className={s.reasons}>
-              {spec.reasons.items.map((r, i) => (
-                <div key={i} className={s.reason}>
-                  <h3>{r.title}</h3>
-                  <p>{r.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={s.section}>
-          <div className={`${s.wrap} ${s.faqWrap}`}>
+          <div className={`${s.wrap} ${s.faqGrid}`}>
             <h2 className={s.h2}>{spec.faq.title}</h2>
             <div className={s.faq}>
-              {spec.faq.items.map((f, i) => (
-                <details key={i}>
+              {spec.faq.items.map((f) => (
+                <details key={f.q}>
                   <summary>{f.q}</summary>
                   <p>{f.a}</p>
                 </details>
@@ -139,25 +136,27 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
         </section>
 
         <section id="contacts" className={`${s.section} ${s.contacts}`}>
-          <div className={s.wrap}>
+          <div className={`${s.wrap} ${s.contactsGrid}`}>
             <div>
               <h2 className={s.h2}>{spec.contacts.title}</h2>
-              <dl className={s.contactList}>
-                <dt>Телефон</dt>
-                <dd>{live ? <a href={phoneHref}>{spec.contacts.phone}</a> : spec.contacts.phone}</dd>
-                {spec.contacts.address && (
-                  <>
-                    <dt>Адрес</dt>
-                    <dd>{spec.contacts.address}</dd>
-                  </>
+              <ul className={s.contactList}>
+                <li>
+                  <Icon name="phone" size={22} />
+                  <Phone live={live} href={phoneHref} phone={spec.contacts.phone} />
+                </li>
+                {location && (
+                  <li>
+                    <Icon name="pin" size={22} />
+                    <span>{location}</span>
+                  </li>
                 )}
                 {spec.contacts.hours && (
-                  <>
-                    <dt>Часы работы</dt>
-                    <dd>{spec.contacts.hours}</dd>
-                  </>
+                  <li>
+                    <Icon name="clock" size={22} />
+                    <span>{spec.contacts.hours}</span>
+                  </li>
                 )}
-              </dl>
+              </ul>
             </div>
             <form className={s.form}>
               <fieldset disabled={!live}>
@@ -171,6 +170,7 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
                 </label>
                 <button className={s.button} type="submit">
                   {spec.contacts.formCta}
+                  <Icon name="arrow" size={20} />
                 </button>
                 {!live && <p className={s.formNote}>Форма заработает после публикации сайта.</p>}
               </fieldset>
@@ -180,7 +180,7 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
       </main>
 
       <footer className={s.footer}>
-        <div className={s.wrap}>
+        <div className={`${s.wrap} ${s.footerInner}`}>
           <span>
             © {new Date().getFullYear()} {spec.business.name}
           </span>
@@ -193,6 +193,168 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
       )}
     </div>
   );
+}
+
+function Services({ spec, theme }: { spec: SiteSpec; theme: SiteTheme }) {
+  const { services } = spec;
+  const head = (
+    <div className={s.servicesHead}>
+      <div>
+        {services.eyebrow && <p className={s.eyebrow}>{services.eyebrow}</p>}
+        <h2 className={s.h2}>{services.title}</h2>
+        {services.lead && <p className={s.servicesLead}>{services.lead}</p>}
+      </div>
+      <a href="#contacts" className={s.more}>
+        {spec.contacts.formCta}
+        <Icon name="arrow" size={18} />
+      </a>
+    </div>
+  );
+
+  const style = theme.serviceStyle;
+  if (style === "arch") {
+    const withPhoto = services.items.filter((i) => i.image).slice(0, 2);
+    const rest = services.items.filter((i) => !withPhoto.includes(i));
+    return (
+      <>
+        <div className={s.archGrid}>
+          {head}
+          {withPhoto.map((item) => (
+            <figure key={item.name} className={s.archCard}>
+              <div className={s.archMedia}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.image} alt="" loading="lazy" />
+              </div>
+              <figcaption>
+                <span>{item.name}</span>
+                <b>{item.price}</b>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        {rest.length > 0 && <PriceList items={rest} />}
+      </>
+    );
+  }
+
+  const cards = style === "photo" ? services.items.filter((i) => i.image) : services.items;
+  const rest = services.items.filter((i) => !cards.includes(i));
+  return (
+    <>
+      {head}
+      {cards.length > 0 && (
+        <ul className={`${s.cards} ${style === "icon" ? s.iconCards : s.photoCards}`}>
+          {cards.map((item, i) => (
+            <ServiceCard key={item.name} item={item} style={style} index={i} cta={spec.contacts.formCta} />
+          ))}
+        </ul>
+      )}
+      {rest.length > 0 && <PriceList items={rest} />}
+    </>
+  );
+}
+
+function ServiceCard({ item, style, index, cta }: { item: Item; style: "photo" | "icon"; index: number; cta: string }) {
+  const photo = style === "photo" && item.image;
+  return (
+    <li className={s.card}>
+      {photo ? (
+        <div className={s.cardMedia}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.image} alt="" loading="lazy" />
+        </div>
+      ) : (
+        <span className={s.cardIcon}>
+          <Icon name={item.icon ?? "sparkle"} size={28} />
+        </span>
+      )}
+      <div className={s.cardBody}>
+        <h3>{item.name}</h3>
+        <p className={s.cardPrice}>{item.price}</p>
+        {item.note && <p className={s.cardNote}>{item.note}</p>}
+        {style === "icon" ? (
+          <a href="#contacts" className={`${s.cardButton} ${index === 1 ? s.cardButtonFilled : ""}`}>
+            {cta}
+            <Icon name="arrow" size={18} />
+          </a>
+        ) : (
+          <a href="#contacts" className={s.cardPlus} aria-label={`${cta}: ${item.name}`}>
+            <Icon name="plus" size={18} />
+          </a>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function PriceList({ items }: { items: Item[] }) {
+  return (
+    <ul className={s.priceList}>
+      {items.map((item) => (
+        <li key={item.name}>
+          <span>{item.name}</span>
+          <span className={s.leader} aria-hidden="true" />
+          <b>{item.price}</b>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Strip({ spec }: { spec: SiteSpec }) {
+  const { strip } = spec;
+  if (strip?.items?.length) {
+    return (
+      <section className={s.stripItems}>
+        <ul className={s.wrap}>
+          {strip.items.map((it) => (
+            <li key={it.title}>
+              <Icon name={it.icon} size={30} />
+              <span>
+                <b>{it.title}</b>
+                <small>{it.text}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  if (!strip?.quote) return null;
+  return (
+    <section className={s.stripQuote}>
+      <div className={s.wrap}>
+        <div className={s.quoteBand}>
+          <p className={s.quote}>{strip.quote}</p>
+          {strip.caption && <p className={s.quoteCaption}>{strip.caption}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Media({ src, niche, variant, eager }: { src?: string; niche: SiteSpec["niche"]; variant: number; eager?: boolean }) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className={s.photo} src={src} alt="" loading={eager ? "eager" : "lazy"} />;
+  }
+  return <MoodArt niche={niche} variant={variant} />;
+}
+
+function Accent({ text, accent }: { text: string; accent?: string }): ReactNode {
+  const i = accent ? text.lastIndexOf(accent) : -1;
+  if (!accent || i < 0) return text;
+  return (
+    <>
+      {text.slice(0, i)}
+      <span className={s.accent}>{accent}</span>
+      {text.slice(i + accent.length)}
+    </>
+  );
+}
+
+function Phone({ live, href, phone }: { live: boolean; href: string; phone: string }) {
+  return live ? <a href={href}>{phone}</a> : <span>{phone}</span>;
 }
 
 const WATERMARK = `url("data:image/svg+xml,${encodeURIComponent(

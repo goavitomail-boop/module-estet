@@ -1,6 +1,7 @@
-import type { Brief, NicheId, SiteSpec } from "./schema";
+import type { Brief, IconName, NicheId, SiteSpecInput } from "./schema";
 
-type Copy = Omit<SiteSpec, "niche" | "themeId" | "heroVariant" | "images">;
+type Copy = Omit<SiteSpecInput, "niche" | "themeId" | "heroVariant" | "images">;
+type Service = Brief["services"][number];
 
 export interface Niche {
   id: NicheId;
@@ -13,6 +14,11 @@ export interface Niche {
   /** Подсказки для полей брифа. */
   placeholders: { businessName: string; about: string };
   build: (brief: Brief) => Copy;
+}
+
+/** Добавляет к услугам описания (если услуга типовая) и иконки по порядку. */
+function services(items: Service[], notes: Record<string, string>, icons: IconName[]) {
+  return items.map((s, i) => ({ ...s, note: notes[s.name], icon: icons[i % icons.length] }));
 }
 
 export const NICHES: Record<NicheId, Niche> = {
@@ -38,13 +44,35 @@ export const NICHES: Record<NicheId, Niche> = {
       wishes: "",
     },
     build: (b) => ({
-      business: { name: b.businessName, city: b.city },
+      business: { name: b.businessName, city: b.city, tagline: "студия маникюра", logoIcon: "sparkle" },
       hero: {
+        eyebrow: "Красота живёт в деталях",
         title: "Аккуратный маникюр без спешки",
-        subtitle: `${b.businessName}: стерильные инструменты, спокойная атмосфера и запись онлайн за минуту.`,
+        accent: "без спешки",
+        subtitle: "Стерильные инструменты и запись онлайн за минуту.",
         cta: "Записаться",
+        features: [
+          { icon: "leaf", text: "Стерильные инструменты" },
+          { icon: "calendar", text: "Удобная онлайн-запись" },
+          { icon: "heart", text: "Спокойная атмосфера" },
+        ],
       },
-      services: { title: "Услуги и цены", items: b.services },
+      services: {
+        eyebrow: "Наши услуги",
+        title: "Услуги и цены",
+        lead: "Прозрачные цены и внимание к каждой детали.",
+        items: services(
+          b.services,
+          {
+            "Маникюр с покрытием": "Снятие, обработка, выравнивание и покрытие.",
+            "Педикюр с покрытием": "Аппаратный педикюр и стойкое покрытие.",
+            Наращивание: "Форма и длина, которые вы выберете.",
+            "Снятие и уход": "Бережное снятие, масло и крем для рук.",
+          },
+          ["sparkle", "heart", "leaf", "sprout"],
+        ),
+      },
+      strip: { quote: "Маленькие ритуалы для хорошего настроения", caption: "Забота · Эстетика · Гармония" },
       about: {
         title: "О студии",
         text:
@@ -81,9 +109,9 @@ export const NICHES: Record<NicheId, Niche> = {
     id: "repair",
     label: "Ремонт квартир",
     themes: ["repair-light", "repair-dark"],
-    placeholders: { businessName: "Мастерская ремонта «Отвес»", about: "Своя бригада, 8 лет на рынке, работаем по договору" },
+    placeholders: { businessName: "Отвес", about: "Своя бригада, 8 лет на рынке, работаем по договору" },
     demo: {
-      businessName: "Мастерская ремонта «Отвес»",
+      businessName: "Отвес",
       city: "Екатеринбург",
       about:
         "Своя бригада без субподрядчиков: электрик, сантехник, плиточник и отделочники. Ведём один объект от демонтажа до уборки, прораб на связи каждый день.",
@@ -99,13 +127,41 @@ export const NICHES: Record<NicheId, Niche> = {
       wishes: "",
     },
     build: (b) => ({
-      business: { name: b.businessName, city: b.city },
+      business: { name: b.businessName, city: b.city, tagline: "ремонт квартир", logoIcon: "home" },
       hero: {
+        eyebrow: "Продуманный ремонт для вашей жизни",
         title: "Ремонт квартир под ключ",
-        subtitle: "Смета до начала работ, сроки в договоре и фотоотчёт по каждому этапу.",
+        subtitle: "Смета до начала работ, сроки в договоре, фотоотчёт по каждому этапу.",
         cta: "Вызвать замерщика",
+        features: [
+          { icon: "doc", text: "Цена фиксируется в договоре" },
+          { icon: "calendar", text: "Соблюдаем сроки" },
+          { icon: "camera", text: "Фотоотчёт на каждом этапе" },
+        ],
       },
-      services: { title: "Работы и цены", items: b.services },
+      services: {
+        eyebrow: "Работы и цены",
+        title: "Что мы делаем",
+        lead: "",
+        items: services(
+          b.services,
+          {
+            "Косметический ремонт": "Обновим интерьер быстро и аккуратно.",
+            "Капитальный ремонт": "Замена инженерных сетей, перепланировка, чистовая отделка.",
+            "Санузел под ключ": "Все работы и материалы. Готовое решение.",
+            "Выезд замерщика": "Приедем, замерим и составим смету.",
+          },
+          ["home", "wrench", "sparkle", "ruler"],
+        ),
+      },
+      strip: {
+        items: [
+          { icon: "users", title: "Своя бригада", text: "Без субподрядчиков" },
+          { icon: "doc", title: "Смета до начала", text: "Цена в договоре" },
+          { icon: "calendar", title: "Сроки в договоре", text: "Каждый этап с датой" },
+          { icon: "camera", title: "Фотоотчёты", text: "После каждого этапа" },
+        ],
+      },
       about: {
         title: "Кто мы",
         text:
@@ -142,17 +198,17 @@ export const NICHES: Record<NicheId, Niche> = {
     id: "auto",
     label: "Автосервис",
     themes: ["auto-dark", "auto-light"],
-    placeholders: { businessName: "Автосервис «Пятая передача»", about: "4 подъёмника, работаем с иномарками и отечественными авто" },
+    placeholders: { businessName: "Пятая передача", about: "4 подъёмника, работаем с иномарками и отечественными авто" },
     demo: {
-      businessName: "Автосервис «Пятая передача»",
+      businessName: "Пятая передача",
       city: "Новосибирск",
       about:
         "Четыре поста, своя шиномонтажная зона и комната ожидания с кофе. Обслуживаем иномарки и отечественные автомобили, работаем с запчастями клиента.",
       services: [
         { name: "Замена масла", price: "от 900 ₽" },
         { name: "Компьютерная диагностика", price: "1 500 ₽" },
-        { name: "Диагностика ходовой", price: "1 200 ₽" },
         { name: "Шиномонтаж", price: "от 2 000 ₽" },
+        { name: "Диагностика ходовой", price: "1 200 ₽" },
       ],
       phone: "+7 900 000-00-00",
       address: "ул. Станционная, 40",
@@ -160,13 +216,42 @@ export const NICHES: Record<NicheId, Niche> = {
       wishes: "",
     },
     build: (b) => ({
-      business: { name: b.businessName, city: b.city },
+      business: { name: b.businessName, city: b.city, tagline: "автосервис", logoIcon: "gear" },
       hero: {
+        eyebrow: "Надёжный автосервис для тех, кто ценит время",
         title: "Ремонт авто без сюрпризов в чеке",
-        subtitle: "Согласуем каждую работу и цену до начала ремонта. Старые запчасти отдаём вам.",
+        accent: "в чеке",
+        subtitle: "Согласуем каждую работу и цену до начала ремонта.",
         cta: "Записаться на сервис",
+        features: [
+          { icon: "doc", text: "Цена до начала ремонта" },
+          { icon: "wrench", text: "Старые детали — вам" },
+          { icon: "clock", text: "Запись на точное время" },
+        ],
       },
-      services: { title: "Услуги и цены", items: b.services },
+      services: {
+        eyebrow: "Популярные услуги",
+        title: "Честные цены на основные работы",
+        lead: "",
+        items: services(
+          b.services,
+          {
+            "Замена масла": "Масло и фильтр, проверка уровней жидкостей.",
+            "Компьютерная диагностика": "Считываем ошибки и объясняем, что они значат.",
+            Шиномонтаж: "Снятие, балансировка и установка колёс.",
+            "Диагностика ходовой": "Проверяем подвеску и рулевое на подъёмнике.",
+          },
+          ["oil", "laptop", "tire", "car"],
+        ),
+      },
+      strip: {
+        items: [
+          { icon: "gear", title: "Современное оборудование", text: "Подъёмники и стенды" },
+          { icon: "shield", title: "Проверенные запчасти", text: "Или ваши — по желанию" },
+          { icon: "pin", title: "Удобное расположение", text: "И зона ожидания" },
+          { icon: "cup", title: "Кофе и Wi-Fi", text: "Пока ждёте машину" },
+        ],
+      },
       about: {
         title: "О сервисе",
         text: b.about || "Работаем с иномарками и отечественными автомобилями. Можно приехать со своими запчастями.",
@@ -201,16 +286,16 @@ export const NICHES: Record<NicheId, Niche> = {
     id: "psychologist",
     label: "Психолог и эксперт",
     themes: ["psych-sage", "psych-sand"],
-    placeholders: { businessName: "Мария Ветрова, психолог", about: "Образование, подход, с какими запросами работаете" },
+    placeholders: { businessName: "Мария Ветрова", about: "Образование, подход, с какими запросами работаете" },
     demo: {
-      businessName: "Мария Ветрова, психолог",
+      businessName: "Мария Ветрова",
       city: "Москва",
       about:
         "Клинический психолог, работаю в когнитивно-поведенческом подходе. Помогаю с тревогой, выгоранием и сложностями в отношениях. Регулярно прохожу супервизию.",
       services: [
-        { name: "Знакомство, 20 минут", price: "бесплатно" },
-        { name: "Консультация, 50 минут", price: "4 500 ₽" },
-        { name: "Онлайн-сессия, 50 минут", price: "4 000 ₽" },
+        { name: "Знакомство", price: "Бесплатно" },
+        { name: "Консультация", price: "50 минут — 4 500 ₽" },
+        { name: "Онлайн-сессия", price: "50 минут — 4 000 ₽" },
       ],
       phone: "+7 900 000-00-00",
       address: "м. Чистые пруды и онлайн",
@@ -218,13 +303,33 @@ export const NICHES: Record<NicheId, Niche> = {
       wishes: "",
     },
     build: (b) => ({
-      business: { name: b.businessName, city: b.city },
+      business: { name: b.businessName, city: b.city, tagline: "психолог", logoIcon: "leaf" },
       hero: {
-        title: "Спокойное место, чтобы разобраться в себе",
-        subtitle: "Встречи очно и онлайн. Первая короткая встреча — чтобы познакомиться и понять, подходим ли мы друг другу.",
+        eyebrow: "Пространство для важного",
+        title: "Спокойное место, чтобы понять себя",
+        subtitle: "Встречи очно и онлайн.",
         cta: "Записаться на консультацию",
+        features: [
+          { icon: "lock", text: "Конфиденциально" },
+          { icon: "heart", text: "Без осуждения" },
+          { icon: "users", text: "В вашем темпе" },
+        ],
       },
-      services: { title: "Форматы и стоимость", items: b.services },
+      services: {
+        eyebrow: "Форматы работы",
+        title: "Выберите удобный формат",
+        lead: "Можно начать с бесплатной встречи или сразу записаться на консультацию.",
+        items: services(
+          b.services,
+          {
+            Знакомство: "Короткая встреча, чтобы познакомиться, обсудить запрос и подобрать формат работы.",
+            Консультация: "Полноценная сессия, на которой мы разбираем ваш запрос и ищем пути решения.",
+            "Онлайн-сессия": "Та же сессия по видеосвязи — из любого города.",
+          },
+          ["sprout", "armchair", "laptop"],
+        ),
+      },
+      strip: { quote: "«Быть собой — уже достаточно»", caption: "Поддержка · Понимание · Развитие" },
       about: {
         title: "Обо мне",
         text: b.about || "Расскажу о подходе, образовании и о том, с какими запросами работаю.",
@@ -259,17 +364,17 @@ export const NICHES: Record<NicheId, Niche> = {
     id: "coffee",
     label: "Кофейня и кондитерская",
     themes: ["coffee-cream", "coffee-dark"],
-    placeholders: { businessName: "Кофейня «Зерно и сахар»", about: "Своя обжарка, десерты печём сами, торты на заказ" },
+    placeholders: { businessName: "Зерно и сахар", about: "Своя обжарка, десерты печём сами, торты на заказ" },
     demo: {
-      businessName: "Кофейня «Зерно и сахар»",
+      businessName: "Зерно и сахар",
       city: "Санкт-Петербург",
       about:
         "Маленькая кофейня на углу, двенадцать мест и большое окно. Кофе на зерне от местной обжарки, десерты печём сами каждое утро, торты делаем на заказ.",
       services: [
         { name: "Капучино", price: "220 ₽" },
-        { name: "Флэт уайт", price: "250 ₽" },
         { name: "Круассан с миндалём", price: "190 ₽" },
         { name: "Торт на заказ", price: "от 2 400 ₽/кг" },
+        { name: "Флэт уайт", price: "250 ₽" },
       ],
       phone: "+7 900 000-00-00",
       address: "Литейный проспект, 5",
@@ -277,13 +382,34 @@ export const NICHES: Record<NicheId, Niche> = {
       wishes: "",
     },
     build: (b) => ({
-      business: { name: b.businessName, city: b.city },
+      business: { name: b.businessName, city: b.city, tagline: "кофе · выпечка · добрые люди", logoIcon: "sprout" },
       hero: {
+        eyebrow: "Хороший кофе — светлые дни",
         title: "Кофе и десерты, за которыми возвращаются",
-        subtitle: `${b.businessName}: варим кофе и печём десерты каждое утро.`,
+        subtitle: "Варим кофе и печём десерты каждое утро.",
         cta: "Заказать торт",
+        features: [
+          { icon: "bean", text: "Кофе на зерне" },
+          { icon: "sprout", text: "Выпечка каждое утро" },
+          { icon: "heart", text: "Уютное место для своих" },
+        ],
       },
-      services: { title: "Меню", items: b.services },
+      services: {
+        eyebrow: "Меню",
+        title: "Наши любимые",
+        lead: "",
+        items: services(
+          b.services,
+          {
+            Капучино: "Классика с насыщенным вкусом и бархатной пенкой.",
+            "Флэт уайт": "Двойной эспрессо и тонкий слой молока.",
+            "Круассан с миндалём": "Слоёное тесто, миндальный крем и хлопья.",
+            "Торт на заказ": "Соберём начинку и оформление под ваш праздник.",
+          },
+          ["cup", "sprout", "heart", "bean"],
+        ),
+      },
+      strip: { quote: "Тот же вкус каждое утро", caption: "Больше чем кофе" },
       about: {
         title: "О нас",
         text: b.about || "Небольшая кофейня, где знают постоянных гостей по имени.",

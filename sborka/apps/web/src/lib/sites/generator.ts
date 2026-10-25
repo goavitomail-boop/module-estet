@@ -23,14 +23,19 @@ export class TemplateGenerator implements SiteGenerator {
 
   async generate({ brief, variant }: GenerateInput): Promise<SiteSpec> {
     const niche = NICHES[brief.niche];
-    const spec: SiteSpec = {
+    const copy = niche.build(brief);
+    // Фото услуг подставляются по порядку: первые услуги ниши совпадают с фото в библиотеке
+    copy.services.items = copy.services.items.map((item, i) => ({
+      ...item,
+      image: item.image ?? nicheImage(niche.id, `service-${i + 1}`),
+    }));
+    return SiteSpecSchema.parse({
       niche: niche.id,
       themeId: niche.themes[variant % 2],
       heroVariant: Math.floor(variant / 2) % 2 === 0 ? "split" : "stacked",
       images: { hero: nicheImage(niche.id, "hero"), about: nicheImage(niche.id, "about") },
-      ...niche.build(brief),
-    };
-    return SiteSpecSchema.parse(spec);
+      ...copy,
+    });
   }
 }
 
