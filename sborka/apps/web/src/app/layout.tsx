@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/unbounded";
+import "@fontsource-variable/onest";
 import "@fontsource-variable/manrope";
 import "./globals.css";
 

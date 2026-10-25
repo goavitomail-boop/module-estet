@@ -2,13 +2,26 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
+import type { ShowcasePhotos } from "@/lib/showcase";
+import type { IconName } from "@/lib/sites/schema";
+import { Icon } from "@/sites/icons";
+import { ArrowIcon } from "../ArrowIcon";
 import { Magnetic } from "../Magnetic";
 import { gsap, onReady, prefersReducedMotion, SplitText } from "../motion";
-import { BlueprintCanvas } from "./BlueprintCanvas";
-import { HeroScene } from "./HeroScene";
+import { GlowLines } from "./GlowLines";
+import { HeroShowcase } from "./HeroShowcase";
+import { LiquidBlob } from "./LiquidBlob";
 import s from "./Hero.module.css";
 
-export function Hero({ photo }: { photo?: string }) {
+const FEATURES: { icon: IconName; text: string }[] = [
+  { icon: "sparkle", text: "ИИ + дизайн-шаблоны" },
+  { icon: "text", text: "Тексты под ваш бизнес" },
+  { icon: "clock", text: "Готовый сайт за 24 часа" },
+  { icon: "lock", text: "Без регистрации на первом этапе" },
+  { icon: "eye", text: "Оплата после просмотра" },
+];
+
+export function Hero({ photos }: { photos: ShowcasePhotos }) {
   const root = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
@@ -16,32 +29,29 @@ export function Hero({ photo }: { photo?: string }) {
     if (!el || prefersReducedMotion()) return;
     const splits: SplitText[] = [];
     const ctx = gsap.context(() => {
-      const targets = el.querySelectorAll<HTMLElement>("[data-split]");
-      targets.forEach((t) => splits.push(SplitText.create(t, { type: "chars", mask: "chars" })));
-      const chars = splits.flatMap((sp) => sp.chars);
-      gsap.set(chars, { yPercent: 115 });
+      el.querySelectorAll<HTMLElement>("[data-split]").forEach((t) =>
+        splits.push(SplitText.create(t, { type: "words,chars", mask: "chars" })),
+      );
+      gsap.set(splits.flatMap((sp) => sp.chars), { yPercent: 110 });
       gsap.set("[data-price]", { opacity: 0 });
-      gsap.set("[data-hero-rest]", { opacity: 0, y: 24 });
-      gsap.set("[data-scroll-hint]", { opacity: 0 });
+      gsap.set("[data-rest]", { opacity: 0, y: 20 });
     }, el);
 
     const off = onReady(() => {
       ctx.add(() => {
-        const chars = splits.flatMap((sp) => sp.chars);
         gsap
           .timeline({ defaults: { ease: "expo.out" } })
-          .to(chars, { yPercent: 0, duration: 1.2, stagger: 0.028 })
-          .to("[data-price]", { opacity: 1, duration: 0.2 }, "-=0.9")
+          .to("[data-rest=pills]", { opacity: 1, y: 0, duration: 0.8 })
+          .to(splits.flatMap((sp) => sp.chars), { yPercent: 0, duration: 1.1, stagger: 0.022 }, "-=0.5")
+          .to("[data-price]", { opacity: 1, duration: 0.1 }, "-=0.6")
           .to(
             "[data-price]",
-            { duration: 1.4, scrambleText: { text: "4 999 ₽", chars: "0123456789", speed: 0.5, revealDelay: 0.3 } },
+            { duration: 1.3, scrambleText: { text: "4 999 ₽", chars: "0123456789", speed: 0.5, revealDelay: 0.2 } },
             "<",
           )
-          .to("[data-hero-rest]", { opacity: 1, y: 0, duration: 1, stagger: 0.08 }, "-=1.1")
-          .to("[data-scroll-hint]", { opacity: 1, duration: 0.8 }, "-=0.4");
+          .to("[data-rest]:not([data-rest=pills])", { opacity: 1, y: 0, duration: 1, stagger: 0.08 }, "-=1");
       });
     });
-
     return () => {
       off();
       ctx.revert();
@@ -51,47 +61,55 @@ export function Hero({ photo }: { photo?: string }) {
 
   return (
     <section ref={root} className={s.hero} aria-labelledby="hero-title">
-      <BlueprintCanvas className={s.canvas} />
-      <div className={`container ${s.inner}`}>
+      <div className={s.bg} aria-hidden="true">
+        <GlowLines set="hero" />
+        <LiquidBlob className={s.blob} />
+      </div>
+
+      <div className={`container ${s.grid}`}>
         <div className={s.text}>
+          <div className={s.pills} data-rest="pills">
+            <span className="pill pill-lime">ИИ-конструктор сайтов</span>
+            <span className="pill">от 4 999 ₽</span>
+          </div>
           <h1 id="hero-title" className={s.title}>
-            <span className={s.line} data-split>
-              Сайт
-            </span>
-            <span className={s.line} data-split>
-              за 24 часа
-            </span>
-            <span className={`${s.line} ${s.price}`}>
-              <span data-split>за&nbsp;</span>
-              <span data-price>4 999 ₽</span>
+            <span data-split>Сайт за 24 часа.</span>
+            <span className={s.price} data-price>
+              4 999 ₽
             </span>
           </h1>
-          <p className={s.lead} data-hero-rest>
-            Опишите бизнес — ИИ соберёт сайт из блоков, которые сделали дизайнеры. Вы смотрите прототип и платите,
-            только если он понравился.
+          <p className={s.lead} data-rest>
+            Опишите свой бизнес — мы соберём для вас современный сайт с текстами, дизайном и адаптацией под все
+            устройства. Быстро. Красиво. Без лишних сложностей.
           </p>
-          <div className={s.actions} data-hero-rest>
+          <div className={s.actions} data-rest>
             <Magnetic>
-              <Link href="/brief" className="btn btn-primary">
-                Собрать сайт
+              <Link href="/brief" className="btn btn-primary btn-dot">
+                Создать мой сайт
+                <ArrowIcon />
               </Link>
             </Magnetic>
-            <a href="#live" className="btn btn-secondary">
-              Как это выглядит
+            <a href="#how" className={s.play}>
+              <Icon name="play" size={34} />
+              Как это работает
             </a>
           </div>
-          <ul className={s.facts} data-hero-rest>
-            <li>Бриф — около 5 минут</li>
-            <li>Оплата после просмотра</li>
-            <li>3 правки бесплатно</li>
-          </ul>
+        </div>
+        <div className={s.showcase}>
+          <HeroShowcase photos={photos} />
         </div>
       </div>
-      <HeroScene className={s.scene} photo={photo} />
-      <div className={s.scrollHint} data-scroll-hint aria-hidden="true">
-        <span>Листайте</span>
-        <i />
-      </div>
+
+      <ul className={`container ${s.features}`} data-rest>
+        {FEATURES.map((f) => (
+          <li key={f.text}>
+            <span className={s.featureIcon}>
+              <Icon name={f.icon} size={18} />
+            </span>
+            {f.text}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

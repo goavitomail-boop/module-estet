@@ -18,8 +18,8 @@ export function TiltCard({ children, className }: { children: ReactNode; classNa
       const r = el.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width;
       const py = (e.clientY - r.top) / r.height;
-      ry((px - 0.5) * 12);
-      rx((0.5 - py) * 10);
+      ry((px - 0.5) * 10);
+      rx((0.5 - py) * 8);
       el.style.setProperty("--gx", `${px * 100}%`);
       el.style.setProperty("--gy", `${py * 100}%`);
     };

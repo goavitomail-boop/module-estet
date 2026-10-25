@@ -1,9 +1,11 @@
 /* Токены — см. DESIGN.md */
 :root {
-  --ink: #0a0a0d;
-  --surface: #121217;
-  --surface-2: #1b1b22;
-  --line: #2a2a33;
+  --ink: #060706;
+  --surface: #0e100d;
+  --surface-2: #161914;
+  --glass: rgba(255, 255, 255, 0.035);
+  --glass-line: rgba(255, 255, 255, 0.09);
+  --line: #23261f;
   --text: #f2f2ee;
   --text-2: #a3a3ad;
   --text-3: #6e6e78;
@@ -14,7 +16,7 @@
   --danger: #ff6b5e;
   --warning: #ffc24a;
 
-  --font-display: "Unbounded Variable", "Arial Black", sans-serif;
+  --font-display: "Onest Variable", "Manrope Variable", system-ui, sans-serif;
   --font-body: "Manrope Variable", system-ui, sans-serif;
 
   --fs-display: clamp(48px, 8.4vw, 128px);
@@ -85,8 +87,8 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  letter-spacing: -0.03em;
   margin: 0;
   text-wrap: balance;
 }
@@ -157,7 +159,7 @@ select {
   gap: 10px;
   min-height: 56px;
   padding: 0 28px;
-  border-radius: var(--r-m);
+  border-radius: var(--r-pill);
   border: 1px solid transparent;
   font: 600 17px/1 var(--font-body);
   text-decoration: none;
@@ -176,18 +178,33 @@ select {
 }
 
 .btn-primary {
-  background: var(--lime);
+  background: linear-gradient(180deg, #dcff7a, var(--lime));
   color: var(--lime-ink);
+  box-shadow:
+    0 0 0 1px rgba(200, 255, 61, 0.4),
+    0 10px 40px -8px rgba(200, 255, 61, 0.55);
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 0 0 6px rgba(200, 255, 61, 0.16);
+  box-shadow:
+    0 0 0 6px rgba(200, 255, 61, 0.16),
+    0 14px 50px -6px rgba(200, 255, 61, 0.7);
+}
+
+/* Точка слева и стрелка справа — как на концепте */
+.btn-dot::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .btn-secondary {
-  background: transparent;
+  background: var(--glass);
   color: var(--text);
-  border-color: var(--line);
+  border-color: var(--glass-line);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -217,6 +234,45 @@ select {
 
 .link:hover {
   color: var(--lime);
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-l);
+  backdrop-filter: blur(14px);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-line);
+  background: var(--glass);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pill-lime {
+  border-color: rgba(200, 255, 61, 0.45);
+  color: var(--lime);
+  box-shadow: inset 0 0 18px rgba(200, 255, 61, 0.08);
+}
+
+.section-title {
+  font-size: clamp(34px, 4vw, 56px);
+  line-height: 1.04;
+}
+
+.section-sub {
+  margin-top: 16px;
+  font-size: var(--fs-lead);
+  color: var(--text-2);
+  max-width: 32em;
 }
 
 /* Метка для данных, которые ещё нужно уточнить у владельца */

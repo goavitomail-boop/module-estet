@@ -10,7 +10,7 @@
   gap: 16px;
   padding: 40px 32px;
   background: var(--surface);
-  border: 1px dashed var(--violet);
+  border: 1px dashed rgba(200, 255, 61, 0.45);
   border-radius: var(--r-l);
 }
 
@@ -18,8 +18,8 @@
   justify-self: start;
   padding: 4px 12px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--violet);
-  color: var(--violet-text);
+  border: 1px solid rgba(200, 255, 61, 0.45);
+  color: var(--lime);
   font-size: var(--fs-micro);
   font-weight: 600;
 }

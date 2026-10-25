@@ -31,6 +31,7 @@ export type BriefInput = z.input<typeof BriefSchema>;
 export const ICON_NAMES = [
   "leaf", "heart", "calendar", "shield", "clock", "users", "doc", "camera", "sprout", "armchair", "bean", "cup",
   "wrench", "gear", "car", "oil", "laptop", "tire", "ruler", "home", "sparkle", "lock", "phone", "pin", "arrow", "plus",
+  "chat", "eye", "card", "globe", "bolt", "play", "check", "layers", "mobile", "palette", "text",
 ] as const;
 export const IconSchema = z.enum(ICON_NAMES);
 export type IconName = (typeof ICON_NAMES)[number];

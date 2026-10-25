@@ -1,33 +1,36 @@
 import Link from "next/link";
+import { ArrowIcon } from "../ArrowIcon";
+import { Logo } from "../Logo";
 import { Magnetic } from "../Magnetic";
 import { RevealText } from "../RevealText";
+import { LightMountains } from "./LightMountains";
 import s from "./FinalCta.module.css";
-
-const RING = "сайт за 24 часа · оплата после просмотра · ";
 
 export function FinalCta() {
   return (
     <section className={s.section} aria-labelledby="final-title">
-      <div className={`container ${s.inner}`}>
-        <RevealText id="final-title" className={s.title}>
-          Посмотрите свой сайт до оплаты
-        </RevealText>
-        <p className={s.text}>Бриф займёт около пяти минут. Прототип появится в личном кабинете.</p>
-        <Magnetic strength={0.4}>
-          <Link href="/brief" className={s.round}>
-            <svg className={s.ring} viewBox="0 0 200 200" aria-hidden="true">
-              <defs>
-                <path id="cta-ring" d="M100,100 m-82,0 a82,82 0 1,1 164,0 a82,82 0 1,1 -164,0" />
-              </defs>
-              <text>
-                <textPath href="#cta-ring" textLength="512">
-                  {RING}
-                </textPath>
-              </text>
-            </svg>
-            <span className={s.roundLabel}>Собрать сайт</span>
-          </Link>
-        </Magnetic>
+      <LightMountains className={s.mountains} />
+      <div className={`container ${s.grid}`}>
+        <div>
+          <p className={s.kicker}>Готовы начать?</p>
+          <RevealText id="final-title" className={s.title}>
+            Ваш сайт — уже через 24 часа
+          </RevealText>
+          <p className={s.text}>Опишите свой бизнес и получите современный сайт по фиксированной цене 4 999 ₽.</p>
+        </div>
+        <div className={s.action}>
+          <Magnetic strength={0.3}>
+            <Link href="/brief" className="btn btn-primary btn-dot">
+              Создать мой сайт
+              <ArrowIcon />
+            </Link>
+          </Magnetic>
+          <p className={s.note}>Бриф займёт около 5 минут</p>
+        </div>
+        <div className={s.brand}>
+          <Logo size="l" />
+          <p>Искусственный интеллект для вашего бизнеса</p>
+        </div>
       </div>
     </section>
   );

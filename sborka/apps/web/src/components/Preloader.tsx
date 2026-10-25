@@ -44,15 +44,16 @@ export function Preloader() {
             el.remove();
           },
         })
-        .from("[data-block]", {
-          x: (i) => [-90, 90, -90, 90][i],
-          y: (i) => [-90, -90, 90, 90][i],
-          rotate: (i) => [-90, 45, 45, -90][i],
+        .from("[data-ch]", {
+          yPercent: (i) => (i % 2 ? 120 : -120),
+          rotate: (i) => (i % 2 ? 12 : -12),
           opacity: 0,
+          filter: "blur(8px)",
           duration: 0.9,
-          stagger: 0.08,
+          stagger: 0.06,
           ease: "expo.out",
         })
+        .from("[data-dot]", { scale: 0, duration: 0.6, ease: "back.out(3)" }, "-=0.4")
         .to(
           counter,
           {
@@ -72,7 +73,7 @@ export function Preloader() {
           0.2,
         )
         .to("[data-bar]", { scaleX: 1, duration: 2.1, ease: "power2.inOut" }, 0.2)
-        .to("[data-block]", { rotate: 90, duration: 0.6, stagger: 0.05, ease: "expo.inOut" }, "-=0.35")
+        .to("[data-dot]", { scale: 2.2, duration: 0.5, ease: "expo.inOut" }, "-=0.3")
         .to("[data-content]", { yPercent: -30, opacity: 0, duration: 0.6, ease: "power3.in" }, "+=0.05")
         .add(() => {
           html.classList.remove("is-loading");
@@ -93,12 +94,14 @@ export function Preloader() {
         <i data-col />
       </div>
       <div className={s.content} data-content aria-hidden="true">
-        <svg className={s.mark} viewBox="0 0 28 28">
-          <rect data-block x="1" y="1" width="12" height="12" rx="2" fill="var(--lime)" />
-          <rect data-block x="15.5" y="1.5" width="11" height="11" rx="2" fill="none" stroke="var(--violet)" strokeWidth="1.2" />
-          <rect data-block x="1.5" y="15.5" width="11" height="11" rx="2" fill="none" stroke="var(--violet)" strokeWidth="1.2" />
-          <rect data-block x="15" y="15" width="12" height="12" rx="2" fill="var(--lime)" />
-        </svg>
+        <p className={s.word}>
+          {"сборка".split("").map((ch, i) => (
+            <span key={i} data-ch>
+              {ch}
+            </span>
+          ))}
+          <i data-dot />
+        </p>
         <div className={s.counter}>
           <span data-num>000</span>
         </div>

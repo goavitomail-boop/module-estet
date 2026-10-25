@@ -26,7 +26,7 @@
 }
 
 .bars span[data-state="current"] {
-  background: var(--violet);
+  background: rgba(200, 255, 61, 0.45);
 }
 
 .bars span[data-state="done"] {
@@ -93,7 +93,7 @@
   width: 22px;
   height: 22px;
   margin: 0;
-  border: 1px solid var(--violet);
+  border: 1px solid rgba(200, 255, 61, 0.45);
   border-radius: 50%;
   display: grid;
   place-items: center;

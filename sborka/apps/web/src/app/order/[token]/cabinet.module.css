@@ -18,8 +18,8 @@
   margin-bottom: 10px;
   padding: 4px 12px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--violet);
-  color: var(--violet-text);
+  border: 1px solid rgba(200, 255, 61, 0.45);
+  color: var(--lime);
   font-size: var(--fs-micro);
   font-weight: 600;
 }
@@ -175,7 +175,7 @@
 .revisions span {
   display: block;
   margin-top: 4px;
-  color: var(--violet-text);
+  color: var(--lime);
   font-size: var(--fs-micro);
   font-weight: 600;
 }

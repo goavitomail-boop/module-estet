@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ArrowIcon } from "../ArrowIcon";
 import { Logo } from "../Logo";
 import s from "./Header.module.css";
+import { NAV } from "./nav";
 
-const LINKS = [
-  { href: "#how", label: "Как это работает" },
-  { href: "#examples", label: "Примеры" },
-  { href: "#price", label: "Цена" },
-  { href: "#faq", label: "Вопросы" },
-];
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -46,14 +42,15 @@ export function Header() {
       <div className={`container ${s.inner}`}>
         <Logo />
         <nav className={s.nav} aria-label="Основная навигация">
-          {LINKS.map((l) => (
+          {NAV.map((l) => (
             <a key={l.href} href={l.href}>
               {l.label}
             </a>
           ))}
         </nav>
-        <Link href="/brief" className={`btn btn-primary btn-small ${s.cta}`}>
-          Собрать сайт
+        <Link href="/brief" className={`btn btn-primary btn-small btn-dot ${s.cta}`}>
+          Создать мой сайт
+          <ArrowIcon size={16} />
         </Link>
         <button
           type="button"
@@ -67,13 +64,14 @@ export function Header() {
       </div>
       <div id="mobile-menu" className={s.mobile} hidden={!open}>
         <nav aria-label="Мобильная навигация" className="container">
-          {LINKS.map((l) => (
+          {NAV.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
               {l.label}
             </a>
           ))}
-          <Link href="/brief" className="btn btn-primary" onClick={() => setOpen(false)}>
-            Собрать сайт
+          <Link href="/brief" className="btn btn-primary btn-dot" onClick={() => setOpen(false)}>
+            Создать мой сайт
+            <ArrowIcon />
           </Link>
         </nav>
       </div>

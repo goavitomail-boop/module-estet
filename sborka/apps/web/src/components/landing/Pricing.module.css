@@ -1,125 +1,167 @@
 .section {
   padding: var(--section) 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--glass-line);
 }
 
 .grid {
   display: grid;
   gap: 48px;
+  align-items: start;
 }
 
-.title {
-  font-size: var(--fs-h1);
-  line-height: 1.02;
-  margin-bottom: 24px;
-  max-width: 11em;
-}
-
-.text {
-  font-size: var(--fs-lead);
+.label {
+  margin-bottom: 16px;
+  font-size: var(--fs-small);
   color: var(--text-2);
-  max-width: 26em;
+}
+
+.cta {
+  margin-top: 32px;
+}
+
+.small {
+  margin-top: 16px;
+  font-size: var(--fs-micro);
+  color: var(--text-2);
 }
 
 .card {
-  padding: 40px 32px;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  position: relative;
+  padding: 36px 32px 32px;
   border-radius: var(--r-l);
+  border: 1px solid rgba(200, 255, 61, 0.6);
+  background: linear-gradient(180deg, rgba(200, 255, 61, 0.06), rgba(255, 255, 255, 0.015) 40%);
+  box-shadow:
+    0 0 0 1px rgba(200, 255, 61, 0.12),
+    0 0 60px -10px rgba(200, 255, 61, 0.3);
 }
 
 .tilt {
   position: relative;
-  overflow: hidden;
   transform-style: preserve-3d;
   will-change: transform;
 }
 
 .tilt::before {
-  /* Лаймовый контур, проступающий по краю за курсором */
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: radial-gradient(400px circle at var(--gx, 50%) var(--gy, 0%), var(--lime), transparent 60%);
+  background: radial-gradient(360px circle at var(--gx, 50%) var(--gy, 0%), #fff, transparent 55%);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
+  opacity: 0.5;
   pointer-events: none;
 }
 
 .glare {
   position: absolute;
   inset: 0;
-  background: radial-gradient(600px circle at var(--gx, 50%) var(--gy, 0%), rgba(200, 255, 61, 0.09), transparent 45%);
+  border-radius: inherit;
+  background: radial-gradient(500px circle at var(--gx, 50%) var(--gy, 0%), rgba(200, 255, 61, 0.1), transparent 45%);
   pointer-events: none;
 }
 
-.price {
-  font-family: var(--font-display);
+.badge {
+  position: absolute;
+  top: -13px;
+  left: 28px;
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  background: var(--lime);
+  color: var(--lime-ink);
+  font-size: var(--fs-micro);
   font-weight: 700;
-  font-size: clamp(56px, 8vw, 104px);
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--lime);
 }
 
-.once {
+.plan {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.price {
   margin-top: 8px;
-  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: clamp(48px, 5vw, 64px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 
 .list {
-  list-style: none;
-  margin: 32px 0 24px;
-  padding: 0;
   display: grid;
-  gap: 0;
+  gap: 12px;
+  margin: 28px 0 32px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
 }
 
 .list li {
   display: flex;
-  gap: 14px;
-  padding: 14px 0;
-  border-top: 1px solid var(--line);
+  align-items: center;
+  gap: 12px;
 }
 
-.list li::before {
-  content: "";
+.list svg {
   flex: 0 0 auto;
-  width: 18px;
-  height: 10px;
-  margin-top: 6px;
-  border-left: 2px solid var(--lime);
-  border-bottom: 2px solid var(--lime);
-  transform: rotate(-45deg) translate(2px, -2px);
+  color: var(--lime);
 }
 
-.note {
-  font-size: var(--fs-small);
-  color: var(--text-2);
-  margin-bottom: 32px;
-}
-
-.cta {
+.cardCta {
   width: 100%;
 }
 
-.card > span {
-  display: flex !important;
+.compareTitle {
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 500;
 }
 
-@media (min-width: 1000px) {
+.compare table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+
+.compare th,
+.compare td {
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 400;
+  border-bottom: 1px solid var(--glass-line);
+}
+
+.compare thead th {
+  font-size: var(--fs-micro);
+  color: var(--text-2);
+}
+
+.compare tbody th {
+  color: var(--text-2);
+}
+
+.compare td {
+  color: var(--text-2);
+}
+
+.compare .us {
+  color: var(--lime);
+  font-weight: 600;
+  background: linear-gradient(90deg, rgba(200, 255, 61, 0.06), transparent);
+}
+
+@media (min-width: 1100px) {
   .grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: start;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 40px;
   }
 
   .card {
-    padding: 48px;
+    margin-top: 12px;
   }
 }
