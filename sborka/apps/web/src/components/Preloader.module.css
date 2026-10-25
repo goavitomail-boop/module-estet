@@ -54,7 +54,7 @@
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 40px;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--display-track-tight);
 }
 
 .word span {
@@ -72,12 +72,12 @@
 
 .counter {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: var(--display-weight);
   color: var(--lime);
   text-shadow: 0 0 40px rgba(200, 255, 61, 0.4);
   font-size: clamp(72px, 14vw, 180px);
   line-height: 0.9;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--display-track-tight);
   font-variant-numeric: tabular-nums;
 }
 

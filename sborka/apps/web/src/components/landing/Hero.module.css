@@ -45,10 +45,10 @@
 
 .title {
   display: grid;
-  font-size: clamp(40px, 10.5vw, 92px);
-  font-weight: 500;
+  font-size: calc(clamp(40px, 10.5vw, 92px) * var(--display-size));
+  font-weight: var(--display-weight);
   line-height: 1;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--display-track-tight);
   margin-bottom: 28px;
 }
 
@@ -140,7 +140,7 @@
   }
 
   .title {
-    font-size: clamp(56px, 4.7vw, 84px);
+    font-size: calc(clamp(56px, 4.7vw, 84px) * var(--display-size));
   }
 
   .title > span:first-child {

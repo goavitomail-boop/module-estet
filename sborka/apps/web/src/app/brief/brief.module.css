@@ -78,7 +78,7 @@
   border-radius: var(--r-m);
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 500;
+  font-weight: var(--display-weight);
   cursor: pointer;
   transition: border-color 0.2s;
 }
