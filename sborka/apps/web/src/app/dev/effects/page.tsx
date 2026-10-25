@@ -12,15 +12,15 @@ export const dynamic = "force-dynamic";
 /**
  * Пример сайта с любым набором эффектов — для записи роликов-примеров в редакторе
  * (scripts/effect-previews.mjs). Работает только с SBORKA_DEV_TOOLS=1.
- * ?niche=florist&v=0&e={"gallery":"polaroid"}&intro=1&h=centered (h — композиция первого экрана)
+ * ?niche=florist&v=0&e={"gallery":"polaroid"}&intro=1&h=centered&a=7c5cff (h — композиция первого экрана, a — акцент, t — тема)
  */
 export default async function EffectsDevPage({
   searchParams,
 }: {
-  searchParams: Promise<{ niche?: string; v?: string; e?: string; intro?: string; h?: string }>;
+  searchParams: Promise<{ niche?: string; v?: string; e?: string; intro?: string; h?: string; a?: string; t?: string }>;
 }) {
   if (process.env.SBORKA_DEV_TOOLS !== "1") notFound();
-  const { niche = "other", v, e, intro, h } = await searchParams;
+  const { niche = "other", v, e, intro, h, a, t } = await searchParams;
   if (!NICHE_IDS.includes(niche as NicheId)) notFound();
   const spec = await getGenerator().generate({ brief: demoBrief(niche as NicheId), variant: Number(v) || 0, demo: true });
   let raw: unknown = {};
@@ -29,5 +29,7 @@ export default async function EffectsDevPage({
   } catch {}
   spec.effects = EffectsSchema.parse(raw);
   if (h && h in HERO_LAYOUTS) spec.style = { ...spec.style, hero: h as HeroLayoutId };
+  if (a && /^[0-9a-f]{6}$/i.test(a)) spec.style = { ...spec.style, accent: `#${a}` };
+  if (t && /^[a-z-]+$/.test(t)) spec.themeId = t;
   return <SiteRenderer spec={spec} mode="example" intro={intro === "1"} />;
 }

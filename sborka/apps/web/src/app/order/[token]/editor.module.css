@@ -374,26 +374,33 @@
   color: var(--lime-ink);
 }
 
-/* Варианты эффекта */
+/* Варианты эффекта: живая миниатюра на всю карточку */
 .fxGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .fxOption {
   position: relative;
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  padding: 10px 12px;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  padding: 0;
   border: 1px solid var(--line);
   border-radius: var(--r-m);
-  background: var(--ink);
-  color: var(--text);
+  background: linear-gradient(110deg, var(--surface) 30%, rgba(255, 255, 255, 0.06) 50%, var(--surface) 70%) 0 0 / 300% 100%;
+  color: #fff;
   text-align: left;
   cursor: pointer;
+  animation: thumb-wait 1.4s linear infinite;
   transition: border-color 0.15s;
+}
+
+@keyframes thumb-wait {
+  to {
+    background-position: -150% 0;
+  }
 }
 
 .fxOption:hover:not(:disabled) {
@@ -402,179 +409,103 @@
 
 .fxOption[aria-checked="true"] {
   border-color: var(--lime);
-  box-shadow: 0 0 0 1px var(--lime);
+  box-shadow: 0 0 0 2px var(--lime);
 }
 
 .fxOption[role="checkbox"][aria-checked="true"]::after {
   content: "✓";
   position: absolute;
   top: 8px;
-  right: 10px;
-  color: var(--lime);
+  right: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--lime-ink);
+  font-size: 12px;
   font-weight: 700;
 }
 
-.fxOption[data-paid] {
-  background:
-    radial-gradient(90% 70% at 100% 0%, rgba(200, 255, 61, 0.12), transparent 70%),
-    var(--ink);
-}
-
-.fxOption b {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 8px;
-  padding-right: 14px;
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.fxOption em {
-  font-style: normal;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.fxOption small {
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-2);
-}
-
-.fxTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-.fxTags i {
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-2);
-}
-
-.fxTags .fxPaid {
-  background: var(--lime);
-  color: var(--lime-ink);
-}
-
-@media (max-width: 420px) {
-  .fxGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Пример эффекта: ролик при наведении на вариант */
-.fxCell {
-  position: relative;
-  display: grid;
-}
-
-.peekButton {
-  display: none;
-}
-
-@media (hover: none) {
-  .peekButton {
-    display: block;
-    justify-self: start;
-    margin-top: 4px;
-    padding: 6px 10px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: none;
-    color: var(--text-2);
-    font: 600 12px / 1 var(--font-body);
-    cursor: pointer;
-  }
-}
-
-.peek {
-  position: fixed;
-  z-index: 60;
-  width: 400px;
-  max-width: calc(100vw - 24px);
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid rgba(200, 255, 61, 0.45);
-  border-radius: var(--r-l);
-  background: var(--surface);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-  pointer-events: none;
-  animation: peek-in 0.22s var(--ease) both;
-}
-
-.peek[data-touch] {
-  width: auto;
-  pointer-events: auto;
-}
-
-@keyframes peek-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-}
-
-.peekMedia {
-  position: relative;
-  aspect-ratio: 16 / 10;
-  background: linear-gradient(110deg, var(--ink) 30%, rgba(255, 255, 255, 0.06) 50%, var(--ink) 70%) 0 0 / 300% 100%;
-  animation: peek-wait 1.2s linear infinite;
-}
-
-.peekMedia[data-ready] {
-  animation: none;
-}
-
-@keyframes peek-wait {
-  to {
-    background-position: -150% 0;
-  }
-}
-
-.peekMedia video {
-  display: block;
+.thumbVideo {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.2s;
 }
 
-.peekMedia[data-ready] video {
-  opacity: 1;
+.thumbNone {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: 22px;
 }
 
-.peek figcaption {
+.thumbTag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Название и описание поверх ролика — при наведении */
+.fxInfo {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
   display: grid;
   gap: 2px;
-  padding: 10px 14px 12px;
+  padding: 24px 10px 8px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.82) 45%);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.2s,
+    transform 0.2s var(--ease);
 }
 
-.peek figcaption b {
-  font-size: 14px;
+.fxInfo b {
+  font-size: 13px;
+  line-height: 1.25;
 }
 
-.peek figcaption span {
-  font-size: 12px;
-  color: var(--text-2);
+.fxInfo small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.78);
 }
 
-.peekShade {
-  position: fixed;
-  inset: 0;
-  z-index: 59;
-  background: rgba(0, 0, 0, 0.5);
+.fxOption:hover .fxInfo,
+.fxOption:focus-visible .fxInfo {
+  opacity: 1;
+  transform: none;
+}
+
+/* Без мыши навести нечем — название видно всегда, описание прячем */
+@media (hover: none) {
+  .fxInfo {
+    opacity: 1;
+    transform: none;
+  }
+
+  .fxInfo small {
+    display: none;
+  }
 }
 
 /* Раздел 3D-графики внутри эффектов первого экрана */
@@ -592,6 +523,20 @@
   align-items: baseline;
   gap: 4px 10px;
   font-size: 15px;
+}
+
+.fxCat {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.h5 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
 }
 
 .h4 span {

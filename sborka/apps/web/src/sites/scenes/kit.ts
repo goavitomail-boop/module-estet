@@ -1,4 +1,6 @@
 import type * as T from "three";
+import type { ShaderMountUniforms } from "@paper-design/shaders";
+import type { Palette } from "./palette";
 
 /**
  * Общее для 3D-сцен первого экрана: что сцена получает от Scene3D и чем пользуется.
@@ -26,38 +28,50 @@ export interface Kit {
   px: () => number;
   /** Запомнить, что освободить, когда сцена уйдёт со страницы. */
   keep: <D extends { dispose: () => void }>(d: D) => D;
+  /** Студийная комната из комплекта three.js — основа для бликов. */
+  room: () => T.Scene & { dispose: () => void };
 }
 
 /** Сцена строит себя и возвращает шаг анимации: t — секунды с начала. */
 export type Build = (kit: Kit) => (t: number) => void;
+
+/**
+ * Живой фон на шейдере: один проход видеокарты на весь первый экран («full»)
+ * или объект в квадрате у правого края («object»). Цвета — из палитры сайта.
+ */
+export interface ShaderScene {
+  place: "full" | "object";
+  make: (p: Palette, small: boolean) => { fragment: string; uniforms: ShaderMountUniforms; speed?: number };
+}
 
 /** Цвет глянцевого металла: на тёмном фоне глубже, на светлом — светлее. */
 export function metal(k: Kit) {
   return k.light ? k.accent.clone().lerp(new k.THREE.Color(0xffffff), 0.15) : k.accent.clone().multiplyScalar(0.55);
 }
 
-/** Студийное окружение для бликов: светящиеся полосы в цвете акцента и белый софтбокс. */
+/**
+ * Студийное окружение для бликов: комната с софтбоксами из комплекта three.js
+ * и две светящиеся полосы в цвете акцента — блики на глянце получаются цветными.
+ */
 export function studio(k: Kit) {
   const { THREE } = k;
-  const env = new THREE.Scene();
-  env.background = new THREE.Color(k.light ? 0xf4f4f4 : 0x050505);
-  const strip = (color: T.Color, power: number, w: number, h: number, p: [number, number, number], ry: number) => {
+  const env = k.room();
+  const parts: { dispose: () => void }[] = [];
+  const strip = (power: number, w: number, h: number, p: [number, number, number], ry: number) => {
     const geo = new THREE.PlaneGeometry(w, h);
-    const mat = new THREE.MeshBasicMaterial({ color: color.clone().multiplyScalar(power), side: THREE.DoubleSide });
+    const mat = new THREE.MeshBasicMaterial({ color: k.accent.clone().multiplyScalar(power), side: THREE.DoubleSide });
     const m = new THREE.Mesh(geo, mat);
     m.position.set(...p);
     m.rotation.y = ry;
     env.add(m);
-    return [geo, mat];
+    parts.push(geo, mat);
   };
-  const parts = [
-    strip(k.accent, 5, 1.2, 8, [-4, 0, 1], Math.PI / 2),
-    strip(k.accent, 3, 8, 0.6, [0, 3.5, -2], 0),
-    strip(new THREE.Color(0xffffff), 3, 2, 3, [4, 1, 2], -Math.PI / 2),
-  ].flat();
+  strip(6, 1.2, 8, [-6, 1, 1], Math.PI / 2);
+  strip(4, 9, 0.5, [0, 6.5, -4], 0);
   const pmrem = new THREE.PMREMGenerator(k.renderer);
-  const texture = k.keep(pmrem.fromScene(env, 0.04)).texture;
+  const texture = k.keep(pmrem.fromScene(env, 0.035)).texture;
   pmrem.dispose();
+  env.dispose();
   parts.forEach((p) => p.dispose());
   k.scene.environment = texture;
   return texture;

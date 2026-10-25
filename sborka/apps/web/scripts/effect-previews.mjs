@@ -1,6 +1,7 @@
 /**
  * Записывает ролики-примеры эффектов для редактора: public/effects/<группа>-<вариант>.mp4.
- * Их показывает всплывающее окно, когда клиент наводит на вариант эффекта.
+ * Это живые миниатюры в карточках вариантов. Сервер отдаёт только файлы, что были при сборке, —
+ * после записи пересоберите сайт.
  *
  * Нужны Playwright с Chromium и ffmpeg. Сначала соберите и запустите сайт со служебной страницей:
  *   npm run build && SBORKA_DEV_TOOLS=1 npx next start -p 3100
@@ -20,52 +21,25 @@ const OUT = new URL("../public/effects/", import.meta.url).pathname;
 const W = 1200;
 const H = 750;
 
-/** Кадр крупнее: эффект на фото или в углу. Координаты — в окне 1200×750, пропорции 16:10. h — композиция первого экрана. */
-const RIGHT = { x: 400, y: 0, w: 800, h: 500 };
-const PHOTO = { x: 400, y: 60, w: 800, h: 500 };
+/**
+ * Все примеры — на одном шаблоне, чтобы варианты было легко сравнивать: тёмный автосервис
+ * в журнальной композиции. Цитаты у автосервиса нет — её показываем на барбершопе в той же теме.
+ */
+const TEMPLATE = { niche: "auto", v: 0, h: "editorial" };
+const QUOTE_TEMPLATE = { niche: "barber", v: 0, h: "editorial", t: "auto-dark" };
+/** Плавающая кнопка маленькая — для неё кадр крупнее: правый нижний угол окна 1200×750. */
+const CORNER = { x: 400, y: 250, w: 800, h: 500 };
 
-/** Эффекты первого экрана показываем на сайте сферы, для которой они придуманы; 3D и сияние — на тёмном универсальном. */
-const FX_HOME = {
-  steam: { niche: "coffee", crop: { x: 450, y: 60, w: 720, h: 450 } },
-  swatches: { niche: "nails", crop: { x: 400, y: 100, w: 800, h: 500 } },
-  blueprint: { niche: "repair", crop: RIGHT },
-  beam: { niche: "auto" },
-  aurora: { niche: "other", v: 2 },
-  pulse: { niche: "fitness" },
-  document: { niche: "legal", crop: { x: 480, y: 300, w: 720, h: 450 } },
-  pole: { niche: "barber", crop: { x: 0, y: 250, w: 800, h: 500 } },
-  bubbles: { niche: "cleaning" },
-  liquid: { niche: "dental" },
-  trail: { niche: "photo" },
-  petals: { niche: "florist" },
-  "scene-orb": { niche: "barber" },
-  "scene-glass": { niche: "dental", h: "centered" },
-  "scene-crystal": { niche: "coffee", v: 1 },
-  "scene-knot": { niche: "fitness" },
-  "scene-rings": { niche: "legal", v: 1, h: "overlay" },
-  "scene-shapes": { niche: "cleaning", h: "overlay" },
-  "scene-silk": { niche: "florist", v: 1 },
-  "scene-helix": { niche: "dental", v: 1, h: "centered" },
-  "scene-globe": { niche: "photo", v: 1, h: "overlay" },
-  "scene-strings": { niche: "psychologist" },
-  "scene-warp": { niche: "auto", crop: { x: 200, y: 125, w: 800, h: 500 } },
-  "scene-cubes": { niche: "repair", v: 1, crop: { x: 200, y: 250, w: 800, h: 500 } },
-  "scene-terrain": { niche: "other", v: 2, crop: { x: 160, y: 200, w: 880, h: 550 } },
-  "scene-particles": { niche: "other", v: 3 },
-  "scene-wave": { niche: "other", v: 3, crop: { x: 200, y: 250, w: 800, h: 500 } },
-};
-
-/** Декор — на сайтах, где он заметен. */
-const DECOR_HOME = {
-  marquee: { niche: "florist" },
-  blobs: { niche: "cleaning" },
-  lines: { niche: "other", v: 2 },
-  badge: { niche: "florist", crop: RIGHT },
-  chips: { niche: "dental", crop: PHOTO },
-};
+const HERO_FX = ["steam", "swatches", "blueprint", "beam", "aurora", "pulse", "document", "pole", "bubbles", "liquid", "trail", "petals"];
+const SCENES = [
+  ...["satin", "chrome", "mesh", "pearl", "grain", "plasma", "curtains", "spotlight", "rays", "threads", "bends", "glow", "bokeh"],
+  ...["marble", "swirl", "neuro", "water", "topo", "halftone", "stars", "dots", "blobs", "cells", "grain-wave", "ripple", "border"],
+  ...["dither", "spiral", "beams", "metal", "metal-flower", "gem", "smoke", "metaballs", "panels", "orb", "glass", "crystal", "knot"],
+  ...["rings", "shapes", "helix", "globe", "particles", "strings", "warp", "wave", "cubes", "terrain", "silk"],
+].map((id) => `scene-${id}`);
 
 const GROUPS = {
-  fx: Object.keys(FX_HOME),
+  fx: [...HERO_FX, ...SCENES],
   intro: ["circle", "letters", "split", "counter", "photos"],
   motion: ["soft", "elegant", "bold"],
   cursor: ["ring", "blend"],
@@ -91,11 +65,10 @@ const BLOCK = {
   highlight: "#about",
 };
 
-/** Сайт и кадр для ролика. Виды блоков, заставки и движение — на одном сайте, чтобы их было легко сравнить. */
-function siteFor(group, id) {
-  const home =
-    group === "fx" ? FX_HOME[id] : group === "decor" ? DECOR_HOME[id] : group === "cursor" ? { niche: "barber" } : { niche: "florist" };
-  return { v: 0, ...home };
+/** Сайт и кадр для ролика: один шаблон для всех. */
+function siteFor(group) {
+  if (group === "cinema") return QUOTE_TEMPLATE;
+  return TEMPLATE;
 }
 
 function effectsFor(group, id) {
@@ -194,7 +167,7 @@ async function play(page, group, id, url, clock) {
     await sleep(500);
     await page.mouse.move(W - 70, H - 70, { steps: 12 });
     await sleep(1600);
-    return { start, dur: 3.2, crop: { x: 400, y: 250, w: 800, h: 500 } };
+    return { start, dur: 3.2, crop: CORNER };
   }
   if (group === "decor") {
     if (id === "marquee") {
@@ -237,9 +210,9 @@ async function record(browser, group, id) {
   const page = await context.newPage();
   const t0 = Date.now();
   const clock = () => (Date.now() - t0) / 1000;
-  const site = siteFor(group, id);
-  const { niche, v, h } = site;
-  const url = `${BASE}/dev/effects?niche=${niche}&v=${v}${h ? `&h=${h}` : ""}&e=${encodeURIComponent(JSON.stringify(effectsFor(group, id)))}`;
+  const site = siteFor(group);
+  const { niche, v, h, t } = site;
+  const url = `${BASE}/dev/effects?niche=${niche}&v=${v}&h=${h}${t ? `&t=${t}` : ""}&e=${encodeURIComponent(JSON.stringify(effectsFor(group, id)))}`;
   const clip = await play(page, group, id, url, clock);
   const video = page.video();
   await context.close();

@@ -1732,7 +1732,56 @@
   left: 0;
   z-index: 0;
   height: min(100%, 100svh);
+  overflow: hidden;
   pointer-events: none;
+}
+
+/* Объект у правого края: квадрат частично за краем экрана */
+.sceneObject {
+  position: absolute;
+  top: 2%;
+  right: -9%;
+  width: min(40%, 560px);
+  aspect-ratio: 1;
+}
+
+/* Под текстом живой фон приглушён цветом фона сайта: слева — для композиций с текстом слева, по центру — для центральных */
+.sceneScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--s-bg) 82%, transparent) 0%, color-mix(in srgb, var(--s-bg) 55%, transparent) 38%, transparent 70%);
+}
+
+:global([data-hero="centered"]) .sceneScrim,
+:global([data-hero="collage"]) .sceneScrim {
+  background: radial-gradient(48% 46% at 50% 36%, color-mix(in srgb, var(--s-bg) 78%, transparent), transparent 100%);
+}
+
+/* Поверх фото живой фон светит, а не закрывает его */
+:global([data-hero="overlay"]) .scene[data-full] {
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+/* В журнальной композиции текст и сверху, и справа — фон приглушён равномерно */
+:global([data-hero="editorial"]) .sceneScrim {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--s-bg) 70%, transparent) 0%, color-mix(in srgb, var(--s-bg) 40%, transparent) 45%, color-mix(in srgb, var(--s-bg) 55%, transparent) 100%);
+}
+
+:global([data-hero="overlay"]) .sceneScrim {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .sceneObject {
+    top: 1%;
+    right: -20%;
+    width: 74%;
+  }
+
+  .sceneScrim {
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--s-bg) 70%, transparent) 30%, color-mix(in srgb, var(--s-bg) 70%, transparent) 75%, transparent 100%);
+  }
 }
 
 .scene canvas {
