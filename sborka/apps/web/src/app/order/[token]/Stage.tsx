@@ -18,6 +18,21 @@ export interface Spotlight {
   height: number;
 }
 
+/** Рамка вокруг блока сайта в координатах окна кабинета; null — блок почти не виден. */
+export function spotOf(win: Window, el: Element, scale: number): Spotlight | null {
+  const r = el.getBoundingClientRect();
+  const top = Math.max(0, r.top);
+  const bottom = Math.min(win.innerHeight, r.bottom);
+  if (bottom - top < 60) return null;
+  const inset = 6;
+  return {
+    top: top * scale + inset,
+    left: Math.max(0, r.left) * scale + inset,
+    width: Math.min(r.width, win.innerWidth) * scale - inset * 2,
+    height: (bottom - top) * scale - inset * 2,
+  };
+}
+
 /**
  * Окно с прототипом. iframe всегда в натуральном размере (1440 или 390 px),
  * поэтому на «Компьютере» клиент видит именно десктопную вёрстку, а не урезанную.

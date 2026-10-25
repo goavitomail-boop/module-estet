@@ -44,7 +44,18 @@ const order = (i: number) => ({ "--i": i }) as CSSProperties;
  * Рендерит клиентский сайт из SiteSpec: первый экран, блоки по порядку, контакты.
  * motion — анимации появления и параллакс; в миниатюрах на лендинге выключены.
  */
-export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mode: SiteMode; motion?: boolean }) {
+export function SiteRenderer({
+  spec,
+  mode,
+  motion = true,
+  intro = true,
+}: {
+  spec: SiteSpec;
+  mode: SiteMode;
+  motion?: boolean;
+  /** Заставка с названием при открытии. В кабинете после правок её не повторяем. */
+  intro?: boolean;
+}) {
   const theme = getTheme(spec.themeId);
   const vars = {
     "--s-bg": theme.bg,
@@ -93,9 +104,10 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
       data-upper={theme.upper ? "" : undefined}
       data-motion={theme.motion}
       data-anim={motion ? "" : undefined}
+      data-intro={motion && intro ? undefined : "off"}
       data-cursor={ctx.sig.cursor}
     >
-      {motion && <Intro ctx={ctx} />}
+      {motion && intro && <Intro ctx={ctx} />}
       {ctx.decor.has("lines") && (
         <div className={s.gridLines} aria-hidden="true">
           <div className={s.wrap} />
@@ -109,9 +121,11 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
         {ctx.decor.has("marquee") && <Marquee ctx={ctx} />}
 
         {spec.blocks.map((block, i) => {
-          // Якорь — у первого блока каждого типа, чтобы работали ссылки меню
-          const id = seen.has(block.type) ? undefined : block.type;
-          seen.add(block.type);
+          // Якорь — у первого блока каждого типа, чтобы работали ссылки меню;
+          // у добавленных фишек — свой, чтобы кабинет мог показать их на сайте
+          const key = block.type === "feature" && seen.has("feature") ? `feature-${block.kind}` : block.type;
+          const id = seen.has(key) ? undefined : key;
+          seen.add(key);
           return <BlockView key={i} block={block} id={id} ctx={ctx} />;
         })}
 
@@ -1434,13 +1448,16 @@ function FeatureBlock({ block, id, ctx }: { block: Extract<Block, { type: "featu
       return wrap(<Hotspots items={items} image={block.image ?? ctx.spec.images.hero} />, true);
     case "breathe":
       return wrap(<Breathe items={items} />, true);
-    case "quiz":
+    case "quiz": {
+      const services = ctx.spec.blocks.find((b) => b.type === "services");
       return wrap(
         <Quiz
           items={items}
-          services={(ctx.spec.blocks.find((b) => b.type === "services")?.items ?? []).map((x) => ({ name: x.name, price: x.price, note: x.note }))}
+          services={services?.type === "services" ? services.items.map((x) => ({ name: x.name, price: x.price, note: x.note })) : ctx.services}
+          cta={ctx.spec.niche === "fitness" ? undefined : ctx.spec.hero.cta}
         />,
       );
+    }
     case "navigator":
       return wrap(<Navigator items={items} />);
     case "lookbook":

@@ -1,0 +1,218 @@
+.choice {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border-radius: var(--r-m);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.choice:hover {
+  border-color: var(--text-3);
+}
+
+.choice[data-checked] {
+  border-color: rgba(200, 255, 61, 0.55);
+  background:
+    radial-gradient(80% 80% at 100% 0%, rgba(200, 255, 61, 0.06), transparent 70%),
+    var(--surface);
+}
+
+.choice[data-locked] {
+  border-style: dashed;
+  border-color: var(--line);
+  background: transparent;
+}
+
+.main {
+  display: flex;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.choice[data-locked] .main {
+  cursor: default;
+}
+
+.main input {
+  appearance: none;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  border: 1px solid rgba(200, 255, 61, 0.45);
+  border-radius: 7px;
+  cursor: inherit;
+}
+
+.main input::after {
+  content: "";
+  width: 6px;
+  height: 11px;
+  margin-top: -2px;
+  border: solid var(--lime-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 0.2s var(--ease);
+}
+
+.main input:checked {
+  background: var(--lime);
+  border-color: var(--lime);
+}
+
+.main input:checked::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.main input:disabled {
+  opacity: 0.55;
+}
+
+.main input:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+.body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.head b {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(124, 92, 255, 0.16);
+  color: var(--violet-text);
+  font-size: 11px;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.price {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--lime);
+  white-space: nowrap;
+}
+
+.price[data-free] {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.why {
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.more {
+  justify-self: start;
+  margin-left: 36px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: 600 var(--fs-micro) / 1.4 var(--font-body);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.more:hover {
+  color: var(--text);
+}
+
+.details {
+  margin: 4px 0 0 36px;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.extra {
+  margin: 10px 0 0 36px;
+}
+
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+.qty button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--glass-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.qty button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.qty output {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.options button {
+  display: grid;
+  gap: 2px;
+  padding: 8px 14px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--r-m);
+  background: transparent;
+  color: var(--text);
+  font: 600 var(--fs-small) / 1.2 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.options button small {
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.options button[aria-checked="true"] {
+  border-color: var(--lime);
+  background: rgba(200, 255, 61, 0.08);
+}

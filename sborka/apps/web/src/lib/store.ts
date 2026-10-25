@@ -1,5 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import type { AddonSelection, Leads } from "./addons";
+import { EMPTY_CUSTOM, type Custom } from "./sites/customize";
 import type { Brief, SiteSpec } from "./sites/schema";
 
 /**
@@ -24,6 +26,14 @@ export interface Revision {
   status: "pending" | "done";
 }
 
+/** Запрос «не нашли нужное» — оцениваем вручную, не тратит бесплатные правки. */
+export interface Wish {
+  id: string;
+  text: string;
+  createdAt: string;
+  status: "new" | "quoted";
+}
+
 export interface Order {
   id: string;
   /** Секретный токен из ссылки на кабинет. Пока это единственный способ входа. */
@@ -34,6 +44,15 @@ export interface Order {
   versions: SiteVersion[];
   currentVersion: number;
   revisions: Revision[];
+  /** Настройки клиента поверх собранного сайта: скрытые блоки, тексты, команда, отзывы. */
+  custom: Custom;
+  /** Выбранные дополнения. */
+  addons: AddonSelection[];
+  /** Куда присылать заявки с сайта. */
+  leads: Leads;
+  wishes: Wish[];
+  /** Номер изменения: растёт при каждой правке, чтобы окно с прототипом обновилось. */
+  rev: number;
   paymentId?: string;
 }
 
@@ -56,9 +75,21 @@ interface Db {
 
 const DB_FILE = path.join(process.cwd(), ".data", "db.json");
 
+/** Заказы, созданные до появления дополнений, получают значения по умолчанию. */
+function normalize(order: Order): Order {
+  order.custom ??= structuredClone(EMPTY_CUSTOM);
+  order.addons ??= [];
+  order.leads ??= { channels: ["telegram"], email: "" };
+  order.wishes ??= [];
+  order.rev ??= 0;
+  return order;
+}
+
 async function read(): Promise<Db> {
   try {
-    return JSON.parse(await fs.readFile(DB_FILE, "utf8")) as Db;
+    const db = JSON.parse(await fs.readFile(DB_FILE, "utf8")) as Db;
+    db.orders.forEach(normalize);
+    return db;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return { orders: [], payments: [] };
     throw err;

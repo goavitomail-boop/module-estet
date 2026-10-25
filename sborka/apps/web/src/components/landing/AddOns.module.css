@@ -679,6 +679,10 @@
   animation: ao-bolt 0.5s steps(2) 2;
 }
 
+.extra:hover .extraIcon[data-kind="card"] svg {
+  animation: ao-stack 0.8s var(--ease);
+}
+
 .extra:hover .extraIcon[data-kind="shield"] {
   animation: ao-shield 1.2s ease-out;
 }
@@ -729,7 +733,11 @@
   }
 
   .extras {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .extra {
+    padding: 24px;
   }
 }
 

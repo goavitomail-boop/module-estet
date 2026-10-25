@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { TourStep } from "@/lib/sites/presentation";
-import type { Device, Spotlight } from "./Stage";
+import { spotOf, type Device, type Spotlight } from "./Stage";
 import t from "./tour.module.css";
 
 /**
@@ -53,22 +53,7 @@ export function Tour({
     const device = step.action === "phone" || (step.action === "final" && index > 0 && steps[index - 1].action === "phone") ? "phone" : baseDevice;
     setDevice(device);
 
-    const measure = () => {
-      if (!target) return onSpotlight(null);
-      const r = target.getBoundingClientRect();
-      const vh = win.innerHeight;
-      const top = Math.max(0, r.top);
-      const bottom = Math.min(vh, r.bottom);
-      if (bottom - top < 60) return onSpotlight(null);
-      const k = scaleRef.current;
-      const inset = 6;
-      onSpotlight({
-        top: top * k + inset,
-        left: Math.max(0, r.left) * k + inset,
-        width: Math.min(r.width, win.innerWidth) * k - inset * 2,
-        height: (bottom - top) * k - inset * 2,
-      });
-    };
+    const measure = () => onSpotlight(target ? spotOf(win, target, scaleRef.current) : null);
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(measure);

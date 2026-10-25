@@ -2899,6 +2899,10 @@
     --intro: 1.45s;
   }
 
+  .site[data-anim][data-intro="off"] {
+    --intro: 0s;
+  }
+
   .site[data-anim] .intro {
     position: fixed;
     inset: 0;

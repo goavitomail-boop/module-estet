@@ -1,0 +1,28 @@
+.total {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 2px 10px;
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--fs-micro);
+  color: var(--text-2);
+}
+
+.sum {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 24px;
+  letter-spacing: var(--display-track-tight);
+  color: var(--lime);
+  font-variant-numeric: tabular-nums;
+}
+
+.notes {
+  grid-column: 1 / -1;
+  font-size: var(--fs-micro);
+  line-height: 1.4;
+  color: var(--text-2);
+}

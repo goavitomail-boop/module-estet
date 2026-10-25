@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
+import { ALWAYS, allNicheOptions } from "@/lib/sites/catalog";
 import { NICHE_IDS, type NicheId } from "@/lib/sites/schema";
 import { BriefForm } from "./BriefForm";
 
@@ -12,7 +13,7 @@ export default async function BriefPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader>Оплата только после просмотра</PageHeader>
       <main className="container">
-        <BriefForm initialNiche={initial} />
+        <BriefForm initialNiche={initial} options={await allNicheOptions()} always={ALWAYS} />
       </main>
     </>
   );

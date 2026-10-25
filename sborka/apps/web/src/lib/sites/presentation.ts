@@ -24,13 +24,13 @@ export const FEATURE_LABEL: Record<FeatureKind, string> = {
   breathe: "Дыхательная практика",
   quiz: "Тест-подбор",
   navigator: "Навигатор по ситуациям",
-  lookbook: "Лукбук",
+  lookbook: "Прайс с фото работ",
   wipe: "«Протрите стекло»",
   wizard: "Запись по шагам",
   postcard: "Открытка к букету",
 };
 
-const FEATURE_TEXT: Record<FeatureKind, string> = {
+export const FEATURE_TEXT: Record<FeatureKind, string> = {
   menu: "Гость листает категории меню и сразу видит цены. Позиции — из вашего брифа.",
   palette: "Клиентка выбирает оттенок покрытия и видит, как он смотрится. Так проще решиться на запись.",
   calculator: "Посетитель вводит площадь и сразу видит примерную стоимость по вашим ценам за метр.",

@@ -2,21 +2,30 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BuildShowData, StyleInfo, TourStep } from "@/lib/sites/presentation";
-import type { OrderStatus, Revision } from "@/lib/store";
+import { quote, rub, type AddonId, type AddonSelection, type Leads } from "@/lib/addons";
+import type { BlockOption } from "@/lib/sites/catalog";
+import type { Custom } from "@/lib/sites/customize";
+import type { BuildShowData, TourStep } from "@/lib/sites/presentation";
+import type { OrderStatus, Revision, Wish } from "@/lib/store";
 // Гарнитуры тем — для образцов «Аа» в карточках вариантов и на экране сборки
 import "@/sites/fonts";
+import { AddTab } from "./AddTab";
 import { BuildShow } from "./BuildShow";
-import { Stage, type Device, type Spotlight } from "./Stage";
+import { EditTab, type EditData, type SaveEdit } from "./EditTab";
+import { OrderTab, type VersionCard } from "./OrderTab";
+import { spotOf, Stage, type Device, type Spotlight } from "./Stage";
 import { Tour } from "./Tour";
+import { useOrderApi } from "./useOrderApi";
 import s from "./cabinet.module.css";
 
 interface Props {
   token: string;
   status: OrderStatus;
   businessName: string;
-  versions: { n: number; createdAt: string; reason: "brief" | "variant"; style: StyleInfo }[];
+  versions: VersionCard[];
   currentVersion: number;
+  /** Номер изменения заказа — меняется после каждой правки. */
+  rev: number;
   revisions: Revision[];
   variantsLeft: number;
   revisionsLeft: number;
@@ -24,6 +33,13 @@ interface Props {
   tour: TourStep[];
   /** Данные для экрана сборки — только сразу после брифа. */
   show: BuildShowData | null;
+  addons: AddonSelection[];
+  available: AddonId[];
+  blocks: BlockOption[];
+  edit: EditData;
+  custom: Custom;
+  leads: Leads;
+  wishes: Wish[];
 }
 
 const STATUS: Record<OrderStatus, string> = {
@@ -33,28 +49,41 @@ const STATUS: Record<OrderStatus, string> = {
   published: "Опубликовано",
 };
 
+type Tab = "order" | "edit" | "add" | "revisions";
+
 /** Экскурсия начинается, когда сайт в окне доиграет своё интро. */
 const TOUR_DELAY_MS = 2600;
 
 export function Cabinet(p: Props) {
   const router = useRouter();
+  const api = useOrderApi(p.token);
+  const { busy, call } = api;
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const revisionRef = useRef<HTMLTextAreaElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const [device, setDevice] = useState<Device>("desktop");
   const [baseDevice, setBaseDevice] = useState<Device>("desktop");
   const [scale, setScale] = useState(1);
   const [spot, setSpot] = useState<Spotlight | null>(null);
   const [showing, setShowing] = useState(p.show !== null);
   const [touring, setTouring] = useState(false);
-  const pendingTour = useRef(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState("");
+  const [tab, setTab] = useState<Tab>("order");
+  const [addons, setAddons] = useState(p.addons);
   const [revision, setRevision] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState("");
+  const pendingTour = useRef(false);
+  /** Куда прокрутить сайт после перезагрузки окна. */
+  const pendingAnchors = useRef<string[] | null>(null);
   const editable = p.status === "ready" || p.status === "payment_pending";
   const current = p.versions.find((v) => v.n === p.currentVersion) ?? p.versions.at(-1)!;
-  const previewUrl = `/preview/${p.token}?v=${p.currentVersion}`;
+
+  // Заставка играет только при первом открытии; после правок сайт обновляется сразу
+  const first = useRef({ v: p.currentVersion, rev: p.rev });
+  const fresh = first.current.v === p.currentVersion && first.current.rev === p.rev;
+  const previewUrl = `/preview/${p.token}?v=${p.currentVersion}${p.rev ? `&r=${p.rev}` : ""}${fresh ? "" : "&intro=0"}`;
+
+  // Сервер вернул новый список дополнений — синхронизируемся
+  useEffect(() => setAddons(p.addons), [p.addons]);
 
   // На телефоне десктопная вёрстка была бы слишком мелкой — начинаем с телефонной
   useEffect(() => {
@@ -91,74 +120,119 @@ export function Cabinet(p: Props) {
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
+  /** Прокрутить сайт к первому найденному блоку и ненадолго обвести его. */
+  const showOnSite = useCallback(
+    (anchors: string[]) => {
+      const win = frameRef.current?.contentWindow;
+      const doc = frameRef.current?.contentDocument;
+      if (!win || !doc) return;
+      setTouring(false);
+      if (window.innerWidth <= 900) stageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const el = anchors.map((id) => doc.getElementById(id)).find(Boolean) ?? null;
+      win.scrollTo({ top: el ? el.getBoundingClientRect().top + win.scrollY - 24 : 0, behavior: "smooth" });
+      if (!el) return;
+      setTimeout(() => setSpot(spotOf(win, el, scale)), 900);
+      setTimeout(() => setSpot(null), 3200);
+    },
+    [scale],
+  );
+
   const onFrameLoad = useCallback(() => {
-    if (!pendingTour.current || !frameRef.current?.contentWindow?.location.pathname.startsWith("/preview/")) return;
-    pendingTour.current = false;
-    setTimeout(() => setTouring(true), TOUR_DELAY_MS);
-  }, []);
+    if (!frameRef.current?.contentWindow?.location.pathname.startsWith("/preview/")) return;
+    if (pendingAnchors.current) {
+      const anchors = pendingAnchors.current;
+      pendingAnchors.current = null;
+      setTimeout(() => showOnSite(anchors), 300);
+    }
+    if (pendingTour.current) {
+      pendingTour.current = false;
+      setTimeout(() => setTouring(true), TOUR_DELAY_MS);
+    }
+  }, [showOnSite]);
 
   const closeTour = useCallback(() => setTouring(false), []);
 
-  async function call(action: string, path: string, body?: unknown) {
-    setBusy(action);
-    setError("");
-    try {
-      const res = await fetch(`/api/orders/${p.token}/${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Не получилось выполнить действие");
-      return data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не получилось выполнить действие");
-      return null;
-    } finally {
-      setBusy(null);
-    }
+  /** Перезагрузить данные кабинета; окно с сайтом обновится и покажет изменение. */
+  const refresh = useCallback(
+    (anchors: string[] | null) => {
+      pendingAnchors.current = anchors;
+      router.refresh();
+    },
+    [router],
+  );
+
+  const saveEdit: SaveEdit = useCallback(
+    async (body, anchors) => {
+      const ok = await call(String(body.section), "edit", body);
+      if (!ok) return false;
+      setSaved("Сохранено — сайт обновлён");
+      setTimeout(() => setSaved(""), 2500);
+      refresh(anchors);
+      return true;
+    },
+    [call, refresh],
+  );
+
+  async function changeAddons(next: AddonSelection[], anchors: string[]) {
+    const before = addons;
+    setAddons(next);
+    if (await call("addons", "addons", { addons: next })) refresh(anchors.length ? anchors : null);
+    else setAddons(before);
   }
 
   async function pay() {
-    const data = await call("pay", "pay");
+    const data = await call<{ confirmationUrl?: string }>("pay", "pay");
     if (data?.confirmationUrl) window.location.href = data.confirmationUrl;
   }
 
   async function newVariant() {
-    if (await call("variant", "variant")) router.refresh();
+    if (await call("variant", "variant")) refresh(null);
   }
 
-  function askRevision() {
-    setTouring(false);
-    revisionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    revisionRef.current?.focus({ preventScroll: true });
+  async function chooseVersion(n: number) {
+    if (await call("version", "version", { n })) refresh(null);
+  }
+
+  function openTab(next: Tab) {
+    setTab(next);
+    // Новая вкладка открывается с начала, а не с места, где листали прошлую
+    panelRef.current?.scrollTo({ top: 0 });
+    if (window.innerWidth <= 1100) panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function sendRevision(e: React.FormEvent) {
     e.preventDefault();
-    const data = await call("revision", "revision", { text: revision });
-    if (data) {
+    if (await call("revision", "revision", { text: revision })) {
       setRevision("");
       router.refresh();
     }
   }
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
+  const total = quote(addons).total;
   const finalActions = editable ? (
     <>
       <button type="button" className="btn btn-primary btn-small" onClick={pay} disabled={busy !== null}>
-        {busy === "pay" ? "Переходим к оплате…" : "Оплатить 4 999 ₽"}
+        {busy === "pay" ? "Переходим к оплате…" : `Оплатить ${rub(total)}`}
       </button>
-      <button type="button" className="btn btn-secondary btn-small" onClick={newVariant} disabled={busy !== null || p.variantsLeft === 0}>
-        {busy === "variant" ? "Собираем…" : "Другой вариант"}
+      <button
+        type="button"
+        className="btn btn-secondary btn-small"
+        onClick={() => {
+          setTouring(false);
+          openTab("add");
+        }}
+      >
+        Что ещё добавить
       </button>
-      <button type="button" className="btn btn-secondary btn-small" onClick={askRevision} disabled={p.revisionsLeft === 0}>
-        Написать правки
+      <button
+        type="button"
+        className="btn btn-secondary btn-small"
+        onClick={() => {
+          setTouring(false);
+          openTab("edit");
+        }}
+      >
+        Изменить
       </button>
     </>
   ) : (
@@ -166,6 +240,15 @@ export function Cabinet(p: Props) {
       Закрыть
     </button>
   );
+
+  const tabs: { id: Tab; title: string; count?: number }[] = editable
+    ? [
+        { id: "order", title: "Заказ" },
+        { id: "edit", title: "Изменить" },
+        { id: "add", title: "Добавить", count: addons.length || undefined },
+        { id: "revisions", title: "Правки", count: p.revisions.length || undefined },
+      ]
+    : [{ id: "order", title: "Заказ" }];
 
   return (
     <>
@@ -196,7 +279,7 @@ export function Cabinet(p: Props) {
                   Телефон
                 </button>
               </div>
-              <a href={previewUrl} target="_blank" className={s.open} aria-label="Открыть прототип в новой вкладке">
+              <a href={previewUrl.replace("&intro=0", "")} target="_blank" className={s.open} aria-label="Открыть прототип в новой вкладке">
                 <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M6 3H3v10h10v-3M9 2h5v5M14 2L7 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
@@ -212,7 +295,7 @@ export function Cabinet(p: Props) {
               frameRef={frameRef}
               onLoad={onFrameLoad}
               onScale={setScale}
-              spotlight={touring ? spot : null}
+              spotlight={spot}
               compact={touring}
             />
             {touring && (
@@ -227,86 +310,83 @@ export function Cabinet(p: Props) {
                 final={finalActions}
               />
             )}
+            <p className={s.saved} aria-live="polite" data-show={saved || undefined}>
+              {saved}
+            </p>
           </div>
         </section>
 
-        <aside className={s.panel}>
-          {error && (
+        <aside ref={panelRef} className={s.panel} aria-label="Управление заказом">
+          {tabs.length > 1 && (
+            <div className={s.tabs} role="tablist" aria-label="Разделы кабинета">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${t.id}`}
+                  aria-selected={tab === t.id}
+                  aria-controls={`panel-${t.id}`}
+                  onClick={() => {
+                    setTab(t.id);
+                    panelRef.current?.scrollTo({ top: 0 });
+                  }}
+                >
+                  {t.title}
+                  {t.count && <i>{t.count}</i>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {api.error && (
             <p className={s.error} role="alert">
-              {error}
+              {api.error}
             </p>
           )}
 
-          <section className={`${s.card} ${s.payCard}`} aria-labelledby="pay-title">
-            {editable ? (
-              <>
-                <h2 id="pay-title" className={s.h2}>
-                  Нравится?
-                </h2>
-                <p className={s.price}>4 999 ₽</p>
-                <p className={s.text}>Оплатите, и мы опубликуем сайт на вашем домене в течение 24 часов.</p>
-                <button type="button" className="btn btn-primary" onClick={pay} disabled={busy !== null}>
-                  {busy === "pay" ? "Переходим к оплате…" : "Оплатить 4 999 ₽"}
-                </button>
-                {p.testPayments && <p className={s.hint}>Тестовый режим: деньги не списываются.</p>}
-              </>
-            ) : (
-              <>
-                <h2 id="pay-title" className={s.h2}>
-                  {p.status === "published" ? "Сайт опубликован" : "Оплата получена"}
-                </h2>
-                <p className={s.text}>
-                  {p.status === "published"
-                    ? "Сайт работает на вашем домене."
-                    : "Публикуем сайт в течение 24 часов и напишем вам, когда всё будет готово."}
-                </p>
-              </>
+          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={tabs.length > 1 ? `tab-${tab}` : undefined} className={s.tabPanel}>
+            {tab === "order" && (
+              <OrderTab
+                editable={editable}
+                paidText={
+                  p.status === "published"
+                    ? { title: "Сайт опубликован", text: "Сайт работает на вашем домене." }
+                    : { title: "Оплата получена", text: "Публикуем сайт в течение 24 часов и напишем вам, когда всё будет готово." }
+                }
+                addons={addons}
+                onRemove={(id) => changeAddons(addons.filter((a) => a.id !== id), [])}
+                onPay={pay}
+                busy={busy}
+                testPayments={p.testPayments}
+                versions={p.versions}
+                currentVersion={p.currentVersion}
+                onVersion={chooseVersion}
+                variantsLeft={p.variantsLeft}
+                onVariant={newVariant}
+              />
             )}
-          </section>
-
-          {editable && (
-            <>
-              <section className={s.card} aria-labelledby="variants-title">
-                <h2 id="variants-title" className={s.h2}>
-                  Варианты
-                </h2>
-                <div className={s.variants} role="group" aria-label="Варианты сайта">
-                  {p.versions.map((v) => (
-                    <button
-                      key={v.n}
-                      type="button"
-                      className={s.variant}
-                      aria-pressed={v.n === p.currentVersion}
-                      disabled={busy !== null}
-                      onClick={async () => {
-                        if (v.n !== p.currentVersion && (await call("version", "version", { n: v.n }))) router.refresh();
-                      }}
-                    >
-                      <span className={s.swatch} style={{ background: v.style.colors.bg, color: v.style.colors.text }} aria-hidden="true">
-                        <em style={{ fontFamily: v.style.display, fontWeight: v.style.displayWeight }}>Аа</em>
-                        <i style={{ background: v.style.colors.accent }} />
-                      </span>
-                      <span className={s.variantText}>
-                        <b>Вариант {v.n}</b>
-                        <small>
-                          «{v.style.name}» · {v.style.layout} · {v.style.font}
-                        </small>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <button type="button" className="btn btn-secondary btn-small" disabled={busy !== null || p.variantsLeft === 0} onClick={newVariant}>
-                  {busy === "variant" ? "Собираем…" : "Собрать другой вариант"}
-                </button>
-                <p className={s.hint}>
-                  {p.variantsLeft > 0 ? `Бесплатно осталось: ${p.variantsLeft}` : "Бесплатные варианты закончились"}
-                </p>
-              </section>
-
+            {tab === "edit" && <EditTab data={p.edit} custom={p.custom} blocks={p.blocks} onSave={saveEdit} busy={busy} />}
+            {tab === "add" && (
+              <AddTab
+                available={p.available}
+                addons={addons}
+                onAddons={changeAddons}
+                onShow={showOnSite}
+                leads={p.leads}
+                wishes={p.wishes}
+                api={api}
+                onChanged={() => router.refresh()}
+              />
+            )}
+            {tab === "revisions" && (
               <section className={s.card} aria-labelledby="revisions-title">
                 <h2 id="revisions-title" className={s.h2}>
-                  Правки
+                  Правки дизайнеру
                 </h2>
+                <p className={s.text}>
+                  Для всего, что не получается поменять во вкладке «Изменить»: другой цвет, другой порядок блоков, своя идея.
+                </p>
                 {p.revisions.length > 0 && (
                   <ul className={s.revisions}>
                     {p.revisions.map((r) => (
@@ -323,12 +403,11 @@ export function Cabinet(p: Props) {
                       Что изменить?
                     </label>
                     <textarea
-                      ref={revisionRef}
                       id="revision"
                       className="input"
                       value={revision}
                       onChange={(e) => setRevision(e.target.value)}
-                      placeholder="Например: сделайте фон темнее и добавьте услугу «Дизайн ногтей»"
+                      placeholder="Например: сделайте фон темнее и поменяйте местами галерею и отзывы"
                       maxLength={1000}
                     />
                     <button type="submit" className="btn btn-secondary btn-small" disabled={busy !== null || revision.trim().length < 3}>
@@ -340,18 +419,8 @@ export function Cabinet(p: Props) {
                   <p className={s.hint}>Бесплатные правки закончились.</p>
                 )}
               </section>
-            </>
-          )}
-
-          <section className={s.card} aria-labelledby="link-title">
-            <h2 id="link-title" className={s.h2}>
-              Ссылка на кабинет
-            </h2>
-            <p className={s.text}>Сохраните её — по ней вы вернётесь к своему сайту.</p>
-            <button type="button" className="btn btn-secondary btn-small" onClick={copyLink}>
-              {copied ? "Ссылка скопирована" : "Скопировать ссылку"}
-            </button>
-          </section>
+            )}
+          </div>
         </aside>
       </div>
 

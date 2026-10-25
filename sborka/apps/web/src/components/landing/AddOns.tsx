@@ -15,6 +15,7 @@ import {
   SparkleIcon,
   StackIcon,
 } from "@phosphor-icons/react/ssr";
+import { ADDONS, rub } from "@/lib/addons";
 import { ArrowIcon } from "../ArrowIcon";
 import { Magnetic } from "../Magnetic";
 import { gsap, prefersReducedMotion, ScrollTrigger } from "../motion";
@@ -24,11 +25,12 @@ import s from "./AddOns.module.css";
 
 type Platform = "tg" | "max";
 
-// Цены на доп. услуги — предложение «Сборки», владелец подтверждает их перед запуском.
+// Цены — из каталога дополнений (src/lib/addons.ts), как в брифе и кабинете
+const APP = Object.fromEntries((ADDONS.miniapp.options ?? []).map((o) => [o.id, o.price]));
 
 const PLATFORMS: Record<Platform, { tab: string; title: string; price: string; caption: string }> = {
-  tg: { tab: "Telegram", title: "Мини-приложение в Telegram", price: "от 9 990 ₽", caption: "кнопка в профиле бота и в канале" },
-  max: { tab: "MAX", title: "Мини-приложение в MAX", price: "от 9 990 ₽", caption: "кнопка в чате и в канале компании" },
+  tg: { tab: "Telegram", title: "Мини-приложение в Telegram", price: `от ${rub(APP.telegram)}`, caption: "кнопка в профиле бота и в канале" },
+  max: { tab: "MAX", title: "Мини-приложение в MAX", price: `от ${rub(APP.max)}`, caption: "кнопка в чате и в канале компании" },
 };
 
 const FEATURES = [
@@ -39,10 +41,11 @@ const FEATURES = [
 ];
 
 const EXTRAS = [
-  { icon: StackIcon, kind: "stack", title: "Дополнительная страница", text: "Прайс, портфолио или отдельная страница услуги.", price: "1 990 ₽" },
-  { icon: MapPinIcon, kind: "pin", title: "Яндекс Карты и Метрика", text: "Карта проезда на сайте и статистика посещений.", price: "990 ₽" },
-  { icon: LightningIcon, kind: "bolt", title: "Срочно за 3 часа", text: "Соберём и опубликуем в тот же день.", price: "+1 990 ₽" },
-  { icon: ShieldCheckIcon, kind: "shield", title: "Хостинг и поддержка", text: "Со второго месяца: мелкие правки, обновления, резервные копии.", price: "490 ₽/мес" },
+  { icon: StackIcon, kind: "stack", title: "Дополнительная страница", text: "Прайс, портфолио или отдельная страница услуги.", price: rub(ADDONS.page.price) },
+  { icon: MapPinIcon, kind: "pin", title: "Яндекс Карты и Метрика", text: "Карта проезда на сайте и статистика посещений.", price: rub(ADDONS.maps.price) },
+  { icon: CreditCardIcon, kind: "card", title: "Онлайн-оплата", text: "Предоплата картой или по СБП прямо на сайте.", price: rub(ADDONS.payments.price) },
+  { icon: LightningIcon, kind: "bolt", title: "Срочно за 3 часа", text: "Соберём и опубликуем в тот же день.", price: `+${rub(ADDONS.urgent.price)}` },
+  { icon: ShieldCheckIcon, kind: "shield", title: "Хостинг и поддержка", text: "Со второго месяца: мелкие правки, обновления, резервные копии.", price: `${rub(ADDONS.hosting.price)}/мес` },
 ];
 
 const MENU = [
@@ -180,7 +183,7 @@ export function AddOns() {
                 <small>{p.caption}</small>
               </p>
               <p className={s.bundle}>
-                Telegram и MAX вместе — <b>14 990 ₽</b>
+                Telegram и MAX вместе — <b>{rub(APP.both)}</b>
               </p>
             </div>
             <ul className={s.features}>

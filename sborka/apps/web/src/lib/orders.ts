@@ -1,6 +1,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { z } from "zod";
+import { AddonSelectionSchema, ADDONS, LeadsSchema, quote, type AddonSelection } from "./addons";
+import { availableAddons } from "./sites/catalog";
+import { CustomSchema, customize, HIDEABLE } from "./sites/customize";
 import { getGenerator } from "./sites/generator";
-import type { Brief } from "./sites/schema";
+import { BriefSchema, SiteSpecSchema, type Brief, type SiteSpec } from "./sites/schema";
 import { store, type Order } from "./store";
 
 export const LIMITS = {
@@ -10,8 +14,43 @@ export const LIMITS = {
   revisions: 3,
 };
 
-export async function createOrder(brief: Brief): Promise<Order> {
-  const spec = await getGenerator().generate({ brief, variant: 0 });
+/** Что приходит из брифа: ответы о бизнесе, выбранный стиль, лишние блоки, дополнения и куда слать заявки. */
+export const NewOrderSchema = z.object({
+  brief: BriefSchema,
+  style: z.number().int().min(0).max(1).default(0),
+  hidden: z.array(z.enum(HIDEABLE)).default([]),
+  addons: z.array(AddonSelectionSchema).max(20).default([]),
+  leads: LeadsSchema,
+});
+export type NewOrder = z.infer<typeof NewOrderSchema>;
+
+/** Своя фишка сферы в собранном сайте. */
+function ownFeature(spec: SiteSpec) {
+  const feature = spec.blocks.find((b) => b.type === "feature");
+  return feature?.type === "feature" ? feature.kind : undefined;
+}
+
+/**
+ * Оставляет только доступные сфере дополнения, по одному каждого вида,
+ * с допустимым количеством и вариантом. Цена всегда считается на сервере.
+ */
+export function cleanAddons(list: AddonSelection[], spec: SiteSpec): AddonSelection[] {
+  const allowed = new Set(availableAddons(ownFeature(spec)));
+  const seen = new Set<string>();
+  const out: AddonSelection[] = [];
+  for (const sel of list) {
+    if (!allowed.has(sel.id) || seen.has(sel.id)) continue;
+    seen.add(sel.id);
+    const addon = ADDONS[sel.id];
+    const option = addon.options?.some((o) => o.id === sel.option) ? sel.option : addon.options?.[0].id;
+    out.push({ id: sel.id, ...(addon.maxQty ? { qty: Math.min(addon.maxQty, sel.qty ?? 1) } : {}), ...(option ? { option } : {}) });
+  }
+  return out;
+}
+
+export async function createOrder(input: NewOrder): Promise<Order> {
+  const { brief } = input;
+  const spec = await getGenerator().generate({ brief, variant: input.style });
   const now = new Date().toISOString();
   const order: Order = {
     id: randomUUID(),
@@ -19,12 +58,18 @@ export async function createOrder(brief: Brief): Promise<Order> {
     createdAt: now,
     status: "ready",
     brief,
-    versions: [{ n: 1, variant: 0, spec, createdAt: now, reason: "brief" }],
+    versions: [{ n: 1, variant: input.style, spec, createdAt: now, reason: "brief" }],
     currentVersion: 1,
     revisions: [],
+    custom: CustomSchema.parse({ hidden: input.hidden }),
+    addons: cleanAddons(input.addons, spec),
+    leads: input.leads,
+    wishes: [],
+    rev: 0,
   };
   await store.insertOrder(order);
-  notifyOwner(`Новый заказ: ${brief.businessName} (${brief.city})`);
+  const total = quote(order.addons).total;
+  notifyOwner(`Новый заказ: ${brief.businessName} (${brief.city}), ${total.toLocaleString("ru-RU")} ₽`);
   return order;
 }
 
@@ -37,8 +82,32 @@ export function revisionsLeft(order: Order) {
   return Math.max(0, LIMITS.revisions - order.revisions.length);
 }
 
-export function currentSpec(order: Order) {
-  return (order.versions.find((v) => v.n === order.currentVersion) ?? order.versions.at(-1)!).spec;
+function findVersion(order: Order, n?: number) {
+  return order.versions.find((v) => v.n === (n ?? order.currentVersion)) ?? order.versions.at(-1)!;
+}
+
+/** Сайт, собранный генератором, — без настроек клиента. */
+export function baseSpec(order: Order, n?: number) {
+  return SiteSpecSchema.parse(findVersion(order, n).spec);
+}
+
+/** Сайт, который видит клиент: вариант плюс его настройки и фишки. */
+export function siteSpec(order: Order, n?: number): SiteSpec {
+  return customize(baseSpec(order, n), { custom: order.custom, addons: order.addons, services: order.brief.services });
+}
+
+/** Сумма к оплате и разбивка. */
+export function orderQuote(order: Order) {
+  return quote(order.addons);
+}
+
+/**
+ * Пересобирает все варианты после изменения ответов брифа.
+ * Шаблонный генератор детерминирован, поэтому вид вариантов сохраняется.
+ */
+export async function rebuildVersions(brief: Brief, versions: Order["versions"]) {
+  const generator = getGenerator();
+  return Promise.all(versions.map(async (v) => ({ ...v, spec: await generator.generate({ brief, variant: v.variant }) })));
 }
 
 /**

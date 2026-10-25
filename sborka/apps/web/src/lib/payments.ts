@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { quote } from "./addons";
 import { store, type Order } from "./store";
-
-export const PRICE_KOPECKS = 499_900;
 
 export interface CreatedPayment {
   id: string;
@@ -30,7 +29,8 @@ class StubPaymentProvider implements PaymentProvider {
         id: randomUUID(),
         orderId: order.id,
         provider: this.name,
-        amountKopecks: PRICE_KOPECKS,
+        // Сайт и разовые дополнения; мини-приложение и хостинг оплачиваются отдельно
+        amountKopecks: quote(order.addons).total * 100,
         status: "pending",
         createdAt: now,
         updatedAt: now,

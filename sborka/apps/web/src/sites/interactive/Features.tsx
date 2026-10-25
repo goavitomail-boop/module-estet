@@ -338,7 +338,16 @@ export function Breathe({ items }: { items: FeatureItem[] }) {
 
 /* ——— Фитнес: тест «какая тренировка подойдёт» ——— */
 
-export function Quiz({ items, services }: { items: FeatureItem[]; services: Array<{ name: string; price: string; note?: string }> }) {
+export function Quiz({
+  items,
+  services,
+  cta = "Записаться на пробную",
+}: {
+  items: FeatureItem[];
+  services: Array<{ name: string; price: string; note?: string }>;
+  /** Надпись кнопки после ответа; по умолчанию — для фитнеса. */
+  cta?: string;
+}) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const done = step >= items.length;
@@ -374,11 +383,11 @@ export function Quiz({ items, services }: { items: FeatureItem[]; services: Arra
       ) : (
         <div className={s.quizResult} key="result">
           <p className={s.quizCount}>Вам подойдёт</p>
-          <h3>{pick?.name ?? "Пробная тренировка"}</h3>
+          <h3>{pick?.name ?? services[0]?.name ?? "Пробная тренировка"}</h3>
           {pick?.note && <p>{pick.note}</p>}
           {pick?.price && <p className={s.quizPrice}>{pick.price}</p>}
           <div className={s.quizActions}>
-            <Book service={pick?.name}>Записаться на пробную</Book>
+            <Book service={pick?.name}>{cta}</Book>
             <button
               type="button"
               className={s.quizAgain}
