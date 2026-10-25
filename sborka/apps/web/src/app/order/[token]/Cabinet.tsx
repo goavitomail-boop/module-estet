@@ -69,6 +69,11 @@ export function Cabinet(p: Props) {
     if (touring && window.innerWidth <= 900) stageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [touring]);
 
+  // Экскурсия закончилась — возвращаем устройство, которое клиент выбрал сам
+  useEffect(() => {
+    if (!touring) setDevice(baseDevice);
+  }, [touring, baseDevice]);
+
   // Сменили вариант — экскурсия по старому сайту больше не нужна
   useEffect(() => {
     setTouring(false);
