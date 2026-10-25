@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { rub } from "@/lib/addons";
 import { EFFECT_GROUPS, SITE_GROUPS, type EffectGroup, type SiteEffects } from "@/lib/sites/effects";
@@ -36,7 +36,8 @@ function withDecor(effects: SiteEffects, defaults: Defaults, id: string): SiteEf
 /** Ролик-пример варианта (записывает scripts/effect-previews.mjs); у «выключить» примера нет. */
 const clipOf = (group: EffectGroup, id: string) => (id === "none" ? null : `/effects/${group}-${id}.mp4`);
 
-type Peek = { src: string; title: string; rect: DOMRect; touch: boolean };
+/** rect — вариант, edge — левый край панели: окно встаёт левее неё, чтобы не закрывать другие варианты. */
+type Peek = { src: string; title: string; rect: DOMRect; edge: number; touch: boolean };
 
 const PEEK_W = 400;
 const PEEK_H = 250 + 76;
@@ -47,13 +48,13 @@ const PEEK_H = 250 + 76;
  */
 function PeekWindow({ peek, onClose }: { peek: Peek; onClose: () => void }) {
   const [ready, setReady] = useState(false);
-  const { rect, touch } = peek;
+  const { rect, edge, touch } = peek;
   let style: React.CSSProperties;
   if (touch) style = { left: 16, right: 16, bottom: 16 };
-  else if (rect.left > PEEK_W + 32) {
+  else if (edge > PEEK_W + 32) {
     // Слева от панели, по высоте — напротив варианта
     style = {
-      right: window.innerWidth - rect.left + 12,
+      right: window.innerWidth - edge + 12,
       top: Math.max(12, Math.min(window.innerHeight - PEEK_H - 12, rect.top + rect.height / 2 - PEEK_H / 2)),
     };
   } else {
@@ -112,6 +113,7 @@ export function EffectsPanel({
   const list: EffectGroup[] = focus ? [focus] : [...SITE_GROUPS, ...groups];
   const changed = Object.keys(effects).some((k) => k !== "fx" || !effects.fx?.startsWith("scene-"));
   const [peek, setPeek] = useState<Peek | null>(null);
+  const timer = useRef(0);
   // Панель листается — окно с примером остаётся у варианта, поэтому просто закрываем его
   useEffect(() => {
     if (!peek || peek.touch) return;
@@ -119,9 +121,20 @@ export function EffectsPanel({
     window.addEventListener("scroll", close, true);
     return () => window.removeEventListener("scroll", close, true);
   }, [peek]);
+  useEffect(() => () => clearTimeout(timer.current), []);
   const show = (el: HTMLElement, group: EffectGroup, id: string, title: string, touch: boolean) => {
     const src = clipOf(group, id);
-    if (src) setPeek({ src, title, rect: el.getBoundingClientRect(), touch });
+    const edge = (el.closest("section") ?? el).getBoundingClientRect().left;
+    if (src) setPeek({ src, title, rect: el.getBoundingClientRect(), edge, touch });
+  };
+  /** Курсор задержался на варианте — показываем пример; просто провели мимо — нет. */
+  const hover = (el: HTMLElement, group: EffectGroup, id: string, title: string) => {
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => show(el, group, id, title, false), 180);
+  };
+  const unhover = () => {
+    clearTimeout(timer.current);
+    setPeek(null);
   };
 
   return (
@@ -157,10 +170,10 @@ export function EffectsPanel({
                       className={e.fxOption}
                       data-paid={o.paid || undefined}
                       disabled={busy !== null}
-                      onPointerEnter={(ev) => ev.pointerType === "mouse" && show(ev.currentTarget, group, o.id, o.title, false)}
-                      onPointerLeave={(ev) => ev.pointerType === "mouse" && setPeek(null)}
+                      onPointerEnter={(ev) => ev.pointerType === "mouse" && hover(ev.currentTarget, group, o.id, o.title)}
+                      onPointerLeave={(ev) => ev.pointerType === "mouse" && unhover()}
                       onFocus={(ev) => ev.currentTarget.matches(":focus-visible") && show(ev.currentTarget, group, o.id, o.title, false)}
-                      onBlur={() => setPeek(null)}
+                      onBlur={unhover}
                       onClick={() => {
                         if (!multi && on) return;
                         onChange(multi ? withDecor(effects, defaults, o.id) : withValue(effects, defaults, group, o.id), group);
