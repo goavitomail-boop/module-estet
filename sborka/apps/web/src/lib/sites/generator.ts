@@ -51,7 +51,10 @@ export class TemplateGenerator implements SiteGenerator {
       niche: niche.id,
       themeId: niche.themes[variant % 2],
       heroVariant: Math.floor(variant / 2) % 2 === 0 ? "split" : "stacked",
-      images: { hero: nicheImage(niche.id, "hero") },
+      images: {
+        hero: nicheImage(niche.id, "hero"),
+        side: ["gallery-1", "gallery-2", "about"].map((slot) => nicheImage(niche.id, slot)).filter((src) => src !== undefined),
+      },
       ...copy,
     });
   }

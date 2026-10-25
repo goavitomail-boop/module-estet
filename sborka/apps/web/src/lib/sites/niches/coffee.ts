@@ -67,10 +67,10 @@ export const coffee: Niche = {
         eyebrow: "Атмосфера",
         title: "Заходите в гости",
         images: [
-          { src: "@gallery-1|hero", caption: "Утро у окна" },
+          { src: "@gallery-1|hero", caption: "Наш зал" },
           { src: "@gallery-2|service-2", caption: "Свежая выпечка" },
           { src: "@gallery-3|service-1", caption: "Кофе на зерне" },
-          { src: "@gallery-4|service-3", caption: "Торты на заказ" },
+          { src: "@gallery-4|service-3", caption: "Капучино у окна" },
         ],
       },
       {

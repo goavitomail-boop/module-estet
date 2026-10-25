@@ -59,8 +59,8 @@ export const florist: Niche = {
         images: [
           { src: "@gallery-1", caption: "Пионы и эвкалипт" },
           { src: "@gallery-2", caption: "Свадебный букет" },
-          { src: "@gallery-3", caption: "Цветы в коробке" },
-          { src: "@gallery-4", caption: "Сезонный букет" },
+          { src: "@gallery-3", caption: "Тюльпаны" },
+          { src: "@gallery-4", caption: "Свежие поставки" },
         ],
       },
       {

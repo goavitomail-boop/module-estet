@@ -1,6 +1,128 @@
+import {
+  ApertureIcon,
+  ArmchairIcon,
+  ArrowRightIcon,
+  BarbellIcon,
+  BriefcaseIcon,
+  CalendarBlankIcon,
+  CameraIcon,
+  CarIcon,
+  ChatCircleTextIcon,
+  CheckIcon,
+  ClockIcon,
+  CoffeeBeanIcon,
+  CoffeeIcon,
+  CreditCardIcon,
+  DeviceMobileIcon,
+  DropIcon,
+  EyeIcon,
+  FileTextIcon,
+  FireIcon,
+  FlowerIcon,
+  GasCanIcon,
+  GearIcon,
+  GiftIcon,
+  GlobeIcon,
+  HeartIcon,
+  HouseIcon,
+  LaptopIcon,
+  LeafIcon,
+  LightningIcon,
+  LockSimpleIcon,
+  MapPinIcon,
+  PaletteIcon,
+  PhoneIcon,
+  PlantIcon,
+  PlayCircleIcon,
+  PlusIcon,
+  RulerIcon,
+  ScalesIcon,
+  ScissorsIcon,
+  ShieldCheckIcon,
+  SparkleIcon,
+  SprayBottleIcon,
+  StackIcon,
+  StarIcon,
+  TextAlignLeftIcon,
+  TireIcon,
+  ToothIcon,
+  UsersThreeIcon,
+  WrenchIcon,
+} from "@phosphor-icons/react/ssr";
+import type { Icon as PhosphorIcon, IconWeight } from "@phosphor-icons/react";
 import type { IconName } from "@/lib/sites/schema";
 
-/** Тонкие линейные иконки для клиентских сайтов. Цвет — currentColor. */
+export type { IconWeight };
+
+/** Иконки Phosphor (MIT). Толщина линии задаётся темой сайта. */
+const ICONS: Record<IconName, PhosphorIcon> = {
+  leaf: LeafIcon,
+  heart: HeartIcon,
+  calendar: CalendarBlankIcon,
+  shield: ShieldCheckIcon,
+  clock: ClockIcon,
+  users: UsersThreeIcon,
+  doc: FileTextIcon,
+  camera: CameraIcon,
+  sprout: PlantIcon,
+  armchair: ArmchairIcon,
+  bean: CoffeeBeanIcon,
+  cup: CoffeeIcon,
+  wrench: WrenchIcon,
+  gear: GearIcon,
+  car: CarIcon,
+  oil: GasCanIcon,
+  laptop: LaptopIcon,
+  tire: TireIcon,
+  ruler: RulerIcon,
+  home: HouseIcon,
+  sparkle: SparkleIcon,
+  lock: LockSimpleIcon,
+  phone: PhoneIcon,
+  pin: MapPinIcon,
+  arrow: ArrowRightIcon,
+  plus: PlusIcon,
+  chat: ChatCircleTextIcon,
+  eye: EyeIcon,
+  card: CreditCardIcon,
+  globe: GlobeIcon,
+  bolt: LightningIcon,
+  play: PlayCircleIcon,
+  check: CheckIcon,
+  layers: StackIcon,
+  mobile: DeviceMobileIcon,
+  palette: PaletteIcon,
+  text: TextAlignLeftIcon,
+  dumbbell: BarbellIcon,
+  scale: ScalesIcon,
+  scissors: ScissorsIcon,
+  spray: SprayBottleIcon,
+  tooth: ToothIcon,
+  aperture: ApertureIcon,
+  flower: FlowerIcon,
+  star: StarIcon,
+  briefcase: BriefcaseIcon,
+  fire: FireIcon,
+  drop: DropIcon,
+  gift: GiftIcon,
+};
+
+export function Icon({
+  name,
+  size = 24,
+  weight = "light",
+  className,
+}: {
+  name: IconName;
+  size?: number;
+  weight?: IconWeight;
+  className?: string;
+}) {
+  const Cmp = ICONS[name];
+  return <Cmp size={size} weight={weight} className={className} aria-hidden="true" />;
+}
+
+/** Контуры для абстрактных композиций (MoodArt): рисуются внутри другого SVG. */
 const PATHS: Record<IconName, React.ReactNode> = {
   leaf: <path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14Zm0 0 7-7" />,
   heart: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" />,
@@ -159,23 +281,4 @@ const PATHS: Record<IconName, React.ReactNode> = {
 /** Контуры иконки для вставки внутрь другого SVG. */
 export function iconPaths(name: IconName) {
   return PATHS[name];
-}
-
-export function Icon({ name, size = 24, className }: { name: IconName; size?: number; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      {PATHS[name]}
-    </svg>
-  );
 }

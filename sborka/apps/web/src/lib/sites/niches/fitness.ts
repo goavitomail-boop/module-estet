@@ -73,6 +73,17 @@ export const fitness: Niche = {
           { day: "Сб", items: [{ time: "10:00", name: "Растяжка" }, { time: "12:00", name: "Силовая" }] },
         ],
       },
+      {
+        type: "gallery",
+        eyebrow: "Атмосфера",
+        title: "Так проходят тренировки",
+        images: [
+          { src: "@gallery-1", caption: "Функциональный тренинг" },
+          { src: "@gallery-2", caption: "Силовая" },
+          { src: "@gallery-3", caption: "Растяжка" },
+          { src: "@gallery-4", caption: "Тренировки на улице" },
+        ],
+      },
       ...demoOnly(o, {
         type: "pricing",
         eyebrow: "Абонементы",

@@ -76,6 +76,17 @@ export const auto: Niche = {
           { title: "Выдача", text: "Отдаём машину и старые детали." },
         ],
       },
+      {
+        type: "gallery",
+        eyebrow: "Сервис",
+        title: "Как у нас устроено",
+        images: [
+          { src: "@gallery-1", caption: "Диагностика двигателя" },
+          { src: "@gallery-2", caption: "Ремонтная зона" },
+          { src: "@gallery-3", caption: "Шиномонтаж" },
+          { src: "@gallery-4", caption: "Покраска" },
+        ],
+      },
       ...demoOnly(o, {
         type: "pricing",
         eyebrow: "Техобслуживание",

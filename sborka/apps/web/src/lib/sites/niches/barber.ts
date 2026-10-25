@@ -42,7 +42,7 @@ export const barber: Niche = {
         type: "services",
         eyebrow: "Прайс",
         title: "Услуги и цены",
-        items: services(b.services, {}, ["scissors"]),
+        items: services(b.services, {}, ["scissors"], ["@gallery-1", "@gallery-3", "@gallery-3", "@gallery-4"]),
       },
       { type: "strip", quote: "Стрижка — это ритуал, а не очередь", caption: "Стиль · Ремесло · Атмосфера" },
       {
@@ -53,7 +53,7 @@ export const barber: Niche = {
           { src: "@gallery-1", caption: "Кроп с текстурой" },
           { src: "@gallery-2", caption: "Классика с пробором" },
           { src: "@gallery-3", caption: "Оформление бороды" },
-          { src: "@gallery-4", caption: "Фейд" },
+          { src: "@gallery-4", caption: "Королевское бритьё" },
         ],
       },
       ...demoOnly(o, {

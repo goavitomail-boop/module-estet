@@ -168,8 +168,11 @@ const SiteSpecObject = z.object({
     niche: z.enum(NICHE_IDS),
     themeId: z.string(),
     heroVariant: z.enum(["split", "stacked"]),
-    /** Фото первого экрана. Без него рисуется абстрактная композиция. */
-    images: z.object({ hero: z.string().optional() }).default({}),
+    /**
+     * Фото первого экрана. Без него рисуется абстрактная композиция.
+     * side — дополнительные фото для коллажа в первом экране.
+     */
+    images: z.object({ hero: z.string().optional(), side: z.array(z.string()).default([]) }).default({ side: [] }),
     business: z.object({
       name: z.string(),
       city: z.string(),

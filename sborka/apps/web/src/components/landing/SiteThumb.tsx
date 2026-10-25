@@ -19,7 +19,7 @@ export function SiteThumb({ spec }: { spec: SiteSpec }) {
   return (
     <div ref={ref} className={s.thumb} style={{ ["--scale" as string]: scale }} inert aria-hidden="true">
       <div className={s.scaler}>
-        <SiteRenderer spec={spec} mode="example" />
+        <SiteRenderer spec={spec} mode="example" motion={false} />
       </div>
     </div>
   );

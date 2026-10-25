@@ -24,13 +24,16 @@ export interface Niche {
   build: (brief: Brief, options: BuildOptions) => Copy;
 }
 
-/** Добавляет к услугам описания (если услуга типовая), иконки и фото по порядку. */
-export function services(items: Service[], notes: Record<string, string>, icons: IconName[]) {
+/**
+ * Добавляет к услугам описания (если услуга типовая), иконки и фото по порядку.
+ * Фото по умолчанию — слоты «@service-N»; нише можно передать свои (например, из галереи).
+ */
+export function services(items: Service[], notes: Record<string, string>, icons: IconName[], images?: string[]) {
   return items.map((s, i) => ({
     ...s,
     note: notes[s.name],
     icon: icons[i % icons.length],
-    image: `@service-${i + 1}`,
+    image: images ? images[i] : `@service-${i + 1}`,
   }));
 }
 

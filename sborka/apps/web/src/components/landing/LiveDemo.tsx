@@ -175,7 +175,7 @@ export function LiveDemo({ specs }: { specs: SiteSpec[] }) {
             </div>
             <div ref={screen} className={s.screen} inert>
               <div className={s.scaler} style={{ transform: `scale(${scale})` }}>
-                <SiteRenderer spec={spec} mode="example" />
+                <SiteRenderer spec={spec} mode="example" motion={false} />
               </div>
               {!done && (
                 <>

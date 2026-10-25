@@ -45,7 +45,7 @@ export const photo: Niche = {
           { src: "@gallery-2", caption: "Семья" },
           { src: "@gallery-3", caption: "Love story" },
           { src: "@gallery-4", caption: "Студия" },
-          { src: "@gallery-5", caption: "Репортаж" },
+          { src: "@gallery-5", caption: "Свадьба" },
           { src: "@gallery-6", caption: "Прогулка" },
         ],
       },
@@ -53,7 +53,7 @@ export const photo: Niche = {
         type: "services",
         eyebrow: "Съёмки",
         title: "Форматы и цены",
-        items: services(b.services, {}, ["camera"]),
+        items: services(b.services, {}, ["camera"], ["@gallery-1", "@gallery-2", "@gallery-3", "@gallery-5", "@gallery-4", "@gallery-6"]),
       },
       { type: "strip", quote: "Лучшие кадры случаются между позами", caption: "Свет · Эмоции · Истории" },
       {

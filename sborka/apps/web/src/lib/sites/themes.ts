@@ -1,3 +1,8 @@
+import type { IconWeight } from "@phosphor-icons/react";
+
+export type HeroLayout = "split" | "overlay" | "centered" | "editorial" | "collage";
+export type Decor = "marquee" | "blobs" | "lines" | "badge" | "chips";
+
 /** Темы клиентских сайтов. Гарнитуры подключаются в src/sites/fonts.ts. */
 export interface SiteTheme {
   id: string;
@@ -16,6 +21,24 @@ export interface SiteTheme {
   heroShape: "rounded" | "arch" | "sharp" | "fade";
   /** Вид карточек услуг. */
   serviceStyle: "photo" | "arch" | "icon" | "list";
+  /**
+   * Композиция первого экрана: фото справа, фото на весь экран, текст по центру,
+   * журнальная вёрстка с огромным заголовком или коллаж из нескольких фото.
+   */
+  hero: HeroLayout;
+  /** Шапка: полоса, прозрачная поверх фото, логотип по центру или плавающая «пилюля». */
+  header: "bar" | "overlay" | "center" | "pill";
+  /** Толщина иконок Phosphor. */
+  iconWeight: IconWeight;
+  /** Характер анимаций: мягкий, элегантный (медленнее, по строкам) или энергичный. */
+  motion: "soft" | "elegant" | "bold";
+  /**
+   * Декор: бегущая строка услуг, мягкие пятна цвета, тонкие линии сетки, вращающаяся печать,
+   * плашки с адресом и часами работы поверх фото.
+   */
+  decor: Decor[];
+  /** Заголовки капслоком. */
+  upper?: boolean;
 }
 
 const t = (theme: SiteTheme) => theme;
@@ -36,6 +59,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "999px",
     heroShape: "arch",
     serviceStyle: "arch",
+    hero: "split",
+    header: "center",
+    iconWeight: "thin",
+    motion: "elegant",
+    decor: ["lines", "badge"],
   }),
   "nails-dark": t({
     id: "nails-dark",
@@ -52,6 +80,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "999px",
     heroShape: "arch",
     serviceStyle: "arch",
+    hero: "split",
+    header: "center",
+    iconWeight: "thin",
+    motion: "elegant",
+    decor: ["badge"],
   }),
   "repair-light": t({
     id: "repair-light",
@@ -68,6 +101,12 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "4px",
     heroShape: "sharp",
     serviceStyle: "photo",
+    hero: "editorial",
+    header: "bar",
+    iconWeight: "bold",
+    motion: "bold",
+    decor: ["marquee"],
+    upper: true,
   }),
   "repair-dark": t({
     id: "repair-dark",
@@ -84,6 +123,12 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "4px",
     heroShape: "sharp",
     serviceStyle: "photo",
+    hero: "overlay",
+    header: "overlay",
+    iconWeight: "bold",
+    motion: "bold",
+    decor: ["marquee"],
+    upper: true,
   }),
   "auto-dark": t({
     id: "auto-dark",
@@ -100,6 +145,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "10px",
     heroShape: "fade",
     serviceStyle: "icon",
+    hero: "overlay",
+    header: "overlay",
+    iconWeight: "bold",
+    motion: "bold",
+    decor: ["marquee"],
   }),
   "auto-light": t({
     id: "auto-light",
@@ -116,6 +166,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "10px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "split",
+    header: "pill",
+    iconWeight: "bold",
+    motion: "bold",
+    decor: ["marquee", "chips"],
   }),
   "psych-sage": t({
     id: "psych-sage",
@@ -132,6 +187,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "16px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "centered",
+    header: "pill",
+    iconWeight: "light",
+    motion: "soft",
+    decor: ["blobs"],
   }),
   "psych-sand": t({
     id: "psych-sand",
@@ -148,6 +208,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "16px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "split",
+    header: "pill",
+    iconWeight: "light",
+    motion: "soft",
+    decor: ["blobs", "chips"],
   }),
   "coffee-cream": t({
     id: "coffee-cream",
@@ -164,6 +229,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "14px",
     heroShape: "rounded",
     serviceStyle: "photo",
+    hero: "split",
+    header: "bar",
+    iconWeight: "duotone",
+    motion: "soft",
+    decor: ["marquee", "badge"],
   }),
   "coffee-dark": t({
     id: "coffee-dark",
@@ -180,6 +250,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "14px",
     heroShape: "rounded",
     serviceStyle: "photo",
+    hero: "overlay",
+    header: "overlay",
+    iconWeight: "duotone",
+    motion: "soft",
+    decor: ["marquee", "badge"],
   }),
 
   /* Фитнес-студия */
@@ -198,6 +273,12 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "12px",
     heroShape: "fade",
     serviceStyle: "icon",
+    hero: "overlay",
+    header: "overlay",
+    iconWeight: "fill",
+    motion: "bold",
+    decor: ["marquee"],
+    upper: true,
   }),
   "fitness-light": t({
     id: "fitness-light",
@@ -214,6 +295,12 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "12px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "editorial",
+    header: "bar",
+    iconWeight: "fill",
+    motion: "bold",
+    decor: ["marquee"],
+    upper: true,
   }),
 
   /* Юрист */
@@ -232,6 +319,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "4px",
     heroShape: "sharp",
     serviceStyle: "icon",
+    hero: "split",
+    header: "bar",
+    iconWeight: "thin",
+    motion: "elegant",
+    decor: ["lines"],
   }),
   "legal-dark": t({
     id: "legal-dark",
@@ -248,6 +340,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "4px",
     heroShape: "sharp",
     serviceStyle: "icon",
+    hero: "editorial",
+    header: "bar",
+    iconWeight: "thin",
+    motion: "elegant",
+    decor: ["lines"],
   }),
 
   /* Барбершоп */
@@ -266,6 +363,12 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "2px",
     heroShape: "fade",
     serviceStyle: "list",
+    hero: "editorial",
+    header: "bar",
+    iconWeight: "regular",
+    motion: "bold",
+    decor: ["marquee", "badge"],
+    upper: true,
   }),
   "barber-light": t({
     id: "barber-light",
@@ -282,6 +385,12 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "2px",
     heroShape: "sharp",
     serviceStyle: "list",
+    hero: "overlay",
+    header: "overlay",
+    iconWeight: "regular",
+    motion: "bold",
+    decor: ["marquee", "badge"],
+    upper: true,
   }),
 
   /* Клининг */
@@ -300,6 +409,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "18px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "collage",
+    header: "pill",
+    iconWeight: "duotone",
+    motion: "soft",
+    decor: ["blobs"],
   }),
   "cleaning-mint": t({
     id: "cleaning-mint",
@@ -316,6 +430,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "18px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "centered",
+    header: "pill",
+    iconWeight: "duotone",
+    motion: "soft",
+    decor: ["blobs"],
   }),
 
   /* Стоматология */
@@ -334,6 +453,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "20px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "split",
+    header: "pill",
+    iconWeight: "light",
+    motion: "soft",
+    decor: ["blobs", "chips"],
   }),
   "dental-blue": t({
     id: "dental-blue",
@@ -350,6 +474,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "20px",
     heroShape: "rounded",
     serviceStyle: "icon",
+    hero: "collage",
+    header: "pill",
+    iconWeight: "light",
+    motion: "soft",
+    decor: ["blobs"],
   }),
 
   /* Фотограф */
@@ -368,6 +497,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "0px",
     heroShape: "sharp",
     serviceStyle: "list",
+    hero: "editorial",
+    header: "center",
+    iconWeight: "thin",
+    motion: "elegant",
+    decor: ["lines"],
   }),
   "photo-dark": t({
     id: "photo-dark",
@@ -384,6 +518,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "0px",
     heroShape: "sharp",
     serviceStyle: "list",
+    hero: "overlay",
+    header: "overlay",
+    iconWeight: "thin",
+    motion: "elegant",
+    decor: ["lines"],
   }),
 
   /* Цветочный магазин */
@@ -402,6 +541,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "999px",
     heroShape: "arch",
     serviceStyle: "photo",
+    hero: "collage",
+    header: "center",
+    iconWeight: "light",
+    motion: "elegant",
+    decor: ["blobs", "badge"],
   }),
   "florist-green": t({
     id: "florist-green",
@@ -418,6 +562,11 @@ export const THEMES: Record<string, SiteTheme> = {
     radius: "999px",
     heroShape: "arch",
     serviceStyle: "photo",
+    hero: "split",
+    header: "center",
+    iconWeight: "light",
+    motion: "elegant",
+    decor: ["badge"],
   }),
 };
 
