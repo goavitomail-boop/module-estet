@@ -6,6 +6,8 @@ export type Decor = "marquee" | "blobs" | "lines" | "badge" | "chips";
 /** Темы клиентских сайтов. Гарнитуры подключаются в src/sites/fonts.ts. */
 export interface SiteTheme {
   id: string;
+  /** Название стиля для клиента: «Эспрессо», «Шалфей». */
+  name: string;
   bg: string;
   surface: string;
   text: string;
@@ -46,6 +48,7 @@ const t = (theme: SiteTheme) => theme;
 export const THEMES: Record<string, SiteTheme> = {
   "nails-light": t({
     id: "nails-light",
+    name: "Пудра",
     bg: "#FBF5F2",
     surface: "#F3E6E1",
     text: "#2A1E21",
@@ -67,6 +70,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "nails-dark": t({
     id: "nails-dark",
+    name: "Вечерний",
     bg: "#241B1F",
     surface: "#30252A",
     text: "#F6ECEE",
@@ -88,6 +92,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "repair-light": t({
     id: "repair-light",
+    name: "Бетон",
     bg: "#EDEBE6",
     surface: "#FFFFFF",
     text: "#1C1E21",
@@ -110,6 +115,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "repair-dark": t({
     id: "repair-dark",
+    name: "Графит",
     bg: "#1C1E21",
     surface: "#26292E",
     text: "#F1EFEA",
@@ -132,6 +138,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "auto-dark": t({
     id: "auto-dark",
+    name: "Ночной гараж",
     bg: "#121417",
     surface: "#1C1F24",
     text: "#F2F3F5",
@@ -153,6 +160,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "auto-light": t({
     id: "auto-light",
+    name: "Гоночный",
     bg: "#F2F3F5",
     surface: "#FFFFFF",
     text: "#121417",
@@ -174,6 +182,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "psych-sage": t({
     id: "psych-sage",
+    name: "Шалфей",
     bg: "#EEF1EA",
     surface: "#F8FAF5",
     text: "#22302A",
@@ -195,6 +204,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "psych-sand": t({
     id: "psych-sand",
+    name: "Песок",
     bg: "#F6F0E8",
     surface: "#FFFDF9",
     text: "#2E2620",
@@ -216,6 +226,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "coffee-cream": t({
     id: "coffee-cream",
+    name: "Сливки",
     bg: "#F4ECE0",
     surface: "#FBF6EE",
     text: "#2E1D14",
@@ -237,6 +248,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "coffee-dark": t({
     id: "coffee-dark",
+    name: "Эспрессо",
     bg: "#2A1B14",
     surface: "#36251C",
     text: "#F6EBDD",
@@ -260,6 +272,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Фитнес-студия */
   "fitness-dark": t({
     id: "fitness-dark",
+    name: "Энергия",
     bg: "#0E0E10",
     surface: "#18181B",
     text: "#F4F4F5",
@@ -282,6 +295,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "fitness-light": t({
     id: "fitness-light",
+    name: "Спорт-журнал",
     bg: "#F2F2EE",
     surface: "#FFFFFF",
     text: "#111111",
@@ -306,6 +320,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Юрист */
   "legal-light": t({
     id: "legal-light",
+    name: "Классика",
     bg: "#F5F3EE",
     surface: "#FFFFFF",
     text: "#13233A",
@@ -327,6 +342,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "legal-dark": t({
     id: "legal-dark",
+    name: "Тёмно-синий",
     bg: "#0E1A2B",
     surface: "#15243A",
     text: "#EEF1F5",
@@ -350,6 +366,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Барбершоп */
   "barber-dark": t({
     id: "barber-dark",
+    name: "Кожа и медь",
     bg: "#141210",
     surface: "#1E1B18",
     text: "#F2ECE4",
@@ -372,6 +389,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "barber-light": t({
     id: "barber-light",
+    name: "Крафт",
     bg: "#EFE9E1",
     surface: "#F8F4EE",
     text: "#1B1714",
@@ -396,6 +414,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Клининг */
   "cleaning-light": t({
     id: "cleaning-light",
+    name: "Свежесть",
     bg: "#F3F8FB",
     surface: "#FFFFFF",
     text: "#0F2A3D",
@@ -417,6 +436,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "cleaning-mint": t({
     id: "cleaning-mint",
+    name: "Мята",
     bg: "#EEF7F2",
     surface: "#FFFFFF",
     text: "#0F2E22",
@@ -440,6 +460,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Стоматология */
   "dental-light": t({
     id: "dental-light",
+    name: "Бирюза",
     bg: "#F6FAFB",
     surface: "#FFFFFF",
     text: "#10242B",
@@ -461,6 +482,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "dental-blue": t({
     id: "dental-blue",
+    name: "Чистый синий",
     bg: "#F4F7FD",
     surface: "#FFFFFF",
     text: "#0F1E3D",
@@ -484,6 +506,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Фотограф */
   "photo-light": t({
     id: "photo-light",
+    name: "Галерея",
     bg: "#F4F1EC",
     surface: "#EAE5DD",
     text: "#151515",
@@ -505,6 +528,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "photo-dark": t({
     id: "photo-dark",
+    name: "Плёнка",
     bg: "#121212",
     surface: "#1C1C1C",
     text: "#EDEDED",
@@ -528,6 +552,7 @@ export const THEMES: Record<string, SiteTheme> = {
   /* Цветочный магазин */
   "florist-light": t({
     id: "florist-light",
+    name: "Пион",
     bg: "#F8F3EF",
     surface: "#FFFFFF",
     text: "#2C2A26",
@@ -549,6 +574,7 @@ export const THEMES: Record<string, SiteTheme> = {
   }),
   "florist-green": t({
     id: "florist-green",
+    name: "Зелень",
     bg: "#EDF1EA",
     surface: "#F8FAF6",
     text: "#1F2B20",
@@ -572,4 +598,17 @@ export const THEMES: Record<string, SiteTheme> = {
 
 export function getTheme(id: string): SiteTheme {
   return THEMES[id] ?? THEMES["nails-light"];
+}
+
+/** Композиция первого экрана для третьего и четвёртого вариантов, чтобы они не повторяли первые два. */
+const ALT_HERO: Record<HeroLayout, HeroLayout> = {
+  split: "centered",
+  overlay: "editorial",
+  editorial: "overlay",
+  centered: "split",
+  collage: "split",
+};
+
+export function heroLayout(theme: SiteTheme, heroVariant: "split" | "stacked"): HeroLayout {
+  return heroVariant === "stacked" ? ALT_HERO[theme.hero] : theme.hero;
 }

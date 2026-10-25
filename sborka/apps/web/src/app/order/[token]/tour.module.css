@@ -1,0 +1,140 @@
+.tour {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  z-index: 5;
+  display: grid;
+  gap: 14px;
+  width: min(400px, calc(100% - 40px));
+  padding: 20px;
+  border-radius: var(--r-l);
+  border: 1px solid rgba(200, 255, 61, 0.35);
+  background: rgba(10, 12, 9, 0.88);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 0 40px -10px rgba(200, 255, 61, 0.35),
+    0 30px 60px -20px rgba(0, 0, 0, 0.9);
+  animation: tour-in 0.6s var(--ease) both;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.count {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--lime);
+  font-variant-numeric: tabular-nums;
+}
+
+.bars {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.bars button {
+  flex: 1;
+  height: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.bars button[data-state="done"] {
+  background: rgba(200, 255, 61, 0.45);
+}
+
+.bars button[data-state="current"] {
+  background: var(--lime);
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--glass-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--text);
+  border-color: var(--text-2);
+}
+
+.body {
+  display: grid;
+  gap: 8px;
+  animation: body-in 0.5s var(--ease) both;
+}
+
+.title {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.text {
+  margin: 0;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.actions,
+.final {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actions :global(.btn-primary) {
+  margin-left: auto;
+}
+
+.final :global(.btn-primary) {
+  flex: 1 1 100%;
+}
+
+.final :global(.btn-secondary) {
+  flex: 1;
+}
+
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes body-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+/* На узком экране подпись идёт под сайтом, а не поверх него */
+@media (max-width: 900px) {
+  .tour {
+    position: static;
+    width: auto;
+    margin-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour,
+  .body {
+    animation: none;
+  }
+}

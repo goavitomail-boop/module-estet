@@ -13,6 +13,61 @@
   margin-bottom: 20px;
 }
 
+.heading {
+  min-width: 0;
+}
+
+.meta {
+  margin: 8px 0 0;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tourButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid rgba(200, 255, 61, 0.45);
+  border-radius: var(--r-pill);
+  background: rgba(200, 255, 61, 0.06);
+  color: var(--lime);
+  font: 600 var(--fs-small) / 1 var(--font-body);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.tourButton:hover,
+.tourButton[aria-pressed="true"] {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+
+.open {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text-2);
+}
+
+.open:hover {
+  color: var(--text);
+  border-color: var(--text-2);
+}
+
 .badge {
   display: inline-block;
   margin-bottom: 10px;
@@ -43,7 +98,7 @@
 }
 
 .devices button {
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 16px;
   border: 0;
   border-radius: var(--r-pill);
@@ -59,39 +114,13 @@
   color: var(--text);
 }
 
-.stage {
-  display: flex;
-  justify-content: center;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-l);
-  background-image:
-    linear-gradient(rgba(124, 92, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 92, 255, 0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
+.main {
+  min-width: 0;
 }
 
-.iframe {
-  width: 100%;
-  height: min(78vh, 900px);
-  border: 0;
-  border-radius: 12px;
-  background: #fff;
-  transition: width 0.5s var(--ease);
-}
-
-.stage[data-device="phone"] .iframe {
-  width: 390px;
-  max-width: 100%;
-  height: min(78vh, 844px);
-  border-radius: 28px;
-  outline: 8px solid #000;
-}
-
-.openFull {
-  margin-top: 12px;
-  font-size: var(--fs-small);
+/* Подпись экскурсии лежит поверх окна с сайтом */
+.stageWrap {
+  position: relative;
 }
 
 .panel {
@@ -109,8 +138,21 @@
   border-radius: var(--r-l);
 }
 
-.card:first-of-type {
+.payCard {
   border-color: var(--lime);
+  background:
+    radial-gradient(80% 60% at 100% 0%, rgba(200, 255, 61, 0.1), transparent 70%),
+    var(--surface);
+}
+
+.price {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: var(--display-track-tight);
+  color: var(--lime);
 }
 
 .h2 {
@@ -134,27 +176,81 @@
   color: var(--danger);
 }
 
-.versions {
-  display: flex;
-  flex-wrap: wrap;
+.variants {
+  display: grid;
   gap: 8px;
 }
 
-.versions button {
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
+.variant {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px;
   border: 1px solid var(--line);
+  border-radius: var(--r-m);
   background: transparent;
-  color: var(--text-2);
-  font-size: var(--fs-small);
-  font-weight: 600;
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
 }
 
-.versions button[aria-pressed="true"] {
+.variant:hover:not(:disabled) {
+  border-color: var(--text-3);
+}
+
+.variant[aria-pressed="true"] {
   border-color: var(--lime);
-  color: var(--text);
+  background: rgba(200, 255, 61, 0.05);
+}
+
+.variant:disabled {
+  cursor: wait;
+}
+
+.swatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.swatch em {
+  font-style: normal;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.swatch i {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.variantText {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.variantText b {
+  font-size: var(--fs-small);
+}
+
+.variantText small {
+  font-size: var(--fs-micro);
+  color: var(--text-2);
+  line-height: 1.35;
 }
 
 .revisions {

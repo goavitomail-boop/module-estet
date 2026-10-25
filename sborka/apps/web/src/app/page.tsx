@@ -10,6 +10,7 @@ import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
 import { LiveDemo } from "@/components/landing/LiveDemo";
+import { NotBuilder } from "@/components/landing/NotBuilder";
 import { Pricing } from "@/components/landing/Pricing";
 import { Reviews } from "@/components/landing/Reviews";
 import { Steps } from "@/components/landing/Steps";
@@ -42,6 +43,7 @@ export default async function Home() {
         <Steps />
         <LiveDemo specs={specs} />
         <Examples specs={specs} photos={photos} />
+        <NotBuilder />
         <Pricing />
         <AddOns />
         <Reviews />

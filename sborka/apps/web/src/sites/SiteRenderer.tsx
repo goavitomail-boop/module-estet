@@ -2,7 +2,7 @@ import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { QuotesIcon } from "@phosphor-icons/react/ssr";
 import { NICHES } from "@/lib/sites/niches";
 import type { Block, IconName, SiteSpec } from "@/lib/sites/schema";
-import { getTheme, type Decor, type HeroLayout, type SiteTheme } from "@/lib/sites/themes";
+import { getTheme, heroLayout, type Decor, type HeroLayout, type SiteTheme } from "@/lib/sites/themes";
 import { Icon } from "./icons";
 import { MoodArt } from "./MoodArt";
 import { MediaFx, SectionFx } from "./HeroFx";
@@ -37,15 +37,6 @@ interface Ctx {
   services: BookingService[];
 }
 
-/** Композиция первого экрана для третьего и четвёртого вариантов, чтобы они не повторяли первые два. */
-const ALT_HERO: Record<HeroLayout, HeroLayout> = {
-  split: "centered",
-  overlay: "editorial",
-  editorial: "overlay",
-  centered: "split",
-  collage: "split",
-};
-
 /** Номер элемента для поочерёдной анимации. */
 const order = (i: number) => ({ "--i": i }) as CSSProperties;
 
@@ -70,7 +61,7 @@ export function SiteRenderer({ spec, mode, motion = true }: { spec: SiteSpec; mo
   } as CSSProperties;
   // У альтернативной темы композиции зеркалятся, чтобы варианты отличались сильнее.
   const variant = NICHES[spec.niche].themes.indexOf(spec.themeId) === 1 ? 1 : 0;
-  const layout = spec.heroVariant === "stacked" ? ALT_HERO[theme.hero] : theme.hero;
+  const layout = heroLayout(theme, spec.heroVariant);
   const header = layout === "overlay" ? "overlay" : theme.header === "overlay" ? "bar" : theme.header;
   const shape = theme.heroShape === "fade" ? "rounded" : theme.heroShape;
   const ctx: Ctx = {

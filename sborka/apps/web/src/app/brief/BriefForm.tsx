@@ -83,7 +83,7 @@ export function BriefForm({ initialNiche }: { initialNiche?: NicheId }) {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Не получилось отправить бриф");
-      router.push(`/order/${body.token}`);
+      router.push(`/order/${body.token}?new=1`);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Не получилось отправить бриф");
       setSubmitting(false);

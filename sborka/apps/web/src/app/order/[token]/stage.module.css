@@ -1,0 +1,103 @@
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* Окно с сайтом и подпись экскурсии целиком видны без прокрутки страницы */
+  height: clamp(420px, 100svh - 280px, 860px);
+  overflow: hidden;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(rgba(200, 255, 61, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 255, 61, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+}
+
+.stage[data-device="phone"] {
+  background-image:
+    radial-gradient(50% 60% at 50% 50%, rgba(200, 255, 61, 0.08), transparent 70%),
+    linear-gradient(rgba(200, 255, 61, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 255, 61, 0.05) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    24px 24px,
+    24px 24px;
+}
+
+.screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  animation: screen-in 0.7s var(--ease) both;
+}
+
+.stage[data-device="phone"] .screen {
+  border-radius: 30px;
+  box-shadow:
+    0 0 0 8px #000,
+    0 0 0 9px rgba(255, 255, 255, 0.14),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9);
+}
+
+.frame {
+  display: block;
+  border: 0;
+  transform-origin: 0 0;
+  background: #fff;
+}
+
+/* Рамка вокруг блока, о котором рассказывает экскурсия */
+.spotlight {
+  position: absolute;
+  z-index: 2;
+  border: 2px solid var(--lime);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 9999px rgba(6, 7, 6, 0.35),
+    0 0 30px rgba(200, 255, 61, 0.45);
+  pointer-events: none;
+  transition:
+    top 0.6s var(--ease),
+    left 0.6s var(--ease),
+    width 0.6s var(--ease),
+    height 0.6s var(--ease);
+  animation: spot-in 0.5s var(--ease) both;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+
+@keyframes spot-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .stage {
+    height: min(72vh, 640px);
+  }
+}
+
+@media (max-width: 900px) {
+  .stage[data-compact] {
+    height: min(52svh, 520px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen,
+  .spotlight {
+    animation: none;
+    transition: none;
+  }
+}
