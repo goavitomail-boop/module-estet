@@ -153,6 +153,10 @@
   .cluster {
     display: block;
   }
+
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -90,3 +90,85 @@ Full landing page design for {бизнес}, long vertical scroll showing all se
 ## Фото для шаблонов
 
 Отдельные фото для блоков сайта — см. список промтов в сообщении от 25.10.2026 (10 фото: `<ниша>-hero` 4:5 и `<ниша>-about` 1:1). Файлы кладутся в `apps/web/public/images/niches/`.
+
+## Макеты для новых ниш
+
+Те же правила, что и выше: русский текст лучше рисуют ChatGPT и Ideogram, для Midjourney — вариант без текста. Из макета вырезаются фото для первого экрана и карточек услуг.
+
+### Фитнес-студия — «Пульс»
+
+```
+Website landing page design for a boutique fitness studio, dark mode, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: bold, energetic, sporty, high contrast, orange glow accents. Colors: background #0E0E10, text #F4F4F5, accent #FF5A1F orange. Typography: wide bold geometric sans-serif like Unbounded for headings, clean sans-serif for body.
+Layout: top navigation with logo "Пульс", menu "Направления", "О студии", "Контакты", phone "+7 900 000-00-00"; huge hero headline "Сильнее с каждой тренировкой", subtitle "Тренер следит за техникой каждого", orange button "Записаться на пробное"; large cinematic photo of athletes training with dumbbells in a dark gym with orange rim light on the right, faces not in focus; below — three cards with photos "Групповая тренировка 800 ₽", "Персональная тренировка 2 500 ₽", "Растяжка 700 ₽".
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+### Юрист — «Бюро «Статус»»
+
+```
+Website landing page design for a law firm, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: trustworthy, classic, calm, thin gold lines, sharp corners. Colors: background #F5F3EE warm ivory, text #13233A navy, accent #8A6A2E muted gold. Typography: elegant serif like Playfair Display for headings, clean sans-serif for body.
+Layout: top navigation with logo "Бюро «Статус»", menu "Практика", "О бюро", "Контакты", phone "+7 900 000-00-00"; hero headline "Защитим ваши интересы", subtitle "Объясним риски простыми словами и доведём дело до результата", navy button "Записаться на консультацию"; large photo of a modern law office with a wooden desk, documents, fountain pen and bookshelves on the right, no people; below — three cards "Консультация 3 000 ₽", "Сопровождение сделки от 25 000 ₽", "Представительство в суде от 40 000 ₽".
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+### Барбершоп — «Борода и ножницы»
+
+```
+Website landing page design for a barbershop, dark mode, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: brutal, vintage, masculine, brick and leather textures, copper accents. Colors: background #141210, text #F2ECE4, accent #C8873E copper. Typography: bold condensed sans-serif like Oswald for headings, clean sans-serif for body.
+Layout: top navigation with logo "Борода и ножницы", menu "Прайс", "О нас", "Контакты", phone "+7 900 000-00-00"; hero headline "Стрижка, после которой хочется улыбаться в зеркало", subtitle "Барберы с опытом и кофе, пока ждёте", copper button "Записаться"; large moody photo of a barber trimming a client's beard with scissors in a vintage barbershop, warm light, faces partly in shadow; below — price list "Мужская стрижка 1 800 ₽", "Стрижка и борода 2 600 ₽", "Королевское бритьё 2 000 ₽".
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+### Клининг — «Чистый дом»
+
+```
+Website landing page design for a home cleaning service, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: fresh, airy, friendly, rounded cards, lots of white. Colors: background #F3F8FB pale blue, text #0F2A3D, accent #1668C7 blue. Typography: rounded bold sans-serif like Rubik for headings and body.
+Layout: top navigation with logo "Чистый дом", menu "Услуги", "О компании", "Контакты", phone "+7 900 000-00-00"; hero headline "Чистота, на которую не нужно тратить выходные", subtitle "Приедем со своими средствами и инвентарём", blue button "Рассчитать уборку"; large bright photo of a sparkling clean living room with a cleaner in a uniform seen from behind and a basket of supplies on the right; below — three cards "Поддерживающая уборка от 2 900 ₽", "Генеральная уборка от 6 900 ₽", "Мытьё окон от 1 500 ₽".
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+### Стоматология — «Мята»
+
+```
+Website landing page design for a family dental clinic, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: clean, calm, medical but warm, soft rounded shapes. Colors: background #F6FAFB, text #10242B, accent #0B7C7E teal. Typography: modern sans-serif like Onest for headings, friendly sans-serif for body.
+Layout: top navigation with logo "Стоматология «Мята»", menu "Услуги", "О клинике", "Контакты", phone "+7 900 000-00-00"; hero headline "Лечение зубов без страха и сюрпризов", subtitle "Составим план лечения и назовём стоимость заранее", teal button "Записаться на консультацию"; large photo of a bright modern dental treatment room with a white chair and plants on the right, no people; below — three cards "Консультация 1 000 ₽", "Профгигиена 4 500 ₽", "Лечение кариеса от 5 000 ₽".
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+### Фотограф — «Анна Лебедева»
+
+```
+Website landing page design for a portrait photographer, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: editorial, minimal, film photography feel, sharp corners, beige and black. Colors: background #F4F1EC, text #151515, accent #151515. Typography: elegant serif like Cormorant Garamond for headings, clean sans-serif for body.
+Layout: top navigation with logo "Анна Лебедева" and caption "фотограф", menu "Портфолио", "Съёмки", "Контакты"; hero headline "Фотографии, в которых вы узнаете себя", black button "Забронировать дату"; large warm film-style portrait of a woman in a golden-hour field on the right; below — a grid of six portfolio photos: portrait, family, couple, studio, reportage, walk.
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+### Цветочный магазин — «Цветы на Садовой»
+
+```
+Website landing page design for a flower shop, desktop screen 1440x900, straight front view, flat UI screenshot.
+Style: tender, romantic, editorial, arch-shaped photo frames. Colors: background #F8F3EF, text #2C2A26, accent #A8405F raspberry. Typography: elegant serif like Playfair Display for headings, clean sans-serif for body.
+Layout: top navigation with logo "Цветы на Садовой", menu "Каталог", "О мастерской", "Контакты", phone "+7 900 000-00-00"; hero headline "Букеты, которые говорят за вас", subtitle "Пришлём фото букета перед доставкой", raspberry button "Заказать букет"; large photo of a florist's hands arranging a peony and eucalyptus bouquet in an arch frame on the right; below — three cards with photos "Букет дня от 2 500 ₽", "Авторский букет от 4 500 ₽", "Цветы в коробке от 3 900 ₽".
+Premium modern web design, Awwwards quality, generous whitespace, precise grid, realistic photography, crisp readable Russian text.
+--ar 16:10 --style raw --no device mockup, browser frame, perspective, watermark, lorem ipsum
+```
+
+## Фото для галерей
+
+Галереи (блок «Работы» / «Портфолио») используют файлы `<ниша>-gallery-1.jpg` … `-6.jpg` в `apps/web/public/images/niches/`. Формат 1:1, без текста и логотипов.
+
+- **Барбершоп** (4): `Close-up of a textured crop men's haircut, vintage barbershop, warm moody light, no face visible` · `Classic side-part men's haircut from behind, barbershop` · `Barber shaping a beard with a straight razor, close-up, warm light` · `Skin fade haircut from the side, studio light, dark background`
+- **Фотограф** (6): `Film-style portrait of a woman in golden hour light` · `Family of four laughing on a picnic blanket in a summer park` · `Couple walking along a beach at sunset, film photography` · `Studio portrait of a man on a beige backdrop, soft light` · `Candid reportage moment at a small wedding dinner, warm light` · `Woman walking through an autumn city street, film grain`
+- **Цветы** (4): `Peony and eucalyptus bouquet on a linen table` · `Delicate white wedding bouquet held in hands` · `Pink roses arranged in a round hat box, top view` · `Seasonal wildflower bouquet in a ceramic vase`

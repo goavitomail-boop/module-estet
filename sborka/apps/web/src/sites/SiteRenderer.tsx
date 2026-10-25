@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { NICHES } from "@/lib/sites/niches";
-import type { SiteSpec } from "@/lib/sites/schema";
+import type { Block, IconName, SiteSpec } from "@/lib/sites/schema";
 import { getTheme, type SiteTheme } from "@/lib/sites/themes";
 import { Icon } from "./icons";
 import { MoodArt } from "./MoodArt";
@@ -8,9 +8,17 @@ import s from "./site.module.css";
 import "./fonts";
 
 export type SiteMode = "preview" | "example" | "live";
-type Item = SiteSpec["services"]["items"][number];
+type Item = Extract<Block, { type: "services" }>["items"][number];
 
-/** Рендерит клиентский сайт из SiteSpec. */
+interface Ctx {
+  spec: SiteSpec;
+  theme: SiteTheme;
+  variant: number;
+  icon: IconName;
+  mode: SiteMode;
+}
+
+/** Рендерит клиентский сайт из SiteSpec: первый экран, блоки по порядку, контакты. */
 export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode }) {
   const theme = getTheme(spec.themeId);
   const vars = {
@@ -28,10 +36,14 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
   } as CSSProperties;
   // У альтернативной темы композиции зеркалятся, чтобы варианты отличались сильнее.
   const variant = NICHES[spec.niche].themes.indexOf(spec.themeId) === 1 ? 1 : 0;
+  const ctx: Ctx = { spec, theme, variant, icon: spec.business.logoIcon, mode };
   const live = mode === "live";
   const phoneHref = `tel:${spec.contacts.phone.replace(/[^\d+]/g, "")}`;
   const shape = spec.heroVariant === "stacked" && theme.heroShape === "fade" ? "rounded" : theme.heroShape;
   const location = [spec.business.city, spec.contacts.address].filter(Boolean).join(", ");
+  const services = spec.blocks.find((b) => b.type === "services");
+  const about = spec.blocks.find((b) => b.type === "about");
+  const seen = new Set<string>();
 
   return (
     <div className={s.site} style={vars} data-niche={spec.niche} data-shape={shape}>
@@ -45,8 +57,8 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
             </span>
           </span>
           <nav className={s.nav} aria-label="Разделы сайта">
-            <a href="#services">{spec.services.eyebrow || spec.services.title}</a>
-            <a href="#about">{spec.about.title}</a>
+            {services && <a href="#services">{services.eyebrow || services.title}</a>}
+            {about && <a href="#about">{about.title}</a>}
             <a href="#contacts">Контакты</a>
           </nav>
           <span className={s.phone}>
@@ -87,53 +99,18 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
               )}
             </div>
             <div className={s.heroMedia}>
-              <Media src={spec.images?.hero} niche={spec.niche} variant={variant} eager />
+              <Media src={spec.images?.hero} ctx={ctx} eager />
               {mode === "preview" && <span className={s.artNote}>Здесь будет ваше фото</span>}
             </div>
           </div>
         </section>
 
-        <section id="services" className={s.section}>
-          <div className={s.wrap}>
-            <Services spec={spec} theme={theme} />
-          </div>
-        </section>
-
-        <Strip spec={spec} />
-
-        <section id="about" className={`${s.section} ${s.about}`}>
-          <div className={`${s.wrap} ${s.aboutGrid}`}>
-            <div className={s.aboutMedia}>
-              <Media src={spec.images?.about} niche={spec.niche} variant={variant + 1} />
-            </div>
-            <div>
-              <h2 className={s.h2}>{spec.about.title}</h2>
-              <p className={s.lead}>{spec.about.text}</p>
-              <ul className={s.reasons}>
-                {spec.reasons.items.map((r) => (
-                  <li key={r.title}>
-                    <h3>{r.title}</h3>
-                    <p>{r.text}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section className={s.section}>
-          <div className={`${s.wrap} ${s.faqGrid}`}>
-            <h2 className={s.h2}>{spec.faq.title}</h2>
-            <div className={s.faq}>
-              {spec.faq.items.map((f) => (
-                <details key={f.q}>
-                  <summary>{f.q}</summary>
-                  <p>{f.a}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        </section>
+        {spec.blocks.map((block, i) => {
+          // Якорь — у первого блока каждого типа, чтобы работали ссылки меню
+          const id = seen.has(block.type) ? undefined : block.type;
+          seen.add(block.type);
+          return <BlockView key={i} block={block} id={id} ctx={ctx} />;
+        })}
 
         <section id="contacts" className={`${s.section} ${s.contacts}`}>
           <div className={`${s.wrap} ${s.contactsGrid}`}>
@@ -157,6 +134,11 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
                   </li>
                 )}
               </ul>
+              <div className={s.map} aria-hidden="true">
+                <span className={s.mapPin}>
+                  <Icon name="pin" size={22} />
+                </span>
+              </div>
             </div>
             <form className={s.form}>
               <fieldset disabled={!live}>
@@ -167,6 +149,10 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
                 <label>
                   Телефон
                   <input name="phone" type="tel" autoComplete="tel" />
+                </label>
+                <label>
+                  Комментарий
+                  <textarea name="comment" rows={3} />
                 </label>
                 <button className={s.button} type="submit">
                   {spec.contacts.formCta}
@@ -186,6 +172,7 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
           </span>
           <span>{spec.business.city}</span>
         </div>
+        {spec.business.disclaimer && <p className={`${s.wrap} ${s.disclaimer}`}>{spec.business.disclaimer}</p>}
       </footer>
 
       {mode === "preview" && (
@@ -195,62 +182,120 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
   );
 }
 
-function Services({ spec, theme }: { spec: SiteSpec; theme: SiteTheme }) {
-  const { services } = spec;
-  const head = (
-    <div className={s.servicesHead}>
+function BlockView({ block, id, ctx }: { block: Block; id?: string; ctx: Ctx }) {
+  switch (block.type) {
+    case "services":
+      return <ServicesBlock block={block} id={id} ctx={ctx} />;
+    case "strip":
+      return <StripBlock block={block} />;
+    case "about":
+      return <AboutBlock block={block} id={id} ctx={ctx} />;
+    case "gallery":
+      return <GalleryBlock block={block} id={id} ctx={ctx} />;
+    case "steps":
+      return <StepsBlock block={block} id={id} />;
+    case "team":
+      return <TeamBlock block={block} id={id} />;
+    case "reviews":
+      return <ReviewsBlock block={block} id={id} />;
+    case "pricing":
+      return <PricingBlock block={block} id={id} />;
+    case "stats":
+      return <StatsBlock block={block} />;
+    case "schedule":
+      return <ScheduleBlock block={block} id={id} />;
+    case "cta":
+      return <CtaBlock block={block} />;
+    case "faq":
+      return <FaqBlock block={block} id={id} />;
+  }
+}
+
+/* ——— Заголовок блока ——— */
+
+function Head({ eyebrow, title, lead, action, center }: { eyebrow?: string; title: string; lead?: string; action?: ReactNode; center?: boolean }) {
+  return (
+    <div className={`${s.blockHead} ${center ? s.blockHeadCenter : ""}`}>
       <div>
-        {services.eyebrow && <p className={s.eyebrow}>{services.eyebrow}</p>}
-        <h2 className={s.h2}>{services.title}</h2>
-        {services.lead && <p className={s.servicesLead}>{services.lead}</p>}
+        {eyebrow && <p className={s.eyebrow}>{eyebrow}</p>}
+        <h2 className={s.h2}>{title}</h2>
+        {lead && <p className={s.blockLead}>{lead}</p>}
       </div>
-      <a href="#contacts" className={s.more}>
-        {spec.contacts.formCta}
-        <Icon name="arrow" size={18} />
-      </a>
+      {action}
     </div>
   );
+}
 
-  const style = theme.serviceStyle;
-  if (style === "arch") {
-    const withPhoto = services.items.filter((i) => i.image).slice(0, 2);
-    const rest = services.items.filter((i) => !withPhoto.includes(i));
+function More({ label }: { label: string }) {
+  return (
+    <a href="#contacts" className={s.more}>
+      {label}
+      <Icon name="arrow" size={18} />
+    </a>
+  );
+}
+
+/* ——— Услуги ——— */
+
+function ServicesBlock({ block, id, ctx }: { block: Extract<Block, { type: "services" }>; id?: string; ctx: Ctx }) {
+  const style = block.style ?? ctx.theme.serviceStyle;
+  const head = <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} action={<More label={ctx.spec.contacts.formCta} />} />;
+
+  if (style === "list") {
     return (
-      <>
-        <div className={s.archGrid}>
+      <section id={id} className={s.section}>
+        <div className={`${s.wrap} ${s.listGrid}`}>
           {head}
-          {withPhoto.map((item) => (
-            <figure key={item.name} className={s.archCard}>
-              <div className={s.archMedia}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image} alt="" loading="lazy" />
-              </div>
-              <figcaption>
-                <span>{item.name}</span>
-                <b>{item.price}</b>
-              </figcaption>
-            </figure>
-          ))}
+          <PriceList items={block.items} />
         </div>
-        {rest.length > 0 && <PriceList items={rest} />}
-      </>
+      </section>
     );
   }
 
-  const cards = style === "photo" ? services.items.filter((i) => i.image) : services.items;
-  const rest = services.items.filter((i) => !cards.includes(i));
+  if (style === "arch") {
+    const withPhoto = block.items.filter((i) => i.image).slice(0, 2);
+    const rest = block.items.filter((i) => !withPhoto.includes(i));
+    return (
+      <section id={id} className={s.section}>
+        <div className={s.wrap}>
+          <div className={s.archGrid}>
+            {head}
+            {withPhoto.map((item) => (
+              <figure key={item.name} className={s.archCard}>
+                <div className={s.archMedia}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.image} alt="" loading="lazy" />
+                </div>
+                <figcaption>
+                  <span>{item.name}</span>
+                  <b>{item.price}</b>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          {rest.length > 0 && <PriceList items={rest} />}
+        </div>
+      </section>
+    );
+  }
+
+  // Фото-карточки — только для услуг с фото; остальные идут списком цен
+  const cards = style === "photo" ? block.items.filter((i) => i.image) : block.items;
+  const rest = block.items.filter((i) => !cards.includes(i));
   return (
-    <>
-      {head}
-      {cards.length > 0 && (
-        <ul className={`${s.cards} ${style === "icon" ? s.iconCards : s.photoCards}`}>
-          {cards.map((item, i) => (
-            <ServiceCard key={item.name} item={item} style={style} index={i} cta={spec.contacts.formCta} />
-          ))}
-        </ul>
-      )}
-      {rest.length > 0 && <PriceList items={rest} />}
-    </>
+    <section id={id} className={s.section}>
+      <div className={s.wrap}>
+        {head}
+        {cards.length > 0 && (
+          <ul className={`${s.cards} ${style === "icon" ? s.iconCards : s.photoCards}`}>
+            {cards.map((item, i) => (
+              <ServiceCard key={item.name} item={item} style={style} index={i} cta={ctx.spec.contacts.formCta} />
+            ))}
+          </ul>
+        )}
+        {rest.length > 0 && <PriceList items={rest} />}
+      </div>
+    </section>
   );
 }
 
@@ -292,7 +337,10 @@ function PriceList({ items }: { items: Item[] }) {
     <ul className={s.priceList}>
       {items.map((item) => (
         <li key={item.name}>
-          <span>{item.name}</span>
+          <span className={s.priceName}>
+            {item.name}
+            {item.note && <small>{item.note}</small>}
+          </span>
           <span className={s.leader} aria-hidden="true" />
           <b>{item.price}</b>
         </li>
@@ -301,13 +349,14 @@ function PriceList({ items }: { items: Item[] }) {
   );
 }
 
-function Strip({ spec }: { spec: SiteSpec }) {
-  const { strip } = spec;
-  if (strip?.items?.length) {
+/* ——— Полоса ——— */
+
+function StripBlock({ block }: { block: Extract<Block, { type: "strip" }> }) {
+  if (block.items?.length) {
     return (
       <section className={s.stripItems}>
         <ul className={s.wrap}>
-          {strip.items.map((it) => (
+          {block.items.map((it) => (
             <li key={it.title}>
               <Icon name={it.icon} size={30} />
               <span>
@@ -320,25 +369,297 @@ function Strip({ spec }: { spec: SiteSpec }) {
       </section>
     );
   }
-  if (!strip?.quote) return null;
+  if (!block.quote) return null;
   return (
     <section className={s.stripQuote}>
       <div className={s.wrap}>
         <div className={s.quoteBand}>
-          <p className={s.quote}>{strip.quote}</p>
-          {strip.caption && <p className={s.quoteCaption}>{strip.caption}</p>}
+          <p className={s.quote}>{block.quote}</p>
+          {block.caption && <p className={s.quoteCaption}>{block.caption}</p>}
         </div>
       </div>
     </section>
   );
 }
 
-function Media({ src, niche, variant, eager }: { src?: string; niche: SiteSpec["niche"]; variant: number; eager?: boolean }) {
+/* ——— О нас ——— */
+
+function AboutBlock({ block, id, ctx }: { block: Extract<Block, { type: "about" }>; id?: string; ctx: Ctx }) {
+  return (
+    <section id={id} className={`${s.section} ${s.about}`}>
+      <div className={`${s.wrap} ${s.aboutGrid}`}>
+        <div className={s.aboutMedia}>
+          <Media src={block.image} ctx={{ ...ctx, variant: ctx.variant + 1 }} />
+        </div>
+        <div>
+          <h2 className={s.h2}>{block.title}</h2>
+          <p className={s.lead}>{block.text}</p>
+          {block.points.length > 0 && (
+            <ul className={s.reasons}>
+              {block.points.map((r) => (
+                <li key={r.title}>
+                  <h3>{r.title}</h3>
+                  <p>{r.text}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Галерея ——— */
+
+function GalleryBlock({ block, id, ctx }: { block: Extract<Block, { type: "gallery" }>; id?: string; ctx: Ctx }) {
+  return (
+    <section id={id} className={s.section}>
+      <div className={s.wrap}>
+        <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />
+        <ul className={s.gallery} data-count={block.images.length}>
+          {block.images.map((img, i) => (
+            <li key={i} className={s.galleryItem}>
+              {img.src ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={img.src} alt={img.caption ?? ""} loading="lazy" />
+              ) : (
+                <Placeholder icon={ctx.icon} />
+              )}
+              {img.caption && <span className={s.galleryCaption}>{img.caption}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Этапы ——— */
+
+function StepsBlock({ block, id }: { block: Extract<Block, { type: "steps" }>; id?: string }) {
+  return (
+    <section id={id} className={`${s.section} ${s.tinted}`}>
+      <div className={s.wrap}>
+        <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />
+        <ol className={s.steps} data-count={block.items.length}>
+          {block.items.map((st, i) => (
+            <li key={st.title}>
+              <span className={s.stepNum}>{String(i + 1).padStart(2, "0")}</span>
+              <h3>{st.title}</h3>
+              <p>{st.text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Команда ——— */
+
+function TeamBlock({ block, id }: { block: Extract<Block, { type: "team" }>; id?: string }) {
+  return (
+    <section id={id} className={s.section}>
+      <div className={s.wrap}>
+        <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />
+        <ul className={s.team}>
+          {block.people.map((p) => (
+            <li key={p.name} className={s.person}>
+              <div className={s.avatar}>
+                {p.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.photo} alt="" loading="lazy" />
+                ) : (
+                  <span>{initials(p.name)}</span>
+                )}
+              </div>
+              <h3>{p.name}</h3>
+              <p>{p.role}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Отзывы ——— */
+
+function ReviewsBlock({ block, id }: { block: Extract<Block, { type: "reviews" }>; id?: string }) {
+  return (
+    <section id={id} className={`${s.section} ${s.tinted}`}>
+      <div className={s.wrap}>
+        <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />
+        <ul className={s.reviews}>
+          {block.items.map((r) => (
+            <li key={r.name} className={s.review}>
+              <span className={s.stars} aria-hidden="true">
+                {[0, 1, 2, 3, 4].map((k) => (
+                  <Icon key={k} name="star" size={16} />
+                ))}
+              </span>
+              <p>{r.text}</p>
+              <footer>
+                <span className={s.reviewAvatar}>{initials(r.name)}</span>
+                <span>
+                  <b>{r.name}</b>
+                  {r.meta && <small>{r.meta}</small>}
+                </span>
+              </footer>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Тарифы ——— */
+
+function PricingBlock({ block, id }: { block: Extract<Block, { type: "pricing" }>; id?: string }) {
+  return (
+    <section id={id} className={s.section}>
+      <div className={s.wrap}>
+        <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} center />
+        <ul className={s.plans}>
+          {block.plans.map((p) => (
+            <li key={p.name} className={`${s.plan} ${p.featured ? s.planFeatured : ""}`}>
+              {p.featured && <span className={s.planBadge}>Популярный</span>}
+              <h3>{p.name}</h3>
+              <p className={s.planPrice}>
+                {p.price}
+                {p.period && <small> {p.period}</small>}
+              </p>
+              <ul>
+                {p.features.map((f) => (
+                  <li key={f}>
+                    <Icon name="check" size={18} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="#contacts" className={p.featured ? s.button : s.buttonOutline}>
+                Выбрать
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Цифры ——— */
+
+function StatsBlock({ block }: { block: Extract<Block, { type: "stats" }> }) {
+  return (
+    <section className={s.stats}>
+      <ul className={s.wrap}>
+        {block.items.map((it) => (
+          <li key={it.label}>
+            <b>{it.value}</b>
+            <span>{it.label}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ——— Расписание ——— */
+
+function ScheduleBlock({ block, id }: { block: Extract<Block, { type: "schedule" }>; id?: string }) {
+  return (
+    <section id={id} className={`${s.section} ${s.tinted}`}>
+      <div className={s.wrap}>
+        <Head eyebrow={block.eyebrow} title={block.title} lead={block.lead} />
+        <div className={s.schedule}>
+          {block.days.map((d) => (
+            <div key={d.day} className={s.day}>
+              <b>{d.day}</b>
+              <ul>
+                {d.items.map((it) => (
+                  <li key={it.time + it.name}>
+                    <time>{it.time}</time>
+                    <span>{it.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Призыв ——— */
+
+function CtaBlock({ block }: { block: Extract<Block, { type: "cta" }> }) {
+  return (
+    <section className={s.ctaSection}>
+      <div className={s.wrap}>
+        <div className={s.cta}>
+          <div>
+            <h2>{block.title}</h2>
+            {block.text && <p>{block.text}</p>}
+          </div>
+          <a href="#contacts" className={s.ctaButton}>
+            {block.button}
+            <Icon name="arrow" size={20} />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Вопросы ——— */
+
+function FaqBlock({ block, id }: { block: Extract<Block, { type: "faq" }>; id?: string }) {
+  return (
+    <section id={id} className={s.section}>
+      <div className={`${s.wrap} ${s.faqGrid}`}>
+        <h2 className={s.h2}>{block.title}</h2>
+        <div className={s.faq}>
+          {block.items.map((f) => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ——— Общие ——— */
+
+function Media({ src, ctx, eager }: { src?: string; ctx: Ctx; eager?: boolean }) {
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img className={s.photo} src={src} alt="" loading={eager ? "eager" : "lazy"} />;
   }
-  return <MoodArt niche={niche} variant={variant} />;
+  return <MoodArt niche={ctx.spec.niche} variant={ctx.variant} icon={ctx.icon} />;
+}
+
+function Placeholder({ icon }: { icon: IconName }) {
+  return (
+    <span className={s.placeholder}>
+      <Icon name={icon} size={40} />
+    </span>
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
 }
 
 function Accent({ text, accent }: { text: string; accent?: string }): ReactNode {

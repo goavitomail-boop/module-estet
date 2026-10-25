@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function ExamplePage({ params }: Params) {
   const { slug } = await params;
   if (!NICHE_IDS.includes(slug as NicheId)) notFound();
-  const spec = await getGenerator().generate({ brief: demoBrief(slug as NicheId), variant: 0 });
+  const spec = await getGenerator().generate({ brief: demoBrief(slug as NicheId), variant: 0, demo: true });
 
   return (
     <>

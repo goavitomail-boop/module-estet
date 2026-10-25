@@ -6,3 +6,5 @@ import "@fontsource-variable/rubik";
 import "@fontsource-variable/lora";
 import "@fontsource-variable/golos-text";
 import "@fontsource-variable/playfair-display";
+import "@fontsource-variable/unbounded";
+import "@fontsource-variable/manrope";

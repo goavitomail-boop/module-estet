@@ -1,10 +1,11 @@
-import type { NicheId } from "@/lib/sites/schema";
+import type { IconName, NicheId } from "@/lib/sites/schema";
+import { iconPaths } from "./icons";
 
 /**
  * Абстрактная композиция вместо фото, пока клиент не загрузил свои.
  * Цвета берутся из переменных темы сайта.
  */
-export function MoodArt({ niche, variant = 0 }: { niche: NicheId; variant?: number }) {
+export function MoodArt({ niche, variant = 0, icon = "sparkle" }: { niche: NicheId; variant?: number; icon?: IconName }) {
   const flip = variant % 2 === 1;
   return (
     <svg
@@ -14,7 +15,7 @@ export function MoodArt({ niche, variant = 0 }: { niche: NicheId; variant?: numb
       style={{ width: "100%", height: "100%", display: "block", transform: flip ? "scaleX(-1)" : undefined }}
     >
       <rect width="400" height="500" fill="var(--s-surface)" />
-      {ART[niche]}
+      {ART[niche] ?? generic(icon)}
     </svg>
   );
 }
@@ -22,7 +23,22 @@ export function MoodArt({ niche, variant = 0 }: { niche: NicheId; variant?: numb
 // Округляем, чтобы координаты совпадали на сервере и в браузере.
 const round = (n: number) => Math.round(n * 100) / 100;
 
-const ART: Record<NicheId, React.ReactNode> = {
+/** Композиция для ниш без собственной иллюстрации: арка, круги и крупная иконка ниши. */
+function generic(icon: IconName) {
+  return (
+    <>
+      <circle cx="285" cy="150" r="150" fill="var(--s-accent)" opacity="0.14" />
+      <path d="M60 500V370a110 110 0 0 1 220 0v130Z" fill="var(--s-accent)" opacity="0.9" />
+      <circle cx="92" cy="112" r="28" fill="var(--s-bg)" />
+      <path d="M40 300a150 150 0 0 1 300 0" fill="none" stroke="var(--s-text)" strokeOpacity="0.2" strokeWidth="1.5" />
+      <svg x="115" y="345" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="var(--s-accent-text)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+        {iconPaths(icon)}
+      </svg>
+    </>
+  );
+}
+
+const ART: Partial<Record<NicheId, React.ReactNode>> = {
   nails: (
     <>
       <path d="M60 500V230a110 110 0 0 1 220 0v270Z" fill="var(--s-accent)" opacity="0.18" />

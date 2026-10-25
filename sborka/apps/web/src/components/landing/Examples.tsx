@@ -14,6 +14,13 @@ const META: Record<NicheId, { label: string; kind: string; tag: string }> = {
   repair: { label: "Ремонт квартир", kind: "Услуги", tag: "#strict" },
   auto: { label: "Автосервис", kind: "Авто", tag: "#dark" },
   psychologist: { label: "Психолог", kind: "Эксперт", tag: "#calm" },
+  fitness: { label: "Фитнес-студия", kind: "Спорт", tag: "#bold" },
+  legal: { label: "Юридическая практика", kind: "Услуги", tag: "#corporate" },
+  barber: { label: "Барбершоп", kind: "Услуги", tag: "#brutal" },
+  cleaning: { label: "Клининг", kind: "Услуги", tag: "#fresh" },
+  dental: { label: "Стоматология", kind: "Медицина", tag: "#clean" },
+  photo: { label: "Фотограф", kind: "Творчество", tag: "#minimal" },
+  florist: { label: "Цветочный магазин", kind: "Магазин", tag: "#tender" },
 };
 
 export function Examples({ specs, photos }: { specs: SiteSpec[]; photos: ShowcasePhotos }) {

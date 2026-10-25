@@ -22,9 +22,7 @@ const PRELOADER_SCRIPT = `try{var d=document.documentElement;if(sessionStorage.g
 
 export default async function Home() {
   const generator = getGenerator();
-  const specs = await Promise.all(NICHE_IDS.map((id) => generator.generate({ brief: demoBrief(id), variant: 0 })));
-  const order = ["coffee", "nails", "repair", "auto", "psychologist"];
-  specs.sort((a, b) => order.indexOf(a.niche) - order.indexOf(b.niche));
+  const specs = await Promise.all(NICHE_IDS.map((id) => generator.generate({ brief: demoBrief(id), variant: 0, demo: true })));
   const photos = showcasePhotos();
 
   return (

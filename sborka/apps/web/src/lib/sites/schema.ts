@@ -1,6 +1,19 @@
 import { z } from "zod";
 
-export const NICHE_IDS = ["nails", "repair", "auto", "psychologist", "coffee"] as const;
+export const NICHE_IDS = [
+  "coffee",
+  "nails",
+  "repair",
+  "auto",
+  "psychologist",
+  "fitness",
+  "legal",
+  "barber",
+  "cleaning",
+  "dental",
+  "photo",
+  "florist",
+] as const;
 export type NicheId = (typeof NICHE_IDS)[number];
 
 export const ServiceSchema = z.object({
@@ -32,74 +45,158 @@ export const ICON_NAMES = [
   "leaf", "heart", "calendar", "shield", "clock", "users", "doc", "camera", "sprout", "armchair", "bean", "cup",
   "wrench", "gear", "car", "oil", "laptop", "tire", "ruler", "home", "sparkle", "lock", "phone", "pin", "arrow", "plus",
   "chat", "eye", "card", "globe", "bolt", "play", "check", "layers", "mobile", "palette", "text",
+  "dumbbell", "scale", "scissors", "spray", "tooth", "aperture", "flower", "star", "briefcase", "fire", "drop", "gift",
 ] as const;
 export const IconSchema = z.enum(ICON_NAMES);
 export type IconName = (typeof ICON_NAMES)[number];
+
+const Title = {
+  eyebrow: z.string().default(""),
+  title: z.string(),
+  lead: z.string().default(""),
+};
+
+export const ServiceItemSchema = z.object({
+  name: z.string(),
+  price: z.string(),
+  note: z.string().optional(),
+  image: z.string().optional(),
+  icon: IconSchema.optional(),
+});
+
+/**
+ * Блоки страницы. Сайт — это первый экран, список блоков в нужном порядке и контакты.
+ * ИИ (или шаблон ниши) выбирает блоки и заполняет их.
+ */
+export const BlockSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("services"),
+    ...Title,
+    /** Вид карточек; по умолчанию — из темы. */
+    style: z.enum(["photo", "arch", "icon", "list"]).optional(),
+    items: z.array(ServiceItemSchema),
+  }),
+  z.object({
+    type: z.literal("strip"),
+    quote: z.string().optional(),
+    caption: z.string().optional(),
+    items: z.array(z.object({ icon: IconSchema, title: z.string(), text: z.string() })).optional(),
+  }),
+  z.object({
+    type: z.literal("about"),
+    title: z.string(),
+    text: z.string(),
+    image: z.string().optional(),
+    points: z.array(z.object({ title: z.string(), text: z.string() })).default([]),
+  }),
+  z.object({
+    type: z.literal("gallery"),
+    ...Title,
+    images: z.array(z.object({ src: z.string().optional(), caption: z.string().optional() })),
+  }),
+  z.object({
+    type: z.literal("steps"),
+    ...Title,
+    items: z.array(z.object({ title: z.string(), text: z.string() })),
+  }),
+  z.object({
+    type: z.literal("team"),
+    ...Title,
+    people: z.array(z.object({ name: z.string(), role: z.string(), photo: z.string().optional() })),
+  }),
+  z.object({
+    type: z.literal("reviews"),
+    ...Title,
+    items: z.array(z.object({ name: z.string(), meta: z.string().default(""), text: z.string() })),
+  }),
+  z.object({
+    type: z.literal("pricing"),
+    ...Title,
+    plans: z.array(
+      z.object({
+        name: z.string(),
+        price: z.string(),
+        period: z.string().default(""),
+        features: z.array(z.string()),
+        featured: z.boolean().default(false),
+      }),
+    ),
+  }),
+  z.object({
+    type: z.literal("stats"),
+    items: z.array(z.object({ value: z.string(), label: z.string() })),
+  }),
+  z.object({
+    type: z.literal("schedule"),
+    ...Title,
+    days: z.array(z.object({ day: z.string(), items: z.array(z.object({ time: z.string(), name: z.string() })) })),
+  }),
+  z.object({
+    type: z.literal("cta"),
+    title: z.string(),
+    text: z.string().default(""),
+    button: z.string(),
+  }),
+  z.object({
+    type: z.literal("faq"),
+    title: z.string(),
+    items: z.array(z.object({ q: z.string(), a: z.string() })),
+  }),
+]);
+export type Block = z.infer<typeof BlockSchema>;
+export type BlockInput = z.input<typeof BlockSchema>;
+export type BlockType = Block["type"];
+
+/** Прототипы, сохранённые до появления блоков, переводятся в новый формат. */
+function legacyToBlocks(raw: unknown) {
+  if (!raw || typeof raw !== "object" || "blocks" in raw) return raw;
+  const old = raw as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const blocks: unknown[] = [];
+  if (old.services) blocks.push({ type: "services", ...old.services });
+  if (old.strip && (old.strip.quote || old.strip.items)) blocks.push({ type: "strip", ...old.strip });
+  if (old.about)
+    blocks.push({ type: "about", ...old.about, image: old.images?.about, points: old.reasons?.items ?? [] });
+  if (old.faq) blocks.push({ type: "faq", ...old.faq });
+  return { ...old, blocks };
+}
 
 /**
  * Описание собранного сайта. Это то, что вернёт ИИ (или шаблонный генератор);
  * рендерер превращает его в страницу.
  */
-export const SiteSpecSchema = z.object({
-  niche: z.enum(NICHE_IDS),
-  themeId: z.string(),
-  heroVariant: z.enum(["split", "stacked"]),
-  /** Фото для первого экрана и блока «о нас». Без них рисуется абстрактная композиция. */
-  images: z.object({ hero: z.string().optional(), about: z.string().optional() }).default({}),
-  business: z.object({
-    name: z.string(),
-    city: z.string(),
-    /** Подпись под логотипом. */
-    tagline: z.string().default(""),
-    logoIcon: IconSchema.default("sparkle"),
-  }),
-  hero: z.object({
-    eyebrow: z.string().default(""),
-    title: z.string(),
-    /** Часть заголовка, выделенная акцентным цветом. */
-    accent: z.string().optional(),
-    subtitle: z.string(),
-    cta: z.string(),
-    features: z.array(z.object({ icon: IconSchema, text: z.string() })).default([]),
-  }),
-  services: z.object({
-    eyebrow: z.string().default(""),
-    title: z.string(),
-    lead: z.string().default(""),
-    items: z.array(
-      z.object({
-        name: z.string(),
-        price: z.string(),
-        note: z.string().optional(),
-        image: z.string().optional(),
-        icon: IconSchema.optional(),
-      }),
-    ),
-  }),
-  /** Полоса между услугами и остальными блоками: цитата или ряд преимуществ. */
-  strip: z
-    .object({
-      quote: z.string().optional(),
-      caption: z.string().optional(),
-      items: z.array(z.object({ icon: IconSchema, title: z.string(), text: z.string() })).optional(),
-    })
-    .default({}),
-  about: z.object({ title: z.string(), text: z.string() }),
-  reasons: z.object({
-    title: z.string(),
-    items: z.array(z.object({ title: z.string(), text: z.string() })),
-  }),
-  faq: z.object({
-    title: z.string(),
-    items: z.array(z.object({ q: z.string(), a: z.string() })),
-  }),
-  contacts: z.object({
-    title: z.string(),
-    phone: z.string(),
-    address: z.string(),
-    hours: z.string(),
-    formCta: z.string(),
-  }),
+const SiteSpecObject = z.object({
+    niche: z.enum(NICHE_IDS),
+    themeId: z.string(),
+    heroVariant: z.enum(["split", "stacked"]),
+    /** Фото первого экрана. Без него рисуется абстрактная композиция. */
+    images: z.object({ hero: z.string().optional() }).default({}),
+    business: z.object({
+      name: z.string(),
+      city: z.string(),
+      /** Подпись под логотипом. */
+      tagline: z.string().default(""),
+      logoIcon: IconSchema.default("sparkle"),
+      /** Обязательная пометка (например, для медицинских услуг). Выводится в подвале. */
+      disclaimer: z.string().optional(),
+    }),
+    hero: z.object({
+      eyebrow: z.string().default(""),
+      title: z.string(),
+      /** Часть заголовка, выделенная акцентным цветом. */
+      accent: z.string().optional(),
+      subtitle: z.string(),
+      cta: z.string(),
+      features: z.array(z.object({ icon: IconSchema, text: z.string() })).default([]),
+    }),
+    blocks: z.array(BlockSchema),
+    contacts: z.object({
+      title: z.string(),
+      phone: z.string(),
+      address: z.string(),
+      hours: z.string(),
+      formCta: z.string(),
+    }),
 });
-export type SiteSpec = z.infer<typeof SiteSpecSchema>;
-export type SiteSpecInput = z.input<typeof SiteSpecSchema>;
+export const SiteSpecSchema = z.preprocess(legacyToBlocks, SiteSpecObject);
+export type SiteSpec = z.infer<typeof SiteSpecObject>;
+export type SiteSpecInput = z.input<typeof SiteSpecObject>;
