@@ -1,16 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/onest";
-import "@fontsource-variable/manrope";
-// Кандидаты на замену шрифтов (временно, см. варианты в globals.css)
 import "@fontsource-variable/unbounded";
-import "@fontsource-variable/inter-tight";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/geologica";
-import "@fontsource/dela-gothic-one";
-import "@fontsource-variable/golos-text";
-import "@fontsource/prata";
-import "@fontsource-variable/wix-madefor-display";
-import "@fontsource-variable/wix-madefor-text";
+import "@fontsource-variable/manrope";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -37,14 +27,10 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-// Предпросмотр шрифтов: ?font=a … ?font=f подставляет вариант до отрисовки страницы
-const FONT_PREVIEW = `try{var f=new URLSearchParams(location.search).get('font');if(f)document.documentElement.dataset.font=f}catch(e){}`;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" suppressHydrationWarning>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: FONT_PREVIEW }} />
         {children}
       </body>
     </html>

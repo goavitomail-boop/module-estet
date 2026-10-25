@@ -16,13 +16,14 @@
   --danger: #ff6b5e;
   --warning: #ffc24a;
 
-  --font-display: "Onest Variable", "Manrope Variable", system-ui, sans-serif;
+  --font-display: "Unbounded Variable", system-ui, sans-serif;
   --font-body: "Manrope Variable", system-ui, sans-serif;
-  /* Начертание заголовков: у разных гарнитур разные вес, трекинг и ширина */
-  --display-weight: 500;
-  --display-track: -0.03em;
-  --display-track-tight: -0.045em;
-  --display-size: 1;
+  /* Начертание заголовков */
+  --display-weight: 600;
+  --display-track: -0.02em;
+  --display-track-tight: -0.035em;
+  /* Unbounded широкий: заголовки на 30% меньше, чем у узкой гарнитуры */
+  --display-size: 0.7;
 
   --fs-display: clamp(48px, 8.4vw, 128px);
   --fs-h1: clamp(36px, 5vw, 72px);
@@ -368,62 +369,4 @@ html.lenis body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/*
- * Варианты шрифтов для выбора. Временно: открыть главную с ?font=a … ?font=f.
- * После выбора нужный вариант станет основным, остальные удалим.
- */
-html[data-font="a"] {
-  --font-display: "Unbounded Variable", system-ui, sans-serif;
-  --font-body: "Manrope Variable", system-ui, sans-serif;
-  --display-weight: 600;
-  --display-track: -0.02em;
-  --display-track-tight: -0.035em;
-  --display-size: 0.7;
-}
-
-html[data-font="b"] {
-  --font-display: "Inter Tight Variable", system-ui, sans-serif;
-  --font-body: "Inter Variable", system-ui, sans-serif;
-  --display-weight: 600;
-  --display-track: -0.035em;
-  --display-track-tight: -0.05em;
-  --display-size: 1.02;
-}
-
-html[data-font="c"] {
-  --font-display: "Geologica Variable", system-ui, sans-serif;
-  --font-body: "Geologica Variable", system-ui, sans-serif;
-  --display-weight: 600;
-  --display-track: -0.035em;
-  --display-track-tight: -0.05em;
-  --display-size: 0.96;
-}
-
-html[data-font="d"] {
-  --font-display: "Dela Gothic One", system-ui, sans-serif;
-  --font-body: "Golos Text Variable", system-ui, sans-serif;
-  --display-weight: 400;
-  --display-track: -0.01em;
-  --display-track-tight: -0.02em;
-  --display-size: 0.76;
-}
-
-html[data-font="e"] {
-  --font-display: "Prata", Georgia, serif;
-  --font-body: "Manrope Variable", system-ui, sans-serif;
-  --display-weight: 400;
-  --display-track: -0.02em;
-  --display-track-tight: -0.03em;
-  --display-size: 1.04;
-}
-
-html[data-font="f"] {
-  --font-display: "Wix Madefor Display Variable", system-ui, sans-serif;
-  --font-body: "Wix Madefor Text Variable", system-ui, sans-serif;
-  --display-weight: 600;
-  --display-track: -0.03em;
-  --display-track-tight: -0.045em;
-  --display-size: 1;
 }

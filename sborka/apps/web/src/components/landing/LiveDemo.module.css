@@ -8,6 +8,8 @@
 .grid {
   position: relative;
   display: grid;
+  /* minmax(0, …): превью сайта шириной 1280px не должно растягивать колонку */
+  grid-template-columns: minmax(0, 1fr);
   gap: 56px;
   align-items: center;
 }
