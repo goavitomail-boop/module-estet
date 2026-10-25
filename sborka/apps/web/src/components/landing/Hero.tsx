@@ -2,31 +2,51 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
-import { gsap, prefersReducedMotion } from "../motion";
-import { AssemblyWindow, type AssemblyItem } from "./AssemblyWindow";
+import { Magnetic } from "../Magnetic";
+import { gsap, onReady, prefersReducedMotion, SplitText } from "../motion";
 import { BlueprintCanvas } from "./BlueprintCanvas";
+import { HeroScene } from "./HeroScene";
 import s from "./Hero.module.css";
 
-const LINES = ["Сайт", "за 24 часа", "за 4 999 ₽"];
-
-export function Hero({ items }: { items: AssemblyItem[] }) {
+export function Hero({ photo }: { photo?: string }) {
   const root = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
-    if (prefersReducedMotion() || !root.current) return;
+    const el = root.current;
+    if (!el || prefersReducedMotion()) return;
+    const splits: SplitText[] = [];
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-      tl.fromTo(
-        "[data-line-skel]",
-        { opacity: 1, scaleX: 0, transformOrigin: "left center" },
-        { scaleX: 1, duration: 0.8, stagger: 0.1 },
-      )
-        .from("[data-line-text]", { clipPath: "inset(0 100% 0 0)", duration: 1.1, stagger: 0.12 }, "-=0.3")
-        .to("[data-line-skel]", { opacity: 0, duration: 0.6, stagger: 0.12, ease: "power2.out" }, "<0.2")
-        .from("[data-hero-rest]", { opacity: 0, y: 16, duration: 0.9, stagger: 0.08 }, "-=0.7")
-        .from("[data-hero-window]", { opacity: 0, x: 40, duration: 1.2 }, "<");
-    }, root);
-    return () => ctx.revert();
+      const targets = el.querySelectorAll<HTMLElement>("[data-split]");
+      targets.forEach((t) => splits.push(SplitText.create(t, { type: "chars", mask: "chars" })));
+      const chars = splits.flatMap((sp) => sp.chars);
+      gsap.set(chars, { yPercent: 115 });
+      gsap.set("[data-price]", { opacity: 0 });
+      gsap.set("[data-hero-rest]", { opacity: 0, y: 24 });
+      gsap.set("[data-scroll-hint]", { opacity: 0 });
+    }, el);
+
+    const off = onReady(() => {
+      ctx.add(() => {
+        const chars = splits.flatMap((sp) => sp.chars);
+        gsap
+          .timeline({ defaults: { ease: "expo.out" } })
+          .to(chars, { yPercent: 0, duration: 1.2, stagger: 0.028 })
+          .to("[data-price]", { opacity: 1, duration: 0.2 }, "-=0.9")
+          .to(
+            "[data-price]",
+            { duration: 1.4, scrambleText: { text: "4 999 ₽", chars: "0123456789", speed: 0.5, revealDelay: 0.3 } },
+            "<",
+          )
+          .to("[data-hero-rest]", { opacity: 1, y: 0, duration: 1, stagger: 0.08 }, "-=1.1")
+          .to("[data-scroll-hint]", { opacity: 1, duration: 0.8 }, "-=0.4");
+      });
+    });
+
+    return () => {
+      off();
+      ctx.revert();
+      splits.forEach((sp) => sp.revert());
+    };
   }, []);
 
   return (
@@ -35,25 +55,29 @@ export function Hero({ items }: { items: AssemblyItem[] }) {
       <div className={`container ${s.inner}`}>
         <div className={s.text}>
           <h1 id="hero-title" className={s.title}>
-            {LINES.map((line) => (
-              <span key={line} className={s.line}>
-                <span className={s.lineSkel} data-line-skel aria-hidden="true" />
-                <span className={s.lineText} data-line-text>
-                  {line}
-                </span>
-              </span>
-            ))}
+            <span className={s.line} data-split>
+              Сайт
+            </span>
+            <span className={s.line} data-split>
+              за 24 часа
+            </span>
+            <span className={`${s.line} ${s.price}`}>
+              <span data-split>за&nbsp;</span>
+              <span data-price>4 999 ₽</span>
+            </span>
           </h1>
           <p className={s.lead} data-hero-rest>
             Опишите бизнес — ИИ соберёт сайт из блоков, которые сделали дизайнеры. Вы смотрите прототип и платите,
             только если он понравился.
           </p>
           <div className={s.actions} data-hero-rest>
-            <Link href="/brief" className="btn btn-primary">
-              Собрать сайт
-            </Link>
-            <a href="#examples" className="btn btn-secondary">
-              Посмотреть примеры
+            <Magnetic>
+              <Link href="/brief" className="btn btn-primary">
+                Собрать сайт
+              </Link>
+            </Magnetic>
+            <a href="#live" className="btn btn-secondary">
+              Как это выглядит
             </a>
           </div>
           <ul className={s.facts} data-hero-rest>
@@ -62,9 +86,11 @@ export function Hero({ items }: { items: AssemblyItem[] }) {
             <li>3 правки бесплатно</li>
           </ul>
         </div>
-        <div className={s.window} data-hero-window>
-          <AssemblyWindow items={items} />
-        </div>
+      </div>
+      <HeroScene className={s.scene} photo={photo} />
+      <div className={s.scrollHint} data-scroll-hint aria-hidden="true">
+        <span>Листайте</span>
+        <i />
       </div>
     </section>
   );

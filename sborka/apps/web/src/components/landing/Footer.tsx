@@ -37,6 +37,9 @@ export function Footer() {
           </ul>
         </div>
       </div>
+      <p className={s.giant} aria-hidden="true">
+        Сборка
+      </p>
       <div className={`container ${s.bottom}`}>
         <span>© {new Date().getFullYear()} Сборка</span>
         <span>

@@ -4,8 +4,13 @@
   z-index: 50;
   transition:
     background 0.3s,
-    border-color 0.3s;
+    border-color 0.3s,
+    transform 0.5s var(--ease);
   border-bottom: 1px solid transparent;
+}
+
+.hidden {
+  transform: translateY(-100%);
 }
 
 .scrolled {

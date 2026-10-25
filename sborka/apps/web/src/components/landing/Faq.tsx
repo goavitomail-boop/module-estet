@@ -1,3 +1,4 @@
+import { RevealText } from "../RevealText";
 import s from "./Faq.module.css";
 
 const ITEMS: { q: string; a: React.ReactNode }[] = [
@@ -31,9 +32,9 @@ export function Faq() {
   return (
     <section id="faq" className={s.section} aria-labelledby="faq-title">
       <div className={`container ${s.grid}`}>
-        <h2 id="faq-title" className={s.title}>
+        <RevealText id="faq-title" className={s.title}>
           Вопросы
-        </h2>
+        </RevealText>
         <div className={s.list}>
           {ITEMS.map((item) => (
             <details key={item.q} className={s.item}>

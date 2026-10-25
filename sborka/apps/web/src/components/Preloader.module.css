@@ -1,0 +1,93 @@
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  pointer-events: all;
+  /* Страховка: если JS не загрузился, прелоадер всё равно исчезнет */
+  animation: failsafe 0.4s 6s forwards;
+}
+
+@keyframes failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+:global(.sb-seen) .preloader {
+  display: none;
+}
+
+.cols {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.cols i {
+  background: var(--ink);
+  border-right: 1px solid rgba(124, 92, 255, 0.12);
+}
+
+.content {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+.mark {
+  width: 72px;
+  height: 72px;
+  overflow: visible;
+}
+
+.mark rect {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.counter {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(72px, 14vw, 180px);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stageRow {
+  height: 24px;
+  overflow: hidden;
+}
+
+.stage {
+  display: block;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--violet-text);
+}
+
+.bar {
+  width: min(320px, 60vw);
+  height: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preloader {
+    display: none;
+  }
+}

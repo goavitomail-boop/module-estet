@@ -36,6 +36,8 @@ export const SiteSpecSchema = z.object({
   niche: z.enum(NICHE_IDS),
   themeId: z.string(),
   heroVariant: z.enum(["split", "stacked"]),
+  /** Фото для первого экрана и блока «о нас». Без них рисуется абстрактная композиция. */
+  images: z.object({ hero: z.string().optional(), about: z.string().optional() }).default({}),
   business: z.object({ name: z.string(), city: z.string() }),
   hero: z.object({ title: z.string(), subtitle: z.string(), cta: z.string() }),
   services: z.object({

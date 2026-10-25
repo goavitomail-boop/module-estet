@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SiteSpec } from "@/lib/sites/schema";
 import { BrowserFrame } from "../BrowserFrame";
+import { RevealText } from "../RevealText";
 import { ScrollTrigger } from "../motion";
 import { SiteMock } from "./AssemblyWindow";
 import s from "./HowItWorks.module.css";
@@ -52,9 +53,9 @@ export function HowItWorks({ spec }: { spec: SiteSpec }) {
     <section id="how" ref={root} className={s.section} aria-labelledby="how-title">
       <div className="container">
         <header className={s.head}>
-          <h2 id="how-title" className={s.title}>
+          <RevealText id="how-title" className={s.title}>
             Как это работает
-          </h2>
+          </RevealText>
           <p className={s.sub}>От брифа до сайта на вашем домене — четыре шага.</p>
         </header>
 

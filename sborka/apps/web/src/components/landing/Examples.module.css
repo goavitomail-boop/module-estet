@@ -1,6 +1,11 @@
 .section {
   padding: var(--section) 0;
   border-top: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.gallery {
+  position: relative;
 }
 
 .head {
@@ -40,6 +45,7 @@
   flex: 0 0 var(--card);
   min-width: 0;
   scroll-snap-align: start;
+  will-change: transform;
 }
 
 .preview {
@@ -59,7 +65,12 @@
 
 .preview:hover .frame,
 .preview:has(.overlay:focus-visible) .frame {
-  border-color: var(--text-3);
+  border-color: var(--lime);
+}
+
+.parallax {
+  width: 100%;
+  height: 100%;
 }
 
 .scaler {
@@ -77,10 +88,22 @@
 
 .meta {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
   margin-top: 18px;
+}
+
+.index {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  color: var(--violet-text);
+  padding-top: 4px;
+}
+
+.metaText {
+  flex: 1;
+  min-width: 0;
 }
 
 .name {
@@ -94,6 +117,10 @@
   color: var(--text-2);
 }
 
+.progress {
+  display: none;
+}
+
 @media (min-width: 640px) {
   .track {
     --card: 420px;
@@ -103,8 +130,39 @@
 
 @media (min-width: 1100px) {
   .track {
-    --card: 560px;
-    --scale: 0.4375;
+    --card: 640px;
+    --scale: 0.5;
+    gap: 40px;
+  }
+
+  /* В режиме закреплённой галереи лента двигается через GSAP, а не прокруткой */
+  .pinned {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 40px;
+  }
+
+  .pinned .track {
+    overflow: visible;
+    scroll-snap-type: none;
+    width: max-content;
+  }
+
+  .pinned .progress {
+    display: block;
+    height: 2px;
+    margin-top: 32px;
+    background: var(--line);
+  }
+
+  .pinned .progress i {
+    display: block;
+    height: 100%;
+    background: var(--lime);
+    transform: scaleX(0);
+    transform-origin: left;
   }
 }
 
@@ -112,5 +170,11 @@
   .preview:hover .scaler,
   .preview:has(.overlay:focus-visible) .scaler {
     translate: none;
+  }
+}
+
+@media (min-width: 1100px) {
+  .section:has(.pinned) {
+    padding: 0;
   }
 }

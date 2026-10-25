@@ -15,9 +15,16 @@ const LINKS = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 24);
+      setHidden(y > 400 && y > last + 2 ? true : y < last - 2 ? false : (h) => h);
+      last = y;
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -35,7 +42,7 @@ export function Header() {
   }, [open]);
 
   return (
-    <header className={`${s.header} ${scrolled ? s.scrolled : ""}`}>
+    <header className={`${s.header} ${scrolled ? s.scrolled : ""} ${hidden && !open ? s.hidden : ""}`}>
       <div className={`container ${s.inner}`}>
         <Logo />
         <nav className={s.nav} aria-label="Основная навигация">

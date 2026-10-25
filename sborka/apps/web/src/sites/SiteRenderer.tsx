@@ -67,7 +67,12 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
               </a>
             </div>
             <div className={s.heroArt}>
-              <MoodArt niche={spec.niche} variant={variant} />
+              {spec.images?.hero ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className={s.photo} src={spec.images.hero} alt="" />
+              ) : (
+                <MoodArt niche={spec.niche} variant={variant} />
+              )}
               {mode === "preview" && <span className={s.artNote}>Здесь будет ваше фото</span>}
             </div>
           </div>
@@ -91,7 +96,12 @@ export function SiteRenderer({ spec, mode }: { spec: SiteSpec; mode: SiteMode })
         <section id="about" className={`${s.section} ${s.about}`}>
           <div className={s.wrap}>
             <div className={s.aboutArt}>
-              <MoodArt niche={spec.niche} variant={variant + 1} />
+              {spec.images?.about ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className={s.photo} src={spec.images.about} alt="" loading="lazy" />
+              ) : (
+                <MoodArt niche={spec.niche} variant={variant + 1} />
+              )}
             </div>
             <div>
               <h2 className={s.h2}>{spec.about.title}</h2>

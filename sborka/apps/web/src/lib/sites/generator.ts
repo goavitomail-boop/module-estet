@@ -1,3 +1,4 @@
+import { nicheImage } from "./images";
 import { NICHES } from "./niches";
 import { SiteSpecSchema, type Brief, type SiteSpec } from "./schema";
 
@@ -26,6 +27,7 @@ export class TemplateGenerator implements SiteGenerator {
       niche: niche.id,
       themeId: niche.themes[variant % 2],
       heroVariant: Math.floor(variant / 2) % 2 === 0 ? "split" : "stacked",
+      images: { hero: nicheImage(niche.id, "hero"), about: nicheImage(niche.id, "about") },
       ...niche.build(brief),
     };
     return SiteSpecSchema.parse(spec);

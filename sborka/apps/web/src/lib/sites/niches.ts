@@ -1,6 +1,6 @@
 import type { Brief, NicheId, SiteSpec } from "./schema";
 
-type Copy = Omit<SiteSpec, "niche" | "themeId" | "heroVariant">;
+type Copy = Omit<SiteSpec, "niche" | "themeId" | "heroVariant" | "images">;
 
 export interface Niche {
   id: NicheId;

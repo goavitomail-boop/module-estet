@@ -1,0 +1,98 @@
+.cursor {
+  display: none;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2000;
+}
+
+:global(.has-cursor) .cursor {
+  display: block;
+}
+
+:global(.has-cursor),
+:global(.has-cursor) a,
+:global(.has-cursor) button,
+:global(.has-cursor) summary,
+:global(.has-cursor) label {
+  cursor: none;
+}
+
+.dot,
+.ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+:global(.cursor-visible) .dot,
+:global(.cursor-visible) .ring {
+  opacity: 1;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--lime);
+}
+
+.ring {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  display: grid;
+  place-items: center;
+}
+
+.ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 242, 238, 0.5);
+  transition:
+    transform 0.4s var(--ease),
+    background 0.3s,
+    border-color 0.3s;
+}
+
+.ring[data-state="hover"]::before {
+  transform: scale(1.6);
+  border-color: var(--lime);
+  background: rgba(200, 255, 61, 0.08);
+}
+
+.ring[data-state="label"]::before {
+  transform: scale(2.6);
+  border-color: var(--lime);
+  background: var(--lime);
+}
+
+.down::before {
+  transform: scale(0.8) !important;
+}
+
+.label {
+  position: relative;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lime-ink);
+  white-space: nowrap;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.2s,
+    transform 0.3s var(--ease);
+}
+
+.ring[data-state="label"] .label {
+  opacity: 1;
+  transform: none;
+}

@@ -25,6 +25,26 @@ export function AssemblyWindow({ items }: { items: AssemblyItem[] }) {
   const [assembled, setAssembled] = useState(false);
   const paused = useRef(false);
   const pendingAdvance = useRef(false);
+  const tl = useRef<gsap.core.Timeline | null>(null);
+  const inView = useRef(false);
+
+  // Анимация идёт, только пока окно на экране; при первом показе начинается сначала
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    let seen = false;
+    const io = new IntersectionObserver(([entry]) => {
+      inView.current = entry.isIntersecting;
+      if (!tl.current) return;
+      if (entry.isIntersecting) {
+        if (!seen) tl.current.restart();
+        else tl.current.resume();
+        seen = true;
+      } else tl.current.pause();
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const item = items[active];
 
   useEffect(() => {
@@ -57,8 +77,9 @@ export function AssemblyWindow({ items }: { items: AssemblyItem[] }) {
       const typed = { n: 0 };
       prompt.textContent = "";
 
-      gsap
+      tl.current = gsap
         .timeline({
+          paused: !inView.current,
           onComplete: () => {
             if (paused.current) pendingAdvance.current = true;
             else setActive((i) => (i + 1) % items.length);
@@ -170,7 +191,12 @@ export function SiteMock({ spec, index, assembled = false }: { spec: SiteSpec; i
           </Block>
         </div>
         <Block className={s.mArt}>
-          <MoodArt niche={spec.niche} />
+          {spec.images?.hero ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={spec.images.hero} alt="" className={s.mPhoto} loading="lazy" />
+          ) : (
+            <MoodArt niche={spec.niche} />
+          )}
         </Block>
       </div>
       <Block className={s.mList}>

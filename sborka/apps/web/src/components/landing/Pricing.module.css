@@ -28,6 +28,36 @@
   border-radius: var(--r-l);
 }
 
+.tilt {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.tilt::before {
+  /* Лаймовый контур, проступающий по краю за курсором */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(400px circle at var(--gx, 50%) var(--gy, 0%), var(--lime), transparent 60%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.glare {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(600px circle at var(--gx, 50%) var(--gy, 0%), rgba(200, 255, 61, 0.09), transparent 45%);
+  pointer-events: none;
+}
+
 .price {
   font-family: var(--font-display);
   font-weight: 700;
@@ -76,6 +106,10 @@
 
 .cta {
   width: 100%;
+}
+
+.card > span {
+  display: flex !important;
 }
 
 @media (min-width: 1000px) {

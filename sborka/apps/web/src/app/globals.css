@@ -56,6 +56,7 @@
 }
 
 html {
+  overflow-x: clip;
   -webkit-text-size-adjust: 100%;
   color-scheme: dark;
   background: var(--ink);
@@ -279,6 +280,10 @@ textarea.input {
 .field-error {
   font-size: var(--fs-small);
   color: var(--danger);
+}
+
+html.is-loading {
+  overflow: hidden;
 }
 
 /* Lenis */

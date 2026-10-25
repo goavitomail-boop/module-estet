@@ -1,6 +1,6 @@
 .hero {
   position: relative;
-  padding: 120px 0 var(--section);
+  padding: 112px 0 0;
   overflow: hidden;
   background-image: radial-gradient(rgba(124, 92, 255, 0.22) 1px, transparent 1.4px);
   background-size: 28px 28px;
@@ -15,51 +15,39 @@
   pointer-events: none;
 }
 
-/* Когда WebGL запустился, CSS-сетка больше не нужна */
 .hero:has(.canvas[data-ready]) {
   background-image: none;
 }
 
 .inner {
   position: relative;
-  display: grid;
-  gap: 56px;
-  align-items: center;
+  z-index: 2;
+}
+
+.text {
+  max-width: 640px;
 }
 
 .title {
-  font-size: clamp(40px, 11vw, 92px);
+  font-size: clamp(44px, 12vw, 96px);
   font-weight: 700;
-  line-height: 1;
+  line-height: 0.98;
   letter-spacing: -0.035em;
   margin-bottom: 32px;
 }
 
 .line {
-  position: relative;
-  display: block;
-  width: fit-content;
-  padding-block: 0.04em;
-}
-
-.lineSkel {
-  position: absolute;
-  inset: 0.08em -0.06em;
-  border: 1px dashed var(--violet);
-  border-radius: 6px;
-  background: rgba(124, 92, 255, 0.08);
-  /* Каркас виден только во время анимации загрузки */
-  opacity: 0;
-}
-
-.lineText {
-  position: relative;
   display: block;
   white-space: nowrap;
 }
 
-.line:last-child .lineText {
+.price {
   color: var(--lime);
+}
+
+.price [data-price] {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
 }
 
 .lead {
@@ -101,31 +89,97 @@
   background: var(--lime);
 }
 
+.scene {
+  position: relative;
+  height: min(92vw, 560px);
+  margin-top: 24px;
+}
+
+.scene :global(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scrollHint {
+  display: none;
+}
+
 @media (min-width: 1100px) {
   .hero {
     min-height: 100svh;
     display: flex;
     align-items: center;
-    padding-top: 112px;
-    padding-bottom: 96px;
-  }
-
-  .hero > .inner {
-    width: min(1320px, 100% - 2 * var(--gutter));
+    padding: 96px 0 72px;
   }
 
   .inner {
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-    gap: 72px;
+    pointer-events: none;
+  }
+
+  .text {
+    pointer-events: auto;
+    max-width: 600px;
   }
 
   .title {
-    font-size: clamp(56px, 5.5vw, 88px);
+    font-size: clamp(64px, 6.4vw, 104px);
+  }
+
+  .scene {
+    position: absolute;
+    inset: 0;
+    height: auto;
+    margin: 0;
+    z-index: 1;
+  }
+
+  .scrollHint {
+    position: absolute;
+    left: 50%;
+    bottom: 28px;
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    transform: translateX(-50%);
+    font-size: var(--fs-micro);
+    font-weight: 600;
+    color: var(--text-2);
+  }
+
+  .scrollHint i {
+    width: 1px;
+    height: 44px;
+    background: linear-gradient(var(--lime), transparent);
+    transform-origin: top;
+    animation: hint 1.8s var(--ease) infinite;
+  }
+}
+
+@keyframes hint {
+  0% {
+    transform: scaleY(0);
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  51% {
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
   }
 }
 
 @media (max-width: 480px) {
   .actions :global(.btn) {
+    flex: 1 1 100%;
+  }
+
+  .actions > span {
     flex: 1 1 100%;
   }
 }
