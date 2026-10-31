@@ -1,3 +1,5 @@
+import { readFile as readDisk } from 'node:fs/promises'
+import path from 'node:path'
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from '@/lib/storage'
 
@@ -20,6 +22,34 @@ const PUBLIC_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif', 'im
  * адрес всегда возвращает одну и ту же картинку. Это позволяет закэшировать
  * ответ навсегда: браузер и CDN больше к нам за ней не придут.
  */
+/**
+ * Запасная копия картинки в самом сайте: public/media-fallback/<папка>/<имя>.webp.
+ *
+ * Хранилище — внешний сервис: истёк ключ, поменялись права бакета — и все
+ * фото из панели разом превращаются в серые заглушки. Для самых важных
+ * картинок (ручки на «Наполнении» и т. п.) кладём копию в репозиторий; имя —
+ * как в хранилище, но без случайного суффикса, который панель дописывает при
+ * загрузке: catalog/l1-brash-chernyy-Og097….webp → catalog/l1-brash-chernyy.webp
+ */
+async function fallback(pathname: string): Promise<NextResponse | null> {
+  const match = pathname.match(/^((?:catalog|portfolio)(?:\/[a-z0-9-]+)*)\/([a-z0-9-]+?)-[A-Za-z0-9]{16,}\.(?:webp|jpe?g|png|avif)$/)
+  if (!match) return null
+  try {
+    const body = await readDisk(path.join(process.cwd(), 'public', 'media-fallback', match[1], `${match[2]}.webp`))
+    return new NextResponse(new Uint8Array(body), {
+      headers: {
+        'Content-Type': 'image/webp',
+        'Content-Length': String(body.length),
+        // Не навсегда: когда хранилище оживёт, браузеры подхватят оригинал
+        'Cache-Control': 'public, max-age=86400',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
+  } catch {
+    return null
+  }
+}
+
 export async function GET(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params
   const pathname = (path ?? []).join('/')
@@ -32,7 +62,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
     // Neon, а файл, ещё не перенесённый из Vercel Blob, — оттуда (lib/storage.ts)
     const file = await readFile(pathname)
     if (!file) {
-      return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
+      return (await fallback(pathname)) ?? NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
     }
 
     // Наружу отдаём только картинки. В этих папках ничего другого быть не
@@ -56,6 +86,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error('[Медиа] Не удалось отдать файл:', message)
-    return NextResponse.json({ error: 'Файл недоступен' }, { status: 500 })
+    return (await fallback(pathname)) ?? NextResponse.json({ error: 'Файл недоступен' }, { status: 500 })
   }
 }
