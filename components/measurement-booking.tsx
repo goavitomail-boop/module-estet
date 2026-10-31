@@ -6,7 +6,7 @@ import { AnimatePresence, m } from 'framer-motion'
 import { useFloatingHidden } from '@/lib/use-floating-hidden'
 import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock, Info, MapPin, PencilRuler, Phone, Ruler, Sparkles, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatRussianPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
+import { FOREIGN_PHONE_MESSAGE, formatRussianPhone, isForeignPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
 import { reachGoal } from '@/lib/metrika'
 import { getAttribution } from '@/lib/attribution'
 import { LEAD_FAILED_MESSAGE, LeadSubmitError, submitLead } from '@/lib/lead-client'
@@ -23,6 +23,7 @@ import { EASE_OUT, FormMotion, itemVariants, riseVariants, stepVariants, success
 import { enter } from '@/components/scene-kit'
 import { CheckBadge, NextSteps } from '@/components/thanks-scene'
 import { BookingScene, SlotDial } from '@/components/booking-scenes'
+import { BOOKING_HORIZON_DAYS, bookingLastDay, moscowToday } from '@/lib/measurement-slots'
 
 export const MEASUREMENT_BOOKING_EVENT = 'open-measurement-booking'
 export const MEASUREMENT_BOOKING_ALT_EVENT = 'measurement-booking:open'
@@ -168,10 +169,11 @@ export function MeasurementBooking() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.date, availability])
 
-  const minDate = useMemo(() => {
-    const today = new Date()
-    return new Date(today.getTime() - today.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
-  }, [])
+  // «Сегодня» по Москве: от сервера, если занятость уже пришла, иначе по часам
+  // браузера в московском поясе — иначе у клиента в Новосибирске «сегодня»
+  // наступало бы на четыре часа раньше, чем у нас
+  const bookingToday = availability?.today ?? moscowToday()
+  const lastBookingDay = useMemo(() => bookingLastDay(bookingToday), [bookingToday])
   const activeStep = stepContent[step - 1]
   const ActiveIcon = activeStep.icon
 
@@ -233,13 +235,16 @@ export function MeasurementBooking() {
     const nextErrors: Record<string, string> = {}
     if (currentStep === 1) {
       if (!data.date) nextErrors.date = 'Выберите дату замера'
+      else if (data.date < bookingToday) nextErrors.date = 'Эта дата уже прошла — выберите другую'
+      else if (data.date > lastBookingDay) nextErrors.date = `Запись открыта на ${BOOKING_HORIZON_DAYS} дней вперёд — выберите дату пораньше`
       else if (dayIsFull(data.date)) nextErrors.date = 'На эту дату всё занято — выберите другой день'
       if (!time) nextErrors.time = 'Выберите период времени'
       else if (isSlotBusy(data.date, time)) nextErrors.time = 'Это время уже занято — выберите другое'
     }
     if (currentStep === 2) {
       if (data.name.trim().length < 2) nextErrors.name = 'Укажите ваше имя'
-      if (!isValidRussianPhone(data.phone)) nextErrors.phone = `Введите номер в формате ${PHONE_PLACEHOLDER}`
+      if (isForeignPhone(data.phone)) nextErrors.phone = FOREIGN_PHONE_MESSAGE
+      else if (!isValidRussianPhone(data.phone)) nextErrors.phone = `Введите номер в формате ${PHONE_PLACEHOLDER}`
       if (!consent) nextErrors.consent = 'Необходимо согласие на обработку данных'
     }
     if (currentStep === 3) {
@@ -280,8 +285,9 @@ export function MeasurementBooking() {
       reachGoal('lead_measurement')
       setSubmitted(true)
     } catch (err: unknown) {
-      // Слот заняли, пока человек дозаполнял форму: обновляем занятость
-      // и возвращаем на шаг выбора времени, а не показываем тупик
+      // Слот заняли, пока человек дозаполнял форму, или время успело пройти
+      // (вкладку открыли вчера): обновляем занятость и возвращаем на шаг
+      // выбора времени, а не показываем тупик
       if (err instanceof LeadSubmitError && err.data?.slotTaken) {
         const fresh = await fetch('/api/availability').then((r) => (r.ok ? r.json() : null)).catch(() => null)
         if (fresh) setAvailability(fresh)
@@ -505,7 +511,7 @@ export function MeasurementBooking() {
                     <FieldGroup className="gap-4 sm:gap-5">
                       <Field className="min-w-0" data-invalid={Boolean(errors.date)}>
                         <FieldLabel htmlFor="booking-date">Дата замера</FieldLabel>
-                        <Input ref={firstFieldRef} id="booking-date" name="date" type="date" min={minDate} value={data.date} onChange={(event) => updateData('date', event.target.value)} className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.date)} />
+                        <Input ref={firstFieldRef} id="booking-date" name="date" type="date" min={bookingToday} max={lastBookingDay} value={data.date} onChange={(event) => updateData('date', event.target.value)} className="h-12 min-w-0 text-base" aria-invalid={Boolean(errors.date)} />
                         {/* Ближайшие свободные даты — сразу под полем даты и не
                             пропадают после выбора: так легко переключиться на
                             соседний день, если нужное время занято */}

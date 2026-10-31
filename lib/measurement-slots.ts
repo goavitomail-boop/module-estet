@@ -52,3 +52,29 @@ export function moscowHour(): number {
     new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false })
   )
 }
+
+/** Слоты, которые сегодня уже начались или начнутся меньше чем через час */
+export function passedSlotsToday(hour: number = moscowHour()): string[] {
+  return MEASUREMENT_SLOTS.filter((s) => hour >= s.endsHour - 1).map((s) => s.value)
+}
+
+/** Последний день, на который открыта запись, YYYY-MM-DD */
+export function bookingLastDay(today: string = moscowToday()): string {
+  const last = new Date(`${today}T00:00:00Z`)
+  last.setUTCDate(last.getUTCDate() + BOOKING_HORIZON_DAYS)
+  return last.toISOString().slice(0, 10)
+}
+
+/**
+ * Почему на эту дату и время записаться нельзя, или пустая строка.
+ *
+ * Форма сама не даёт выбрать прошедшее, но запрос можно собрать в обход неё
+ * или отправить из вкладки, открытой вчера, — последнее слово за сервером.
+ */
+export function measurementTimeProblem(date: string, slot: string, today: string = moscowToday(), hour: number = moscowHour()): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !SLOT_VALUES.includes(slot)) return 'Выберите дату и время замера.'
+  if (date < today) return 'Эта дата уже прошла — выберите другую.'
+  if (date > bookingLastDay(today)) return `Запись открыта на ${BOOKING_HORIZON_DAYS} дней вперёд — выберите дату пораньше.`
+  if (date === today && passedSlotsToday(hour).includes(slot)) return 'Это время сегодня уже прошло — выберите другое.'
+  return ''
+}

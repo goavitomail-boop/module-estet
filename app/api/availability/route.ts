@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import { getSlotOccupancy, isDbConfigured } from '@/lib/db'
 import {
   BOOKING_HORIZON_DAYS,
-  MEASUREMENT_SLOTS,
-  moscowHour,
+  bookingLastDay,
   moscowToday,
+  passedSlotsToday,
   slotCapacity,
 } from '@/lib/measurement-slots'
 
@@ -21,15 +21,12 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   const today = moscowToday()
-  const horizon = new Date(`${today}T00:00:00Z`)
-  horizon.setUTCDate(horizon.getUTCDate() + BOOKING_HORIZON_DAYS)
-  const to = horizon.toISOString().slice(0, 10)
+  const to = bookingLastDay(today)
 
   const capacity = slotCapacity()
 
   // Слоты, которые сегодня уже начались, предлагать нельзя
-  const hour = moscowHour()
-  const passedToday = MEASUREMENT_SLOTS.filter((s) => hour >= s.endsHour - 1).map((s) => s.value)
+  const passedToday = passedSlotsToday()
 
   if (!isDbConfigured()) {
     // Без базы занятость неизвестна. Отдаём пустую — потерять запись хуже,

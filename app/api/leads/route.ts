@@ -17,7 +17,7 @@ import {
   type LeadType,
   type LeadUtm,
 } from '@/lib/db'
-import { SLOT_VALUES, moscowToday, slotCapacity, slotLabel } from '@/lib/measurement-slots'
+import { SLOT_VALUES, measurementTimeProblem, moscowToday, slotCapacity, slotLabel } from '@/lib/measurement-slots'
 import { allowRequest, clientIp } from '@/lib/request-guard'
 import { siteUrl } from '@/lib/seo'
 
@@ -200,6 +200,16 @@ export async function POST(request: NextRequest) {
   if (JSON.stringify(details).length > MAX_DETAILS_BYTES) {
     console.warn(`[Leads] Отклонено: слишком большой объём данных с IP ${ip}`)
     return NextResponse.json({ error: 'Слишком длинный текст в заявке. Сократите комментарий и попробуйте ещё раз.' }, { status: 413 })
+  }
+
+  // Прошедшая дата, дата за пределами записи или уже начавшийся слот.
+  // slotTaken возвращает человека к выбору времени, как и занятый слот
+  if (type === 'measurement') {
+    const timeProblem = measurementTimeProblem(String(details.date ?? ''), String(details.time ?? ''))
+    if (timeProblem) {
+      console.warn(`[Leads] Отклонено: недопустимое время замера (${String(details.date)} ${String(details.time)})`)
+      return NextResponse.json({ error: timeProblem, slotTaken: true }, { status: 400 })
+    }
   }
 
   const prefix = type === 'measurement' ? 'ЗМ' : 'ПР'

@@ -10,9 +10,28 @@ function nationalDigits(value: string) {
   return digits.slice(0, 10)
 }
 
+/**
+ * Номер с кодом другой страны: «+380 …», «+1 …». Маску +7 к нему не применяем,
+ * иначе «+380 67 …» молча превращается в «+7 (380) 67…» и уходит чужой номер.
+ */
+export function isForeignPhone(value: string) {
+  return /^\s*\+\s*[0-689]/.test(value)
+}
+
+export const FOREIGN_PHONE_MESSAGE =
+  'Пока принимаем только российские номера: +7 или 8. С другим номером напишите нам в Max.'
+
 export function formatRussianPhone(value: string) {
+  if (isForeignPhone(value)) return value.replace(/[^\d\s()+-]/g, '').slice(0, 18)
   const digits = nationalDigits(value)
-  if (!digits) return ''
+  if (!digits) {
+    // Номер набирают по знаку: «+» и «+7» держим в поле, иначе маска стирает
+    // плюс до того, как человек успеет набрать код страны
+    const typed = value.replace(/\s/g, '')
+    if (typed === '+') return '+'
+    if (typed.startsWith('+7')) return '+7'
+    return ''
+  }
 
   let formatted = '+7'
   if (digits.length > 0) formatted += ` (${digits.slice(0, 3)}`
@@ -25,6 +44,7 @@ export function formatRussianPhone(value: string) {
 }
 
 export function normalizeRussianPhone(value: string) {
+  if (isForeignPhone(value)) return ''
   const digits = nationalDigits(value)
   return digits.length === 10 ? `+7${digits}` : ''
 }

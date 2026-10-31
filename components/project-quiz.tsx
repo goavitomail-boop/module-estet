@@ -17,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { AnimatePresence, m } from 'framer-motion'
-import { formatRussianPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
+import { FOREIGN_PHONE_MESSAGE, formatRussianPhone, isForeignPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
 import { getAttribution } from '@/lib/attribution'
 import { LEAD_FAILED_MESSAGE, LeadSubmitError, submitLead } from '@/lib/lead-client'
 import { trackQuizCompleted, trackQuizStep } from '@/lib/quiz-tracking'
@@ -485,6 +485,7 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
   }
 
   const contactProblem = () => {
+    if (isForeignPhone(answers.phone)) return FOREIGN_PHONE_MESSAGE
     if (!isValidRussianPhone(answers.phone)) return `Проверьте номер телефона — например, ${PHONE_PLACEHOLDER}.`
     if (!answers.consent) return 'Отметьте согласие на обработку данных — без него мы не сможем с вами связаться.'
     return ''

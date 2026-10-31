@@ -241,7 +241,9 @@ function CallScene({ name, date, time }: { name: string; date: string; time: str
           </span>
         </div>
         <p className="hs-in mt-2.5 rounded-2xl rounded-tl-md bg-muted px-3 py-2 text-[12px] leading-snug text-foreground sm:text-[13px]" style={enter(0.75, { t: 0.5, from: 'translate(-6%, 20%) scale(0.92)' })}>
-          {first ? `${first}, здравствуйте!` : 'Здравствуйте!'} Подтверждаем замер{when ? <>: <b className="font-semibold">{when}</b></> : '.'}
+          {/* Это звонок, который будет после заявки: время на нём только
+              подтверждают, закреплённым оно становится после разговора */}
+          {first ? `${first}, здравствуйте!` : 'Здравствуйте!'} Звоним подтвердить замер{when ? <>: <b className="font-semibold">{when}</b>. Вам удобно?</> : '.'}
         </p>
         <span className="hs-in mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/60 px-2.5 py-1 text-[11px] font-semibold text-primary" style={enter(1.3, POP)}>
           <Bell className="size-3" aria-hidden="true" />
