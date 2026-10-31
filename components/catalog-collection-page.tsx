@@ -15,6 +15,7 @@ import { BookingPlanButton } from '@/components/footer-actions'
  */
 export function CatalogCollectionPage({
   eyebrow,
+  keyword,
   title,
   intro,
   items,
@@ -22,6 +23,8 @@ export function CatalogCollectionPage({
   details,
 }: {
   eyebrow: string
+  /** Поисковая строка над заголовком, входит в H1 — см. CatalogPageHeader */
+  keyword?: string
   title: string
   intro: string
   items: CatalogRow[]
@@ -40,6 +43,7 @@ export function CatalogCollectionPage({
     <main className="min-h-screen bg-background text-foreground">
       <CatalogPageHeader
         eyebrow={eyebrow}
+        keyword={keyword}
         title={title}
         intro={intro}
         sections={[...groups.filter((group) => group.title), ...(extra ? [{ id: extra.id, title: extra.title }] : [])]}

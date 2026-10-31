@@ -12,7 +12,7 @@ const columns = [
     title: 'Компания',
     links: [
       { href: '/#services', label: 'Услуги' },
-      { href: '/#gallery', label: 'Наши кухни' },
+      { href: '/portfolio', label: 'Наши кухни' },
       { href: '/#process', label: 'Как мы работаем' },
       { href: '/#faq', label: 'Частые вопросы' },
     ],

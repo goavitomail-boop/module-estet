@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { COMPANY } from '@/lib/company'
+import { COMPANY, KITCHEN_PRICE } from '@/lib/company'
 import { faqItems } from '@/lib/faq-data'
 
 export const siteUrl = 'https://module-estet.ru'
@@ -84,9 +84,14 @@ const services = [
   { name: 'Гарантийное обслуживание', description: 'Гарантия по договору, регулировка и сервисная поддержка после установки.' },
 ]
 
+/** Профиль в MAX — единственная соцсеть компании, связывает сайт и аккаунт */
+export const maxProfileUrl = 'https://web.max.ru/93711404'
+
 export const businessJsonLd = {
   '@context': 'https://schema.org',
-  '@type': ['HomeAndConstructionBusiness', 'LocalBusiness'],
+  // FurnitureStore Яндекс Бизнес поддерживает явно; HomeAndConstructionBusiness
+  // оставлен для Google — производство и монтаж, а не только продажа
+  '@type': ['FurnitureStore', 'HomeAndConstructionBusiness'],
   '@id': `${siteUrl}/#business`,
   name: businessName,
   alternateName: `Кухни «${businessName}»`,
@@ -97,20 +102,20 @@ export const businessJsonLd = {
   logo: `${siteUrl}/brand/logo-mark.svg`,
   description: 'Проектирование, изготовление, доставка и монтаж кухонь и модульных шкафов на заказ в Москве и Московской области.',
   currenciesAccepted: 'RUB',
-  paymentAccepted: 'Наличные, банковская карта, безналичный расчёт',
   ...(COMPANY.inn ? { taxID: COMPANY.inn } : {}),
   ...(COMPANY.ogrnip
     ? { identifier: { '@type': 'PropertyValue', propertyID: 'ОГРНИП', value: COMPANY.ogrnip } }
     : {}),
   ...(COMPANY.address
-    ? { address: { '@type': 'PostalAddress', addressCountry: 'RU', addressLocality: 'Москва', streetAddress: COMPANY.address } }
-    : { address: { '@type': 'PostalAddress', addressCountry: 'RU', addressLocality: 'Москва' } }),
+    ? { address: { '@type': 'PostalAddress', addressCountry: 'RU', addressRegion: 'Московская область', streetAddress: COMPANY.address } }
+    : { address: { '@type': 'PostalAddress', addressCountry: 'RU', addressRegion: 'Москва и Московская область' } }),
   ...(COMPANY.email ? { email: COMPANY.email } : {}),
   areaServed: [
     { '@type': 'City', name: 'Москва' },
     { '@type': 'AdministrativeArea', name: 'Московская область' },
   ],
-  priceRange: '$$',
+  priceRange: `Кухни ${KITCHEN_PRICE}`,
+  sameAs: [maxProfileUrl],
   contactPoint: {
     '@type': 'ContactPoint',
     telephone: businessPhoneRaw,
@@ -118,12 +123,14 @@ export const businessJsonLd = {
     areaServed: 'RU',
     availableLanguage: 'Russian',
   },
+  // Строкой — так её читает Яндекс; подробная спецификация ниже — для Google
+  openingHours: `Mo-Su ${String(COMPANY.hours.open).padStart(2, '0')}:00-${COMPANY.hours.close}:00`,
   openingHoursSpecification: [
     {
       '@type': 'OpeningHoursSpecification',
       dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: '09:00',
-      closes: '21:00',
+      opens: `${String(COMPANY.hours.open).padStart(2, '0')}:00`,
+      closes: `${COMPANY.hours.close}:00`,
     },
   ],
   hasOfferCatalog: {
@@ -168,7 +175,7 @@ export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>) {
 }
 
 /** Карточка обычной внутренней страницы */
-export function webPageJsonLd({ name, description, path }: { name: string; description: string; path: string }) {
+export function webPageJsonLd({ name, description, path, image }: { name: string; description: string; path: string; image?: string }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -179,5 +186,14 @@ export function webPageJsonLd({ name, description, path }: { name: string; descr
     inLanguage: 'ru-RU',
     isPartOf: { '@id': `${siteUrl}/#website` },
     about: { '@id': `${siteUrl}/#business` },
+    ...(image ? { primaryImageOfPage: { '@type': 'ImageObject', url: image.startsWith('http') ? image : `${siteUrl}${image}` } } : {}),
   }
+}
+
+/** Описание для сниппета из длинного текста: целыми словами, не длиннее limit */
+export function snippet(text: string, limit = 160): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (clean.length <= limit) return clean
+  const cut = clean.slice(0, limit - 1)
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:—–-]$/, '')}…`
 }

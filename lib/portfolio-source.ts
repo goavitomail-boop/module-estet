@@ -37,6 +37,15 @@ export async function getPortfolioProjects(): Promise<PortfolioProject[]> {
   }
 }
 
+/**
+ * Проекты, у которых есть своя страница /portfolio/<id>: с фотографиями.
+ * Карточка «Скоро фотоотчёт» страницы не получает — без фото ей нечего
+ * показать ни человеку, ни поиску
+ */
+export async function getPortfolioPages(): Promise<PortfolioProject[]> {
+  return (await getPortfolioProjects()).filter((project) => !project.isPlaceholder && project.photos.length > 0)
+}
+
 export function rowToProject(row: PortfolioRow): PortfolioProject {
   const photos = Array.isArray(row.photos) ? row.photos : []
   return {

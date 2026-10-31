@@ -6,9 +6,9 @@ import { JsonLd } from '@/components/json-ld'
 import { getCatalogSectionOrDraft } from '@/lib/catalog-source'
 import { breadcrumbJsonLd, pageMetadata, webPageJsonLd } from '@/lib/seo'
 
-const title = 'Столешницы для кухни на заказ'
+const title = 'Столешницы SLOTEX для кухни на заказ: 23 декора'
 const description =
-  'Столешницы и стеновые панели SLOTEX для кухонь «Модуль Эстет»: 23 декора — камень и мрамор, однотонные и под дерево, с артикулами и размерами плит.'
+  'Столешницы и стеновые панели SLOTEX для кухни на заказ: 23 декора — камень и мрамор, однотонные и под дерево. Артикулы, размеры плит и подбор под фасады.'
 const path = '/countertops'
 
 export const metadata = pageMetadata({ title, description, path })
@@ -37,6 +37,7 @@ export default async function CountertopsPage() {
       <SiteHeader overHero />
       <CatalogCollectionPage
         eyebrow="Столешницы"
+        keyword="Столешницы SLOTEX для кухни"
         title="Поверхность, на которой всё происходит"
         intro="Столешницы и стеновые панели SLOTEX: 23 декора — камень и мрамор, однотонные и под дерево. У каждого есть артикул, размеры плит указаны внизу страницы."
         items={items}

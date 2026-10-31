@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Oswald, Roboto, Marck_Script } from 'next/font/google'
 import { defaultOgImage, siteUrl } from '@/lib/seo'
+import { COMPANY, KITCHEN_PRICE } from '@/lib/company'
 import { preloaderFlagScript } from '@/lib/preloader-flag'
 import './globals.css'
 
@@ -33,7 +34,7 @@ const marckScript = Marck_Script({
 // Название компании стоит вторым: по нему сайт найдут и так
 const title = 'Кухни на заказ в Москве и Московской области — «Модуль Эстет»'
 const description =
-  'Кухни и модульные шкафы на заказ в Москве и Московской области от собственного производства. Дизайн-проект на дому, замер, расчёт, доставка и сборка. Гарантийное и постгарантийное обслуживание.'
+  `Кухни и шкафы на заказ в Москве и области со своей фабрики: ${KITCHEN_PRICE}, изготовление за ${COMPANY.productionTime}. Бесплатный замер, доставка и монтаж под ключ.`
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

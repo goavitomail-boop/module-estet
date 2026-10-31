@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { ArrowUpRight } from 'lucide-react'
 import { PortfolioGrid } from '@/components/portfolio-grid'
 import { PlanLabel } from '@/components/plan'
 import { getPortfolioProjects } from '@/lib/portfolio-source'
@@ -13,7 +15,14 @@ export async function GallerySection() {
             <PlanLabel index={2} className="mb-2">Наши работы</PlanLabel>
             <h2 id="gallery-title" className="flyer-title text-balance text-4xl sm:text-5xl lg:text-6xl">Наши кухни.<br /><span className="text-muted-foreground">Ваше вдохновение.</span></h2>
           </div>
-          <p className="max-w-sm text-pretty text-base leading-relaxed text-muted-foreground">Разные пространства, один подход — внимание к каждой детали. Найдите кухню, которая близка именно вам.</p>
+          <div className="flex max-w-sm flex-col items-start gap-3">
+            <p className="text-pretty text-base leading-relaxed text-muted-foreground">Разные пространства, один подход — внимание к каждой детали. Найдите кухню, которая близка именно вам.</p>
+            {/* Обычная ссылка на страницы проектов: окна галереи поиск не видит */}
+            <Link href="/portfolio" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+              Все проекты подробно
+              <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          </div>
         </header>
         <PortfolioGrid projects={projects} />
       </div>

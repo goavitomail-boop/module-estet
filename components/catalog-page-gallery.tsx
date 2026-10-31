@@ -154,6 +154,7 @@ export function CatalogPageGallery({
     section === 'collections'
       ? {
           eyebrow: 'Фасады',
+          keyword: 'Кухни на заказ в Москве: коллекции фасадов',
           title: 'Коллекции кухонь',
           intro: 'Шесть коллекций фасадов: цвета и декоры, реальные интерьеры и технические данные из каталога производства.',
           groups: groups ?? collections,
@@ -161,12 +162,14 @@ export function CatalogPageGallery({
       : section === 'materials'
         ? {
             eyebrow: 'Материалы',
+            keyword: 'Материалы для кухни на заказ',
             title: 'Поверхности и декоры',
             intro: 'Корпус, фасадные системы, витрины и оригинальные текстуры SLOTEX с артикулами.',
             groups: groups ?? materials,
           }
         : {
             eyebrow: 'Фурнитура и детали',
+            keyword: 'Фурнитура и наполнение для кухни',
             title: 'Наполнение и фурнитура',
             intro: 'LED-подсветка рабочей зоны, выдвижные системы хранения, коллекции ручек всех типов и технический конструктив кухонных корпусов.',
             groups: groups ?? fillingSections,
@@ -176,6 +179,7 @@ export function CatalogPageGallery({
     <main className="min-h-screen bg-background text-foreground">
       <CatalogPageHeader
         eyebrow={config.eyebrow}
+        keyword={config.keyword}
         title={config.title}
         intro={config.intro}
         sections={config.groups}

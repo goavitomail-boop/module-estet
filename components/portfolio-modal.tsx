@@ -45,6 +45,9 @@ function ProjectDetails({ project }: { project: PortfolioProject }) {
         <div className="flex flex-col gap-2"><h4 className="font-medium">Материалы</h4><ul className="flex flex-col gap-1">{project.materials.map((material) => <li key={material} className="text-sm leading-relaxed text-muted-foreground">{material}</li>)}</ul></div>
         <div className="flex flex-col gap-2"><h4 className="font-medium">Решения</h4><ul className="flex flex-col gap-1">{project.features.map((feature) => <li key={feature} className="text-sm leading-relaxed text-muted-foreground">{feature}</li>)}</ul></div>
         <a href="/quiz" className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground">Хочу похожую кухню<ArrowUpRight className="size-4" aria-hidden="true" /></a>
+        {!project.isPlaceholder && (
+          <a href={`/portfolio/${project.id}`} className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full border border-border px-5 text-sm font-medium">Страница проекта<ArrowUpRight className="size-4" aria-hidden="true" /></a>
+        )}
       </div>
     </aside>
   )

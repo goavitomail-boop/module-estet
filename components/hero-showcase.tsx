@@ -346,10 +346,12 @@ export function HeroShowcase() {
               (contents + order): заголовок, цена и кнопки — сцена — описание.
               Иначе сцена целиком уходит под первый экран ── */}
           <div className="contents lg:flex lg:flex-col lg:gap-6">
-            <p className="hs-in order-1 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.14em] text-primary md:text-sm lg:order-none" style={enter(0.1, { t: 0.6, ease: 'var(--out)' })}>
+            {/* H1 — то, что ищут: «кухни на заказ в Москве». Слоган ниже крупнее,
+                но это абзац: поисковику важен смысл заголовка, а не его размер */}
+            <h1 id="hero-title" className="hs-in order-1 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.14em] text-primary md:text-sm lg:order-none" style={enter(0.1, { t: 0.6, ease: 'var(--out)' })}>
               <span className="h-px w-7 bg-current" aria-hidden="true" />
-              Кухни и шкафы на заказ · Москва и МО
-            </p>
+              Кухни и шкафы на заказ в Москве и МО
+            </h1>
             <p className="flyer-script flyer-script--lead order-2 -mb-3 hidden text-primary sm:block lg:order-none">
               <span className="hs-in block" style={enter(0.25, { t: 0.7, ease: 'var(--out)' })}>
                 Не просто мебель.
@@ -358,7 +360,7 @@ export function HeroShowcase() {
                 Место быть собой.
               </span>
             </p>
-            <h1 id="hero-title" className="hs-title order-3 lg:order-none">
+            <p className="hs-title order-3 lg:order-none">
               <span className="hs-line">
                 <span style={{ '--d': '0.45s' } as CSSProperties}>Кухня,</span>
               </span>
@@ -370,7 +372,7 @@ export function HeroShowcase() {
                   хочется жить.
                 </span>
               </span>
-            </h1>
+            </p>
             <p className="hs-in order-7 max-w-md text-pretty text-base leading-relaxed text-background/75 md:text-[17px] lg:order-none" style={enter(0.9, { t: 0.7, ease: 'var(--out)' })}>
               Кухни и шкафы по вашим размерам — со своей фабрики в Подмосковье. Посчитайте онлайн за минуту или пригласите
               дизайнера на замер.

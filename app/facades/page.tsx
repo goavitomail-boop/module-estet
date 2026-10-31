@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { CatalogCollectionPage } from '@/components/catalog-collection-page'
 import { FacadePalette } from '@/components/facade-palette'
 import { SiteFooter } from '@/components/site-footer'
+import { PlainTerms } from '@/components/plain-terms'
 import { SiteHeader } from '@/components/site-header'
 import { JsonLd } from '@/components/json-ld'
 import { getCatalogSectionOrDraft } from '@/lib/catalog-source'
@@ -10,9 +11,9 @@ import type { CatalogRow } from '@/lib/db'
 import { facadeOptionsFor } from '@/lib/pdf-catalog-data'
 import { breadcrumbJsonLd, pageMetadata, webPageJsonLd } from '@/lib/seo'
 
-const title = 'Фасады для кухни на заказ'
+const title = 'Фасады для кухни на заказ: цвета и характеристики'
 const description =
-  'Фасады кухонь «Модуль Эстет»: Soft & Wood, Touch, Flat, Velvet, Como и Garda, стеклянные витрины и профиль без ручек — с характеристиками, формами фасада и палитрами цветов.'
+  'Фасады для кухни на заказ: Soft & Wood, Touch, Flat, Velvet, Como и Garda — палитры цветов, формы, толщина и кромка. Витрины и профиль для кухни без ручек.'
 const path = '/facades'
 
 export const metadata = pageMetadata({ title, description, path })
@@ -41,11 +42,13 @@ export default async function FacadesPage() {
       <SiteHeader overHero />
       <CatalogCollectionPage
         eyebrow="Фасады"
+        keyword="Фасады для кухни на заказ"
         title="Из чего собирается лицо кухни"
         intro="Материал фасада определяет и внешний вид, и то, как кухня переживёт десять лет ежедневной готовки. Ниже — то, с чем мы работаем постоянно."
         items={items}
         details={facadeDetails}
       />
+      <PlainTerms terms={['pvc', 'mdf', 'edge', 'edgedAll', 'pur']} />
       <SiteFooter />
     </>
   )
