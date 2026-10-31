@@ -1985,6 +1985,43 @@ export async function seedCatalogIfEmpty(
   return true
 }
 
+/**
+ * Добавляет позиции из кода в конец раздела — для групп, которые появились
+ * в коде после переноса каталога в панель (сам перенос работает только в
+ * пустой раздел). Позицию с тем же адресом не трогаем: её могли поправить.
+ */
+export async function addCatalogItems(items: CatalogInput[]): Promise<void> {
+  if (items.length === 0) return
+  await ensureSchema()
+  const sql = client()
+  const section = items[0].section
+  const payload = JSON.stringify(
+    items.map((item) => ({
+      id: item.id,
+      section: item.section,
+      group_title: item.groupTitle,
+      name: item.name,
+      meta: item.meta,
+      description: item.description,
+      image: item.image,
+      published: item.published,
+    }))
+  )
+  await sql`
+    INSERT INTO catalog_items (
+      id, section, group_title, name, meta, description, image, published, position
+    )
+    SELECT i.id, i.section, i.group_title, i.name, i.meta, i.description, i.image, i.published,
+           (SELECT COALESCE(MAX(position) + 1, 0) FROM catalog_items WHERE section = ${section})
+             + (ROW_NUMBER() OVER () - 1)::int
+    FROM jsonb_to_recordset(${payload}::jsonb) AS i(
+      id TEXT, section TEXT, group_title TEXT, name TEXT, meta TEXT,
+      description TEXT, image TEXT, published BOOLEAN
+    )
+    ON CONFLICT (id) DO NOTHING
+  `
+}
+
 /** Список менеджеров, которые уже что-то обрабатывали — для фильтра «ответственный» */
 export async function listKnownManagers(): Promise<string[]> {
   await ensureSchema()

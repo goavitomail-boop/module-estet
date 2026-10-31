@@ -8,8 +8,8 @@ import {
   listCatalogItems,
   type CatalogSection,
 } from '@/lib/db'
-import { catalogSeed } from '@/lib/catalog-seed'
-import { moveCatalogAction, seedCatalogAction, toggleCatalogAction } from '@/app/admin/catalog-actions'
+import { catalogMissingGroups, catalogSeed } from '@/lib/catalog-seed'
+import { addCodeCatalogGroupAction, moveCatalogAction, seedCatalogAction, toggleCatalogAction } from '@/app/admin/catalog-actions'
 import { plural } from '@/lib/admin-format'
 import { cn } from '@/lib/utils'
 import { EmptyState, Panel } from '../../_components/ui'
@@ -48,6 +48,8 @@ export default async function CatalogPage({
   const visible = items.filter((item) => item.published).length
   const current = CATALOG_SECTIONS.find((entry) => entry.value === section)!
   const seedSize = catalogSeed(section).length
+  // Группы, которые появились в коде уже после переноса каталога в панель
+  const missing = items.length > 0 ? catalogMissingGroups(section, items) : []
 
   return (
     <div className="space-y-6">
@@ -197,6 +199,49 @@ export default async function CatalogPage({
                     </Link>
                   </div>
                 </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
+      {missing.length > 0 && (
+        <Panel title="Есть в коде сайта, но нет здесь">
+          <p className="text-sm text-muted-foreground">
+            Эти позиции заложены в код сайта, но в панель не перенесены, поэтому на странице их нет.
+            Добавьте нужную группу — позиции встанут в конец списка и сразу появятся на сайте. Фото у них
+            лежат в самом сайте и не зависят от хранилища. Если группу вы убрали нарочно, просто не
+            добавляйте её.
+          </p>
+          <ul className="mt-4 divide-y divide-border">
+            {missing.map((group) => (
+              <li key={group.title} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <span className="flex shrink-0 -space-x-3">
+                  {group.items.slice(0, 3).map((item) => (
+                    <span key={item.id} className="relative size-12 overflow-hidden rounded-lg border-2 border-card bg-secondary">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.image} alt="" className="size-full object-cover" />
+                    </span>
+                  ))}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{group.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {group.items.length} {plural(group.items.length, 'позиция', 'позиции', 'позиций')}:{' '}
+                    {group.items.map((item) => item.name).join(', ')}
+                  </p>
+                </div>
+                <form action={addCodeCatalogGroupAction}>
+                  <input type="hidden" name="section" value={section} />
+                  <input type="hidden" name="group" value={group.title} />
+                  <button
+                    type="submit"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition hover:opacity-90 md:h-9"
+                  >
+                    <Plus className="size-3.5" aria-hidden />
+                    Добавить
+                  </button>
+                </form>
               </li>
             ))}
           </ul>

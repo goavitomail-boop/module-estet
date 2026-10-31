@@ -5,9 +5,9 @@ import { fillingHiddenSections, fillingSections } from '@/lib/pdf-catalog-data'
  * Стартовое наполнение разделов «Фасады» и «Столешницы».
  *
  * Фото — из каталога производства: у коллекций фасадов это обложка
- * коллекции, у столешниц — образец декора. Где снимка в каталоге нет
- * (витрина, профиль LINE), стоит заглушка; владелец заменит её из панели —
- * там фото сразу приводится к нужному размеру.
+ * коллекции, у столешниц — образец декора, у витрины и профиля LINE —
+ * кадры со страниц каталога (13 и 21). Владелец может заменить любое из
+ * панели — там фото сразу приводится к нужному размеру.
  *
  * Названия и характеристики взяты из каталога производства, чтобы это был
  * рабочий черновик, а не «Позиция 1, Позиция 2».
@@ -66,6 +66,7 @@ const facades: Draft[] = [
   {
     group: 'Стекло и алюминий',
     name: 'Витрина в алюминиевой рамке',
+    image: '/catalog/collections/showcase.webp',
     meta: 'Рамка: серебро, чёрный, латунь, белый',
     description:
       'Верхние шкафы с алюминиевой рамкой и стеклом на выбор: прозрачное, сатин, графит или бронза. Есть вариант с широкой рамкой.',
@@ -73,6 +74,7 @@ const facades: Draft[] = [
   {
     group: 'Кухни без ручек',
     name: 'Профиль LINE',
+    image: '/catalog/collections/line.webp',
     meta: 'Профили C и L · серебро, чёрный, латунь, белый',
     description:
       'Система без ручек: захват в профиле на нижних базах. У верхних шкафов дно на 20 мм меньше — за фасадом остаётся зазор для руки.',
@@ -184,6 +186,27 @@ function fillingFromCatalog(): CatalogInput[] {
   add(fillingHiddenSections, false)
 
   return input
+}
+
+/**
+ * Позиции из кода, которых нет в базе ни по адресу, ни по названию, — по
+ * группам. Для блока «Есть в коде сайта, но нет здесь» в панели. Позиции без
+ * фото (заглушка) не предлагаем: на витрине они выглядят недоделкой
+ */
+export function catalogMissingGroups(
+  section: CatalogSection,
+  existing: Array<{ id: string; name: string }>
+): Array<{ title: string; items: CatalogInput[] }> {
+  const ids = new Set(existing.map((item) => item.id))
+  const names = new Set(existing.map((item) => item.name.trim().toLowerCase()))
+  const groups = new Map<string, CatalogInput[]>()
+  for (const item of catalogSeed(section)) {
+    if (ids.has(item.id) || names.has(item.name.trim().toLowerCase()) || item.image === CATALOG_PLACEHOLDER) continue
+    const list = groups.get(item.groupTitle) ?? []
+    list.push(item)
+    groups.set(item.groupTitle, list)
+  }
+  return Array.from(groups, ([title, items]) => ({ title, items }))
 }
 
 /** Описания групп — переносятся вместе с позициями, иначе абзацы под заголовками пропали бы */

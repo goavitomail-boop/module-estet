@@ -4,11 +4,14 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireSession } from '@/lib/admin-auth'
 import {
+  addCatalogItems,
   CATALOG_SECTIONS,
   deleteCatalogItem,
+  getCatalogGroupNotes,
   getCatalogItem,
   isCatalogSection,
   listCatalogIds,
+  listCatalogItems,
   moveCatalogItem,
   seedCatalogIfEmpty,
   setCatalogGroupNote,
@@ -16,7 +19,7 @@ import {
   upsertCatalogItem,
   type CatalogSection,
 } from '@/lib/db'
-import { catalogGroupNotesSeed, catalogSeed } from '@/lib/catalog-seed'
+import { catalogGroupNotesSeed, catalogMissingGroups, catalogSeed } from '@/lib/catalog-seed'
 import { slugify, uniqueSlug } from '@/lib/slug'
 import { deleteFiles } from '@/lib/storage'
 
@@ -166,6 +169,29 @@ export async function moveCatalogAction(formData: FormData) {
 }
 
 /** Переносит в базу стартовый набор раздела вместе с описаниями групп */
+/**
+ * Добавляет в базу группу позиций из кода, которой там нет: новые разделы
+ * (например, подъёмники) появляются в коде уже после переноса каталога в
+ * панель. Добавленные позиции сразу видны на сайте.
+ */
+export async function addCodeCatalogGroupAction(formData: FormData) {
+  await requireSession()
+  const section = String(formData.get('section') ?? '')
+  const title = String(formData.get('group') ?? '')
+  if (!isCatalogSection(section) || !title) return
+
+  const existing = await listCatalogItems(section, { includeHidden: true })
+  const group = catalogMissingGroups(section, existing).find((entry) => entry.title === title)
+  if (!group) return
+
+  await addCatalogItems(group.items.map((item) => ({ ...item, published: true })))
+  const notes = await getCatalogGroupNotes(section).catch(() => ({}) as Record<string, string>)
+  const note = catalogGroupNotesSeed(section).find((entry) => entry.title === title)
+  if (note && !notes[title.trim().toLowerCase()]) await setCatalogGroupNote(section, note.title, note.description)
+
+  refresh(section)
+}
+
 export async function seedCatalogAction(formData: FormData) {
   await requireSession()
   const section = String(formData.get('section') ?? '')

@@ -227,6 +227,12 @@ export const kitchenStorage: CatalogItem[] = [
   { name: 'Система утилизации 6156', meta: 'Фасад 300 мм · два отсека по 10 л', image: '/catalog/storage/kitchen/waste-6156.webp' },
 ]
 
+/** Подъёмники для откидных фасадов — страница 28 каталога производства */
+export const lifts: CatalogItem[] = [
+  { name: 'TOP-STAYS SE в тёмной кухне', meta: 'Подъёмник для верхних шкафов и антресолей', image: '/catalog/hardware/lifts/top-stays-dark.webp' },
+  { name: 'TOP-STAYS SE в светлой кухне', meta: 'Подъёмник для верхних шкафов и антресолей', image: '/catalog/hardware/lifts/top-stays-light.webp' },
+]
+
 export const handles: CatalogItem[] = [
   { name: 'MONTE белый', meta: 'Торцевая ручка · 16 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/4-0pwfMHWYzCyFMRSSzWe2Cgy29PWnX3.webp' },
   { name: 'MONTE золото сатиновое', meta: 'Торцевая ручка · 16 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/2-RUjin6aFX0DqaK9HmN7uWB12yVBA0Y.webp' },
@@ -303,6 +309,14 @@ export const fillingSections: CatalogGroup[] = [
       'Выдвижные системы для нижних, верхних и угловых модулей: бутылочница на узкий фасад, сушка для посуды, «волшебный уголок», колонна для пенала, корзина, которая опускается из верхнего шкафа, и сортировка мусора.',
     specs: ['Фасады от 150 до 900 мм', 'Хромированная сталь, стекло и алюминий'],
     items: kitchenStorage,
+  },
+  {
+    id: 'lifts',
+    eyebrow: 'Механизмы',
+    title: 'Подъёмники TOP-STAYS SE',
+    description:
+      'Механизм для откидных фасадов верхних шкафов и антресолей: дверца поднимается вверх и сама держится открытой.',
+    items: lifts,
   },
   {
     id: 'handles-profile',

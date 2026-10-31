@@ -31,11 +31,38 @@ const PUBLIC_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif', 'im
  * как в хранилище, но без случайного суффикса, который панель дописывает при
  * загрузке: catalog/l1-brash-chernyy-Og097….webp → catalog/l1-brash-chernyy.webp
  */
+/**
+ * Копии, которые и так лежат в сайте: фото каталога из кода — те самые, что
+ * переносились в панель. Имя в хранилище → файл в public/
+ */
+const ALIASES: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
+  [/^catalog\/countertop-([a-z0-9-]+)$/, (m) => `catalog/materials/slotex/${m[1]}.webp`],
+  [/^catalog\/facade-(soft-wood|touch|flat|velvet|como|garda)$/, (m) => `catalog/collections/${m[1]}-hero.webp`],
+  [/^catalog\/facade-showcase$/, () => 'catalog/collections/showcase.webp'],
+  [/^catalog\/facade-line$/, () => 'catalog/collections/line.webp'],
+]
+
 async function fallback(pathname: string): Promise<NextResponse | null> {
   const match = pathname.match(/^((?:catalog|portfolio)(?:\/[a-z0-9-]+)*)\/([a-z0-9-]+?)-[A-Za-z0-9]{16,}\.(?:webp|jpe?g|png|avif)$/)
   if (!match) return null
+  const key = `${match[1]}/${match[2]}`
+  const candidates = [
+    path.join('media-fallback', `${key}.webp`),
+    ...ALIASES.flatMap(([pattern, target]) => {
+      const hit = key.match(pattern)
+      return hit ? [target(hit)] : []
+    }),
+  ]
+  for (const candidate of candidates) {
+    const served = await serveLocal(candidate)
+    if (served) return served
+  }
+  return null
+}
+
+async function serveLocal(relative: string): Promise<NextResponse | null> {
   try {
-    const body = await readDisk(path.join(process.cwd(), 'public', 'media-fallback', match[1], `${match[2]}.webp`))
+    const body = await readDisk(path.join(process.cwd(), 'public', relative))
     return new NextResponse(new Uint8Array(body), {
       headers: {
         'Content-Type': 'image/webp',
