@@ -38,7 +38,38 @@ SEO — что сделано и что нужно от владельца (ад
 Сайт лежит в `/var/www/html`. Рядом — `/var/www/html-old`: в неё собирается
 новая версия, пока старая продолжает работать. Затем папки меняются местами.
 
-### Порядок
+### Одной командой (основной способ)
+
+Скрипт `scripts/deploy.sh` делает всё, что описано в ручном порядке ниже:
+скачивает свежий код ветки с GitHub в `html-old`, копирует `.env.local`,
+ставит зависимости, собирает, меняет папки местами, перезапускает pm2 и
+проверяет, что сайт отвечает. Упала сборка — останавливается, рабочий сайт
+не тронут.
+
+Установить на сервер — один раз (нужен git: `git --version`, если нет —
+`apt install -y git`):
+```bash
+curl -fsSL https://raw.githubusercontent.com/goavitomail-boop/module-estet/refs/heads/claude/ecstatic-pasteur-gr53pi/scripts/deploy.sh -o /usr/local/bin/deploy-site && chmod +x /usr/local/bin/deploy-site
+```
+
+Выкатить:
+```bash
+deploy-site
+```
+
+Вернуть прошлую версию:
+```bash
+deploy-site --rollback
+```
+
+- Первый раз скрипт удаляет `html-old` и клонирует туда репозиторий; со
+  второго раза только скачивает изменения — быстрее.
+- Пуш в ветку сам по себе ничего не выкатывает: сайт меняется, только когда
+  на сервере запустили `deploy-site`.
+- Скрипт обновляет сам себя из репозитория после каждой выкатки.
+- Другая ветка: `BRANCH=имя-ветки deploy-site`.
+
+### Вручную (запасной способ)
 
 1. **Скачать код ветки** архивом:
    `https://github.com/goavitomail-boop/module-estet/archive/refs/heads/claude/ecstatic-pasteur-gr53pi.zip`.
