@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireSession } from '@/lib/admin-auth'
 import {
+  addPortfolioProjects,
   deletePortfolioProject,
   getPortfolioProject,
   listPortfolioIds,
@@ -165,6 +166,24 @@ export async function togglePortfolioAction(formData: FormData) {
 export async function importPortfolioAction() {
   await requireSession()
   await seedPortfolioIfEmpty(staticProjectsAsInput())
+  revalidatePath('/admin/portfolio')
+  revalidatePath('/')
+}
+
+/**
+ * Добавляет в базу один проект из lib/portfolio-data.ts, которого там нет.
+ *
+ * Проекты, заложенные в код после переноса портфолио в панель, на сайт сами
+ * не попадают: галерея берёт только базу. Владелец добавляет их по кнопке.
+ */
+export async function addCodeProjectAction(formData: FormData) {
+  await requireSession()
+  const id = String(formData.get('id') ?? '')
+  const project = staticProjectsAsInput().find((item) => item.id === id)
+  if (!project) return
+
+  await addPortfolioProjects([project])
+
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Image from 'next/image'
 import { useReducedMotion } from 'framer-motion'
 import Lightbox from 'yet-another-react-lightbox'
+import { COMPANY } from '@/lib/company'
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import { ArrowUpRight, ChevronLeft, ChevronRight, Info, X, ZoomIn, ZoomOut } from 'lucide-react'
@@ -37,8 +38,9 @@ function ProjectDetails({ project }: { project: PortfolioProject }) {
         <h3 className="flyer-title text-3xl leading-tight">{project.title}</h3>
         <p className="text-sm leading-relaxed text-muted-foreground">{project.description}</p>
         <dl className="grid grid-cols-2 gap-5 border-y border-border py-5">
-          {/* Незаполненные поля (площадь, срок) не показываем пустой строкой */}
-          {[['Площадь', project.area], ['Изготовление', project.duration], ['Стиль', project.style], ['Фасады', project.tag]].filter(([, value]) => value).map(([label, value]) => <div key={label} className="flex flex-col gap-1"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="text-sm font-medium">{value}</dd></div>)}
+          {/* Незаполненные поля (площадь) не показываем пустой строкой. Срок —
+              общий для всех проектов, из lib/company.ts */}
+          {[['Площадь', project.area], ['Изготовление', COMPANY.productionTime], ['Стиль', project.style], ['Фасады', project.tag]].filter(([, value]) => value).map(([label, value]) => <div key={label} className="flex flex-col gap-1"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="text-sm font-medium">{value}</dd></div>)}
         </dl>
         <div className="flex flex-col gap-2"><h4 className="font-medium">Материалы</h4><ul className="flex flex-col gap-1">{project.materials.map((material) => <li key={material} className="text-sm leading-relaxed text-muted-foreground">{material}</li>)}</ul></div>
         <div className="flex flex-col gap-2"><h4 className="font-medium">Решения</h4><ul className="flex flex-col gap-1">{project.features.map((feature) => <li key={feature} className="text-sm leading-relaxed text-muted-foreground">{feature}</li>)}</ul></div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import type { PortfolioProject } from '@/lib/portfolio-data'
+import { COMPANY } from '@/lib/company'
 import { PlanTag } from '@/components/plan'
 import { enter, leave, POP } from '@/components/scene-kit'
 import { cn } from '@/lib/utils'
@@ -29,7 +30,7 @@ type Slide = { src: string; photo: number; title: string; value: string }
 export function previewSlides(project: PortfolioProject): Slide[] {
   if (project.isPlaceholder) return []
   const facts = [
-    ['Изготовление', project.duration],
+    ['Изготовление', COMPANY.productionTime],
     ['Стиль', project.style],
     ['Фасады', project.tag],
   ].filter(([, value]) => value)

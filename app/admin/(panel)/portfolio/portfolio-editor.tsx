@@ -158,7 +158,7 @@ export function PortfolioEditor({ project }: { project: PortfolioRow | null }) {
               />
             </Field>
 
-            <Field label="Срок изготовления">
+            <Field label="Срок изготовления" hint="На сайте не выводится: везде общий срок из настроек сайта (lib/company.ts)">
               <input
                 name="duration"
                 maxLength={40}

@@ -15,11 +15,15 @@ import { cn } from '@/lib/utils'
 
 const PortfolioModal = dynamic(() => import('@/components/portfolio-modal').then((module) => module.PortfolioModal), { ssr: false })
 
+// Стиль в панели пишут свободным текстом («Тёплый минимализм», «Скандинавский
+// модерн»), поэтому фильтры ищут слова, а не точное совпадение
+const isClassic = (p: PortfolioProject) => /классик|прованс/i.test(p.style)
+
 const filters = [
   { id: 'all', label: 'Все проекты', matches: () => true },
-  { id: 'modern', label: 'Современные', matches: (p: PortfolioProject) => ['Современный', 'Минимализм'].includes(p.style) },
-  { id: 'classic', label: 'Классика', matches: (p: PortfolioProject) => ['Классика', 'Неоклассика', 'Современная классика'].includes(p.style) },
-  { id: 'scandi', label: 'Сканди', matches: (p: PortfolioProject) => p.style === 'Скандинавский' },
+  { id: 'modern', label: 'Современные', matches: (p: PortfolioProject) => !isClassic(p) && /современ|минимал|лофт|модерн/i.test(p.style) },
+  { id: 'classic', label: 'Классика', matches: isClassic },
+  { id: 'scandi', label: 'Сканди', matches: (p: PortfolioProject) => /сканд/i.test(p.style) },
   { id: 'compact', label: 'Небольшие', matches: (p: PortfolioProject) => parseFloat(p.area) <= 10 },
 ]
 

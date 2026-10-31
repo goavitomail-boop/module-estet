@@ -1670,6 +1670,24 @@ export async function seedPortfolioIfEmpty(projects: PortfolioInput[]): Promise<
   if (projects.length === 0) return false
 
   await ensureSchema()
+  await insertPortfolioProjects(projects)
+  return true
+}
+
+/**
+ * Добавляет проекты из файла, которых в базе нет, в конец галереи.
+ *
+ * Для проектов, заложенных в код после того, как портфолио перенесли в
+ * панель: сами они в базу не попадают, а галерея на сайте берёт только её.
+ * Проект с тем же адресом не трогаем — его могли поправить в панели.
+ */
+export async function addPortfolioProjects(projects: PortfolioInput[]): Promise<void> {
+  if (projects.length === 0) return
+  await ensureSchema()
+  await insertPortfolioProjects(projects)
+}
+
+async function insertPortfolioProjects(projects: PortfolioInput[]): Promise<void> {
   const sql = client()
 
   // Весь список уходит одним запросом: каждое обращение к базе по HTTP —
@@ -1693,6 +1711,7 @@ export async function seedPortfolioIfEmpty(projects: PortfolioInput[]): Promise<
     }))
   )
 
+  // Позиции — подряд после последней в таблице; в пустой таблице с нуля
   await sql`
     INSERT INTO portfolio_projects (
       id, title, tag, alt, cover_src, size, style, area, duration, description,
@@ -1700,7 +1719,7 @@ export async function seedPortfolioIfEmpty(projects: PortfolioInput[]): Promise<
     )
     SELECT p.id, p.title, p.tag, p.alt, p.cover_src, p.size, p.style, p.area, p.duration,
            p.description, p.materials, p.features, p.photos, p.published,
-           (ROW_NUMBER() OVER () - 1)::int
+           (SELECT COALESCE(MAX(position) + 1, 0) FROM portfolio_projects) + (ROW_NUMBER() OVER () - 1)::int
     FROM jsonb_to_recordset(${payload}::jsonb) AS p(
       id TEXT, title TEXT, tag TEXT, alt TEXT, cover_src TEXT, size TEXT, style TEXT,
       area TEXT, duration TEXT, description TEXT,
@@ -1708,7 +1727,6 @@ export async function seedPortfolioIfEmpty(projects: PortfolioInput[]): Promise<
     )
     ON CONFLICT (id) DO NOTHING
   `
-  return true
 }
 
 /* ══════════════════════════════════════════════════════════════════════

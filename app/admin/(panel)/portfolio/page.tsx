@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Download, Eye, EyeOff, Images, Pencil, Plus } from 
 import { isDbConfigured, listPortfolioSummaries } from '@/lib/db'
 import { portfolioProjects } from '@/lib/portfolio-data'
 import {
+  addCodeProjectAction,
   importPortfolioAction,
   movePortfolioAction,
   togglePortfolioAction,
@@ -30,6 +31,9 @@ export default async function PortfolioPage() {
 
   const projects = await listPortfolioSummaries()
   const visible = projects.filter((project) => project.published).length
+  // Проекты, которые добавили в код уже после переноса портфолио в панель
+  const inBase = new Set(projects.map((project) => project.id))
+  const notInBase = portfolioProjects.filter((project) => !inBase.has(project.id))
 
   // Пока база пуста, галерея на сайте показывает проекты из кода. Их можно
   // перенести сюда одним нажатием — и дальше править уже в панели
@@ -140,6 +144,42 @@ export default async function PortfolioPage() {
           ))}
         </ul>
       </Panel>
+
+      {notInBase.length > 0 && (
+        <Panel title="Есть в коде сайта, но нет здесь">
+          <p className="text-sm text-muted-foreground">
+            Эти проекты заложены в код сайта, но на сайте их не видно: галерея показывает только то, что
+            лежит здесь. Добавьте нужные — они встанут в конец списка. Если проект вы удалили нарочно,
+            просто не добавляйте его.
+          </p>
+          <ul className="mt-4 divide-y divide-border">
+            {notInBase.map((project) => (
+              <li key={project.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <span className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={project.coverSrc} alt="" className="size-full object-cover" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{project.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {project.photos.length} фото · {project.style}
+                  </p>
+                </div>
+                <form action={addCodeProjectAction}>
+                  <input type="hidden" name="id" value={project.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-medium text-background transition hover:opacity-90 md:h-9"
+                  >
+                    <Plus className="size-3.5" aria-hidden />
+                    Добавить
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       <p className="text-xs text-muted-foreground">
         Порядок в этом списке — это порядок карточек в галерее на главной. Фильтры «Современные», «Классика»
