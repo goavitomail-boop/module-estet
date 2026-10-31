@@ -1,8 +1,9 @@
+import Link from 'next/link'
 import { PlanLabel } from '@/components/plan'
 import { GLOSSARY, type GlossaryKey } from '@/lib/glossary'
 
 /** «Простыми словами»: объясняет термины, которые встречаются на странице */
-export function PlainTerms({ terms }: { terms: GlossaryKey[] }) {
+export function PlainTerms({ terms, article }: { terms: GlossaryKey[]; article?: { href: string; title: string } }) {
   return (
     <section aria-labelledby="plain-terms" className="mx-auto max-w-7xl px-5 pb-16 md:px-8 md:pb-24">
       <div className="border-t border-border pt-12 md:pt-16">
@@ -19,6 +20,14 @@ export function PlainTerms({ terms }: { terms: GlossaryKey[] }) {
             </div>
           ))}
         </dl>
+        {article && (
+          <p className="mt-10 text-base">
+            Подробнее — в статье{' '}
+            <Link href={article.href} className="font-medium text-primary underline-offset-4 hover:underline">
+              «{article.title}»
+            </Link>
+          </p>
+        )}
       </div>
     </section>
   )

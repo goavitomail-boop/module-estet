@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ChevronDown, Phone } from 'lucide-react'
 import { MaxSocialIcon } from '@/components/max-social-icon'
 import { faqItems as questions } from '@/lib/faq-data'
@@ -49,6 +50,13 @@ export function FaqSection() {
               </div>
             </details>
           ))}
+          {/* Обычная ссылка на раздел статей с главной: так его находит и поиск */}
+          <p className="pt-6 text-base text-muted-foreground">
+            Больше ответов — в{' '}
+            <Link href="/stati" className="font-medium text-primary underline-offset-4 hover:underline">статьях</Link>
+            : как выбрать фасады, как устроена кухня без ручек и{' '}
+            <Link href="/stati/kak-podgotovitsya-k-zameru-kuhni" className="font-medium text-primary underline-offset-4 hover:underline">как подготовиться к замеру</Link>.
+          </p>
         </div>
       </div>
     </section>

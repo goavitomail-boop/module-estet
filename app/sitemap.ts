@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { articles } from '@/lib/articles'
 import { getPortfolioPages } from '@/lib/portfolio-source'
 import { siteUrl } from '@/lib/seo'
 
@@ -19,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: Array<{ path: string; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency']; priority: number }> = [
     { path: '/', changeFrequency: 'weekly', priority: 1 },
     { path: '/portfolio', changeFrequency: 'weekly', priority: 0.9 },
+    { path: '/stati', changeFrequency: 'weekly', priority: 0.7 },
     { path: '/quiz', changeFrequency: 'monthly', priority: 0.9 },
     { path: '/collections', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/wardrobes', changeFrequency: 'monthly', priority: 0.8 },
@@ -42,6 +44,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       images: project.photos.map((photo) => (photo.src.startsWith('http') ? photo.src : `${siteUrl}${photo.src}`)),
+    })),
+    // У статей дата правки настоящая — её ставит автор в lib/articles.ts
+    ...articles.map((article) => ({
+      url: `${siteUrl}/stati/${article.slug}`,
+      lastModified: article.updated,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+      images: [`${siteUrl}${article.cover.src}`],
     })),
   ]
 }

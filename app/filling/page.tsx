@@ -30,7 +30,7 @@ export default async function FillingPage() {
       />
       <SiteHeader overHero />
       <CatalogPageGallery section="filling" groups={groups ?? undefined} />
-      <PlainTerms terms={['line', 'brushed', 'holeSpacing', 'gasLift', 'edge']} />
+      <PlainTerms terms={['line', 'brushed', 'holeSpacing', 'gasLift', 'edge']} article={{ href: '/stati/kuhnya-bez-ruchek', title: 'Кухня без ручек: как открываются фасады, плюсы и минусы' }} />
       <SiteFooter />
     </>
   )

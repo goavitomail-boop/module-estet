@@ -15,6 +15,7 @@ const columns = [
       { href: '/portfolio', label: 'Наши кухни' },
       { href: '/#process', label: 'Как мы работаем' },
       { href: '/#faq', label: 'Частые вопросы' },
+      { href: '/stati', label: 'Статьи' },
     ],
   },
   {

@@ -47,6 +47,7 @@ export default async function PortfolioIndexPage() {
       <main className="min-h-screen bg-background text-foreground">
         <CatalogPageHeader
           eyebrow="Наши работы"
+          label="Наши работы"
           keyword="Кухни на заказ: фото наших работ"
           title="Наши кухни"
           intro="Кухни, которые мы спроектировали, изготовили и собрали у клиентов. У каждой — своя страница: фото со всех сторон, фасады, столешница, техника и решения, которые сделали её удобной."

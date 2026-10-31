@@ -26,7 +26,7 @@ export default function CollectionsPage() {
       />
       <SiteHeader overHero />
       <CatalogPageGallery section="collections" />
-      <PlainTerms terms={['pvc', 'mdf', 'edge', 'edgedAll', 'pur']} />
+      <PlainTerms terms={['pvc', 'mdf', 'edge', 'edgedAll', 'pur']} article={{ href: '/stati/fasady-dlya-kuhni-pvh-pet-lmdf', title: 'Фасады для кухни: ПВХ, PET или ЛМДФ — что выбрать' }} />
       <SiteFooter />
     </>
   )

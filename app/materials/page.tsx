@@ -26,7 +26,7 @@ export default function MaterialsPage() {
       />
       <SiteHeader overHero />
       <CatalogPageGallery section="materials" />
-      <PlainTerms terms={['mdf', 'line', 'edge', 'edgedAll', 'pur']} />
+      <PlainTerms terms={['mdf', 'line', 'edge', 'edgedAll', 'pur']} article={{ href: '/stati/kuhnya-bez-ruchek', title: 'Кухня без ручек: как открываются фасады, плюсы и минусы' }} />
       <SiteFooter />
     </>
   )

@@ -84,6 +84,7 @@ export default async function PortfolioProjectPage({ params }: Params) {
       <main className="min-h-screen bg-background text-foreground">
         <CatalogPageHeader
           eyebrow="Наши работы"
+          label="Наши работы"
           keyword={`Кухня на заказ${project.style ? ` · ${project.style.toLowerCase()}` : ''}`}
           title={project.title}
           intro={project.tag}
