@@ -23,6 +23,27 @@ html[data-preloader='leaving'] .hs * {
   animation-play-state: paused !important;
 }
 
+/* ── Фон ──────────────────────────────────────────────────────────── */
+
+/* Камень Black Slate (декор Slotex из каталога) под тёмной вуалью: фон живой,
+   а не плоский серый, текст читается как прежде. Слева, под текстом, вуаль
+   плотнее. Пока текстура грузится, остаётся цвет bg-foreground */
+.hs-stone {
+  background-image:
+    linear-gradient(90deg, rgb(18 17 15 / 0.94) 0%, rgb(18 17 15 / 0.8) 55%, rgb(18 17 15 / 0.88) 100%),
+    url(/images/hero-stone.webp);
+  background-size: cover;
+  background-position: center;
+}
+/* На телефоне текст идёт на всю ширину — вуаль ровная, без светлой середины */
+@media (max-width: 1023px) {
+  .hs-stone {
+    background-image:
+      linear-gradient(180deg, rgb(18 17 15 / 0.86) 0%, rgb(18 17 15 / 0.76) 50%, rgb(18 17 15 / 0.88) 100%),
+      url(/images/hero-stone.webp);
+  }
+}
+
 /* ── Текст слева ───────────────────────────────────────────────────── */
 
 .hs-title {

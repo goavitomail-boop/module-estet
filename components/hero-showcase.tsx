@@ -338,7 +338,7 @@ export function HeroShowcase() {
       id="top"
       data-own-motion
       aria-labelledby="hero-title"
-      className={cn('hs relative isolate overflow-hidden bg-foreground text-background', paused && 'hs-paused')}
+      className={cn('hs hs-stone relative isolate overflow-hidden bg-foreground text-background', paused && 'hs-paused')}
     >
       <div className="mx-auto flex min-h-[min(100svh,62rem)] max-w-7xl flex-col gap-8 px-4 pb-8 pt-24 md:px-8 md:pt-28 lg:gap-10">
         <div className="grid flex-1 items-center gap-5 md:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-12">
