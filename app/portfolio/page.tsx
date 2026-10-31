@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { ArrowUpRight } from 'lucide-react'
 import { CatalogPageHeader } from '@/components/catalog-page-header'
 import { JsonLd } from '@/components/json-ld'
 import { PlanButton } from '@/components/plan'
-import { PortfolioImage } from '@/components/portfolio-image'
+import { PortfolioCards } from '@/components/portfolio-cards'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { COMPANY } from '@/lib/company'
+import { kitchenTypesWithProjects } from '@/lib/kitchen-types'
 import { getPortfolioPages } from '@/lib/portfolio-source'
 import { breadcrumbJsonLd, pageMetadata, siteUrl, webPageJsonLd } from '@/lib/seo'
 
@@ -21,6 +21,7 @@ export const revalidate = 3600
 
 export default async function PortfolioIndexPage() {
   const projects = await getPortfolioPages()
+  const types = kitchenTypesWithProjects(projects)
 
   return (
     <>
@@ -56,33 +57,17 @@ export default async function PortfolioIndexPage() {
         />
 
         <section aria-label="Проекты" className="mx-auto max-w-7xl px-5 py-14 md:px-8 md:py-20">
-          <ul className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project, index) => (
-              <li key={project.id}>
-                <Link href={`${path}/${project.id}`} className="group flex flex-col gap-4">
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-3xl bg-muted">
-                    <PortfolioImage
-                      src={project.coverSrc}
-                      alt={project.alt}
-                      fill
-                      sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 400px"
-                      priority={index < 3}
-                      className="motion-safe:transition-transform motion-safe:duration-700 group-hover:scale-[1.03]"
-                    />
-                  </span>
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="flex flex-col gap-1">
-                      <span className="flyer-title text-2xl leading-tight">{project.title}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {[project.style, project.area].filter(Boolean).join(' · ')}
-                      </span>
-                    </span>
-                    <ArrowUpRight className="mt-1 size-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
-                  </span>
+          {types.length > 0 && (
+            <nav aria-label="Кухни по типам" className="mb-10 flex flex-wrap gap-2">
+              {types.map(({ type, projects: list }) => (
+                <Link key={type.slug} href={`/kuhni/${type.slug}`} className="plan-chip">
+                  {type.title}
+                  <span className="ml-1 tabular-nums opacity-60">{list.length}</span>
                 </Link>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </nav>
+          )}
+          <PortfolioCards projects={projects} />
         </section>
       </main>
       <SiteFooter />

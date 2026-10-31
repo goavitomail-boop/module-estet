@@ -4,7 +4,7 @@ import { Fragment, type ReactNode } from 'react'
 import type { ArticleBlock } from '@/lib/articles'
 
 /** «Текст со [ссылкой](/адрес)» → текст и <Link> */
-function inline(text: string): ReactNode[] {
+export function inline(text: string): ReactNode[] {
   const parts: ReactNode[] = []
   const pattern = /\[([^\]]+)\]\(([^)]+)\)/g
   let last = 0

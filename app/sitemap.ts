@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { articles } from '@/lib/articles'
+import { kitchenTypesWithProjects } from '@/lib/kitchen-types'
 import { getPortfolioPages } from '@/lib/portfolio-source'
 import { siteUrl } from '@/lib/seo'
 
@@ -19,6 +20,7 @@ export const revalidate = 3600
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: Array<{ path: string; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency']; priority: number }> = [
     { path: '/', changeFrequency: 'weekly', priority: 1 },
+    { path: '/kuhni', changeFrequency: 'weekly', priority: 0.9 },
     { path: '/portfolio', changeFrequency: 'weekly', priority: 0.9 },
     { path: '/stati', changeFrequency: 'weekly', priority: 0.7 },
     { path: '/quiz', changeFrequency: 'monthly', priority: 0.9 },
@@ -28,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/facades', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/countertops', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/filling', changeFrequency: 'monthly', priority: 0.7 },
+    { path: '/kontakty', changeFrequency: 'monthly', priority: 0.6 },
     { path: '/privacy', changeFrequency: 'yearly', priority: 0.2 },
   ]
 
@@ -38,6 +41,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: page.path === '/' ? siteUrl : `${siteUrl}${page.path}`,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
+    })),
+    ...kitchenTypesWithProjects(projects).map(({ type }) => ({
+      url: `${siteUrl}/kuhni/${type.slug}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
     })),
     ...projects.map((project) => ({
       url: `${siteUrl}/portfolio/${project.id}`,

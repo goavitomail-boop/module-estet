@@ -128,6 +128,7 @@ export async function savePortfolioAction(
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
   revalidatePath('/portfolio', 'layout')
+  revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
   redirect('/admin/portfolio')
 }
@@ -145,6 +146,7 @@ export async function deletePortfolioAction(formData: FormData) {
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
   revalidatePath('/portfolio', 'layout')
+  revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
   redirect('/admin/portfolio')
 }
@@ -159,6 +161,7 @@ export async function togglePortfolioAction(formData: FormData) {
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
   revalidatePath('/portfolio', 'layout')
+  revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
 }
 
@@ -175,6 +178,7 @@ export async function importPortfolioAction() {
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
   revalidatePath('/portfolio', 'layout')
+  revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
 }
 
@@ -195,6 +199,7 @@ export async function addCodeProjectAction(formData: FormData) {
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
   revalidatePath('/portfolio', 'layout')
+  revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
 }
 
@@ -209,5 +214,6 @@ export async function movePortfolioAction(formData: FormData) {
   revalidatePath('/admin/portfolio')
   revalidatePath('/')
   revalidatePath('/portfolio', 'layout')
+  revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
 }

@@ -34,7 +34,7 @@ const navItems: NavItem[] = [
   { href: '/wardrobes', label: 'Шкафы' },
   { label: 'Каталог', children: catalogLinks },
   { href: '/#process', label: 'Как мы работаем' },
-  { href: '/#contacts', label: 'Контакты' },
+  { href: '/kontakty', label: 'Контакты' },
 ]
 
 const PHONE = { href: 'tel:+79253401211', label: '+7 925 340-12-11' }

@@ -16,6 +16,17 @@ const columns = [
       { href: '/#process', label: 'Как мы работаем' },
       { href: '/#faq', label: 'Частые вопросы' },
       { href: '/stati', label: 'Статьи' },
+      { href: '/kontakty', label: 'Контакты' },
+    ],
+  },
+  {
+    title: 'Кухни',
+    links: [
+      { href: '/kuhni/uglovye', label: 'Угловые' },
+      { href: '/kuhni/bez-ruchek', label: 'Без ручек' },
+      { href: '/kuhni/sovremennye', label: 'Современные' },
+      { href: '/kuhni/klassicheskie', label: 'Классические' },
+      { href: '/kuhni', label: 'Все типы' },
     ],
   },
   {
@@ -86,7 +97,7 @@ export function SiteFooter() {
         </div>
 
         {/* Ярус 2: бренд и навигация */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 py-12 md:grid-cols-[1.6fr_1fr_1fr_1fr] md:py-16">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] md:py-16">
           <div className="col-span-2 flex flex-col gap-5 md:col-span-1 md:pr-10">
             <ModuleEstetMark className="size-14" />
             <p className="max-w-xs text-sm leading-relaxed text-background/60">
@@ -110,7 +121,7 @@ export function SiteFooter() {
             </nav>
           ))}
 
-          <div className="col-span-2 md:col-span-1">
+          <div>
             <h3 className={headingClass}>Клиентам</h3>
             <ul className="flex flex-col gap-3">
               <li>
