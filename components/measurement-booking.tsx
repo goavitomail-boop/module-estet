@@ -25,15 +25,7 @@ import { CheckBadge, NextSteps } from '@/components/thanks-scene'
 import { BookingScene, SlotDial } from '@/components/booking-scenes'
 import { BOOKING_HORIZON_DAYS, bookingLastDay, moscowToday } from '@/lib/measurement-slots'
 
-export const MEASUREMENT_BOOKING_EVENT = 'open-measurement-booking'
-export const MEASUREMENT_BOOKING_ALT_EVENT = 'measurement-booking:open'
-
-export function triggerMeasurementBooking() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent(MEASUREMENT_BOOKING_EVENT))
-    window.dispatchEvent(new CustomEvent(MEASUREMENT_BOOKING_ALT_EVENT))
-  }
-}
+import { MEASUREMENT_BOOKING_ALT_EVENT, MEASUREMENT_BOOKING_EVENT } from '@/lib/booking-events'
 
 const TOTAL_STEPS = 3
 
@@ -102,7 +94,13 @@ function formatBookingDate(dateString: string) {
   })
 }
 
-export function MeasurementBooking() {
+/**
+ * onReady — форма загружена лениво (site-chrome.tsx): если кнопку нажали до
+ * загрузки, обёртка просит открыть форму, как только та начнёт слушать события
+ */
+export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
+  const readyRef = useRef(onReady)
+  useEffect(() => { readyRef.current = onReady }, [onReady])
   const pathname = usePathname()
   const nearFooter = useFloatingHidden()
   const [open, setOpen] = useState(false)
@@ -190,6 +188,7 @@ export function MeasurementBooking() {
     }
     window.addEventListener(MEASUREMENT_BOOKING_EVENT, openBooking)
     window.addEventListener(MEASUREMENT_BOOKING_ALT_EVENT, openBooking)
+    readyRef.current?.()
     return () => {
       window.removeEventListener(MEASUREMENT_BOOKING_EVENT, openBooking)
       window.removeEventListener(MEASUREMENT_BOOKING_ALT_EVENT, openBooking)

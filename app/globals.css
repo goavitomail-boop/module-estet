@@ -1378,3 +1378,11 @@ html[data-preloader='active'] .hero-life * { animation-play-state: paused !impor
     animation-duration: 1ms;
   }
 }
+
+/* Баннер про куки рендерится на сервере и виден с первого кадра. Прячем его,
+   если выбор уже сделан (html[data-consent] ставит скрипт в <head>) и пока
+   играет заставка — она закрывает экран целиком */
+html[data-consent] .cookie-notice,
+html[data-preloader] .cookie-notice {
+  display: none;
+}

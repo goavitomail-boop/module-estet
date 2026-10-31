@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowUp } from 'lucide-react'
-import { triggerMeasurementBooking } from '@/components/measurement-booking'
+import { triggerMeasurementBooking } from '@/lib/booking-events'
 import { PlanButton } from '@/components/plan'
 import { cn } from '@/lib/utils'
 

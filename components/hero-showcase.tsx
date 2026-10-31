@@ -46,7 +46,7 @@ function SceneKitchens() {
   return (
     <>
       <div className="hs-in absolute left-[4%] top-[5%] rounded-2xl bg-primary px-3 py-1.5 text-primary-foreground shadow-xl md:px-4 md:py-2" style={enter(0.55, POP)}>
-        <span className="block text-[9px] font-bold uppercase tracking-wider opacity-70 md:text-[11px]">Кухни</span>
+        <span className="block text-[9px] font-bold uppercase tracking-wider opacity-90 md:text-[11px]">Кухни</span>
         <span className="flyer-title block text-base leading-tight md:text-2xl">{PRICE}</span>
       </div>
       <div className={cn('hs-in absolute right-[4%] top-[5%] flex items-center gap-2 uppercase', chip)} style={enter(0.7, { from: 'translateY(-10px)' })}>
@@ -389,7 +389,7 @@ export function HeroShowcase() {
               >
                 <span className="flex flex-col text-left leading-tight">
                   <span>Рассчитать за минуту</span>
-                  <small className="text-xs font-medium opacity-70">Кухня или шкаф · бесплатно</small>
+                  <small className="text-xs font-medium opacity-90">Кухня или шкаф · бесплатно</small>
                 </span>
                 <span className="flex size-11 items-center justify-center rounded-full border border-primary-foreground/25" aria-hidden="true">
                   <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -498,7 +498,7 @@ export function HeroShowcase() {
                     <span
                       className={cn(
                         'truncate text-[10px] font-semibold transition-colors min-[400px]:text-[11px] sm:text-xs sm:uppercase sm:tracking-wider',
-                        k === view.i ? 'text-background' : 'text-background/45 group-hover:text-background/80',
+                        k === view.i ? 'text-background' : 'text-background/60 group-hover:text-background/85',
                       )}
                     >
                       {c.tab}

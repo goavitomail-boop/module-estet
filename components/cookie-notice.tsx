@@ -16,31 +16,15 @@ import { readConsent, writeConsent, type ConsentChoice } from '@/lib/consent'
 const LEAVE_DURATION = 300
 
 export function CookieNotice() {
-  const [mounted, setMounted] = useState(false)
+  // Баннер есть в разметке с сервера. Тем, кто уже выбирал, его прячет CSS по
+  // html[data-consent] (скрипт consentFlagScript в <head>), а пока играет
+  // заставка — по html[data-preloader]: баннер поверх неё выглядел бы ошибкой
+  const [mounted, setMounted] = useState(true)
   const [leaving, setLeaving] = useState(false)
   const leaveTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    if (readConsent() !== null) return
-
-    const root = document.documentElement
-
-    // Пока играет заставка, она закрывает экран целиком — баннер поверх неё
-    // выглядел бы как ошибка. Прелоадер держит на <html> data-preloader и
-    // снимает его, когда уходит; ждём именно этого момента.
-    if (!root.dataset.preloader) {
-      setMounted(true)
-      return
-    }
-
-    const observer = new MutationObserver(() => {
-      if (!root.dataset.preloader) {
-        setMounted(true)
-        observer.disconnect()
-      }
-    })
-    observer.observe(root, { attributes: true, attributeFilter: ['data-preloader'] })
-    return () => observer.disconnect()
+    if (readConsent() !== null) setMounted(false)
   }, [])
 
   useEffect(() => () => window.clearTimeout(leaveTimer.current), [])
@@ -64,6 +48,7 @@ export function CookieNotice() {
       role="region"
       aria-label="Использование файлов cookie"
       className={cn(
+        'cookie-notice',
         // Снизу слева: правый нижний угол занят плавающим виджетом связи.
         // На мобильных виджета нет, поэтому там полоса во всю ширину.
         'fixed inset-x-0 bottom-0 z-40 md:inset-x-auto md:bottom-6 md:left-6 md:max-w-lg',
@@ -73,9 +58,12 @@ export function CookieNotice() {
         leaving ? 'pointer-events-none translate-y-4 opacity-0' : 'translate-y-0 opacity-100'
       )}
     >
-      <div className="flex flex-col gap-4 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 md:pb-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Мы используем куки и «Яндекс.Метрику», чтобы понимать, как сделать сайт удобнее.{' '}
+      {/* На телефоне компактно: короткий текст и кнопки в ряд. Высокий баннер
+          закрывал кнопки первого экрана, а его текст браузер считал главным
+          содержимым страницы — и время его появления портило замер скорости */}
+      <div className="flex flex-col gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-6 sm:py-4 md:pb-4">
+        <p className="text-xs leading-snug text-muted-foreground sm:text-sm sm:leading-relaxed">
+          Используем куки и «Яндекс.Метрику», чтобы делать сайт удобнее.{' '}
           <a
             href="/privacy"
             target="_blank"
@@ -86,18 +74,18 @@ export function CookieNotice() {
           </a>
         </p>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => choose('accepted')}
-            className="h-11 rounded-full bg-primary px-6 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-md transition-all duration-300 hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
+            className="h-11 flex-1 rounded-full bg-primary px-4 text-xs font-bold sm:flex-none sm:px-6 uppercase tracking-wider text-primary-foreground shadow-md transition-all duration-300 hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
           >
             Принимаю
           </button>
           <button
             type="button"
             onClick={() => choose('necessary')}
-            className="h-11 rounded-full border-2 border-border px-6 text-xs font-bold uppercase tracking-wider text-foreground transition-all duration-300 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
+            className="h-11 flex-1 rounded-full border-2 border-border px-4 text-xs font-bold sm:flex-none sm:px-6 uppercase tracking-wider text-foreground transition-all duration-300 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
           >
             Только необходимые
           </button>

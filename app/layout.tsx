@@ -1,11 +1,12 @@
 import Script from 'next/script'
 import { SiteChrome } from '@/components/site-chrome'
-import { Analytics } from '@vercel/analytics/next'
+import { preconnect } from 'react-dom'
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Oswald, Roboto, Marck_Script } from 'next/font/google'
 import { defaultOgImage, siteUrl } from '@/lib/seo'
 import { COMPANY, KITCHEN_PRICE } from '@/lib/company'
 import { preloaderFlagScript } from '@/lib/preloader-flag'
+import { consentFlagScript } from '@/lib/consent'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -97,6 +98,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Соединение с Метрикой — заранее: её скрипт грузится сразу после страницы,
+  // и рукопожатие с mc.yandex.ru иначе стоит ~0,7 с на медленной сети
+  preconnect('https://mc.yandex.ru')
   return (
     <html lang="ru" className="bg-background" suppressHydrationWarning>
       <body
@@ -122,10 +126,13 @@ export default function RootLayout({
         <Script id="preloader-flag" strategy="beforeInteractive">
           {preloaderFlagScript}
         </Script>
+        {/* Выбор про куки уже сделан — баннер спрятан с первого кадра */}
+        <Script id="consent-flag" strategy="beforeInteractive">
+          {consentFlagScript}
+        </Script>
         <SiteChrome slot="preloader" />
         <div id="site-content">{children}</div>
         <SiteChrome slot="widget" />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

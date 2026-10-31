@@ -280,7 +280,7 @@ SEO — что сделано и что нужно от владельца (ад
       `components/hero-section.tsx`, `hero-plan.tsx`, `hero-proof-card.tsx`
       и стили `.hero-life*`, `.hero-plan*` в `app/globals.css`. Осторожно:
       `.hero-life__status*` используется ещё и в финальном призыве.
-- [ ] На Beget не нужен скрипт Vercel Analytics: он даёт 404 на
+- [x] На Beget не нужен скрипт Vercel Analytics: он даёт 404 на
       `/_vercel/insights/script.js`. Можно убрать `@vercel/analytics`
       из `app/layout.tsx`.
 

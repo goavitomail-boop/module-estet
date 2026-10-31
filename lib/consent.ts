@@ -14,7 +14,16 @@
 
 export type ConsentChoice = 'accepted' | 'necessary'
 
-const STORAGE_KEY = 'me-consent-v1'
+export const STORAGE_KEY = 'me-consent-v1'
+
+/**
+ * Скрипт для <head>: если выбор уже сделан, ставит html[data-consent] ещё до
+ * первой отрисовки — CSS прячет баннер, и он не мелькает. Баннер поэтому
+ * рендерится на сервере и виден с первого кадра у тех, кто ещё не выбирал:
+ * раньше он появлялся после загрузки скриптов, через несколько секунд, и
+ * браузер засчитывал его поздним «главным элементом» страницы
+ */
+export const consentFlagScript = `(function(){try{var v=localStorage.getItem(${JSON.stringify(STORAGE_KEY)});if(v==='accepted'||v==='necessary')document.documentElement.dataset.consent=v}catch(e){}})()`
 
 /** Событие на window: атрибуция снимается сразу после согласия, пока utm-метки ещё в адресе */
 export const CONSENT_EVENT = 'me-consent:change'
