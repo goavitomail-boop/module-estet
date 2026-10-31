@@ -1,7 +1,7 @@
 import { readFile as readDisk } from 'node:fs/promises'
 import path from 'node:path'
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from '@/lib/storage'
+import { describeStorageError, readFile } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 
@@ -111,8 +111,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
       },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error('[Медиа] Не удалось отдать файл:', message)
+    // Словами и с кодом ответа: голое «UnknownError» от SDK ничего не говорит
+    console.error(`[Медиа] Не удалось отдать файл ${pathname}: ${describeStorageError(error)}`)
     return (await fallback(pathname)) ?? NextResponse.json({ error: 'Файл недоступен' }, { status: 500 })
   }
 }

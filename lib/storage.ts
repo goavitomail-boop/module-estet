@@ -165,6 +165,10 @@ const isMissing = (error: unknown) => {
 
 /** Файл по ключу: сначала Neon, потом Blob — там лежат ещё не перенесённые. Нет нигде — null */
 export async function readFile(key: string): Promise<StoredFile | null> {
+  // Отказ Neon (не «файла нет», а, например, 403) запоминаем и всё равно
+  // пробуем Blob: файл мог остаться там, если его ещё не перенесли. Нет его и
+  // там — отдаём именно ошибку Neon, чтобы в журнале была настоящая причина
+  let neonError: unknown = null
   if (isNeonStorage()) {
     try {
       const result = await s3().send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
@@ -176,13 +180,19 @@ export async function readFile(key: string): Promise<StoredFile | null> {
         }
       }
     } catch (error) {
-      if (!isMissing(error)) throw error
+      if (!isMissing(error)) neonError = error
     }
   }
-  if (!isBlobStorage()) return null
+  if (!isBlobStorage()) {
+    if (neonError) throw neonError
+    return null
+  }
   const { get } = await import('@vercel/blob')
   const result = await get(key, { access: 'private' })
-  if (!result || result.statusCode !== 200 || !result.stream) return null
+  if (!result || result.statusCode !== 200 || !result.stream) {
+    if (neonError) throw neonError
+    return null
+  }
   return { stream: result.stream as unknown as ReadableStream, contentType: result.blob.contentType || 'application/octet-stream', size: result.blob.size }
 }
 
@@ -230,9 +240,11 @@ export async function deleteFiles(keys: string[]): Promise<void> {
  * запрос со списком файлов: на него хранилище отвечает кодом ошибки
  */
 export function describeStorageError(error: unknown): string {
-  const e = error as { name?: string; code?: string; $metadata?: { httpStatusCode?: number } }
+  const e = error as { name?: string; code?: string; message?: string; $metadata?: { httpStatusCode?: number } }
   const status = e?.$metadata?.httpStatusCode
-  switch (e?.name ?? e?.code) {
+  // У сетевых ошибок name — просто «Error», а суть в code (ECONNREFUSED…)
+  const id = e?.name && e.name !== 'Error' ? e.name : (e?.code ?? e?.name)
+  switch (id) {
     case 'InvalidAccessKeyId':
       return 'Neon не знает такой ключ — он удалён или AWS_ACCESS_KEY_ID вписан с ошибкой'
     case 'SignatureDoesNotMatch':
@@ -249,7 +261,9 @@ export function describeStorageError(error: unknown): string {
       return 'адрес хранилища не отвечает — проверьте AWS_ENDPOINT_URL_S3'
   }
   if (status === 403) return 'доступ запрещён (403) — ключ удалён, секрет с ошибкой или у ключа нет прав storage:read и storage:write'
-  return `${e?.name ?? 'ошибка'}${status ? ` (${status})` : ''}`
+  if (status === 400) return 'хранилище отклонило запрос (400) — чаще всего неверный AWS_REGION или адрес AWS_ENDPOINT_URL_S3'
+  const detail = e?.message && e.message !== id ? `: ${e.message.slice(0, 160)}` : ''
+  return `${id ?? 'ошибка'}${status ? ` (${status})` : ''}${detail}`
 }
 
 /** Для диагностики: доступен ли бакет Neon. Ошибку — текстом, без секретов */
