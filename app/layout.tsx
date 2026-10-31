@@ -37,6 +37,9 @@ const title = 'Кухни на заказ в Москве и Московско�
 const description =
   `Кухни и шкафы на заказ в Москве и области со своей фабрики: ${KITCHEN_PRICE}, изготовление за ${COMPANY.productionTime}. Бесплатный замер, доставка и монтаж под ключ.`
 
+/** Яндекс.Вебмастер: подтверждение прав на module-estet.ru (мета-тег yandex-verification) */
+const YANDEX_VERIFICATION = '6060f66958886980'
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: title, template: '%s | Модуль Эстет' },
@@ -77,11 +80,10 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
   // Коды подтверждения прав в Яндекс.Вебмастере и Google Search Console.
-  // Задаются переменными окружения, чтобы не держать их в коде.
+  // Код не секрет — он и так виден в HTML каждой страницы, поэтому код
+  // Вебмастера записан здесь; переменная окружения, если задана, главнее
   verification: {
-    ...(process.env.NEXT_PUBLIC_YANDEX_VERIFICATION
-      ? { yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION }
-      : {}),
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION || YANDEX_VERIFICATION,
     ...(process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION
       ? { google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION }
       : {}),

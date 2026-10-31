@@ -141,7 +141,7 @@ deploy-site --rollback
 | `MEASUREMENT_SLOT_CAPACITY` | Сколько замеров в один слот (утро/день/вечер), по умолчанию 1 | нет |
 | `NEXT_PUBLIC_YANDEX_METRIKA_ID` | Номер счётчика. По умолчанию 113551158 | нет |
 | `NEXT_PUBLIC_MAX_CHAT_URL` | Ссылка «Написать в Max» | нет |
-| `NEXT_PUBLIC_YANDEX_VERIFICATION`, `NEXT_PUBLIC_GOOGLE_VERIFICATION` | Подтверждение прав в вебмастерах | нет |
+| `NEXT_PUBLIC_YANDEX_VERIFICATION`, `NEXT_PUBLIC_GOOGLE_VERIFICATION` | Подтверждение прав в вебмастерах (код Яндекса уже записан в `app/layout.tsx`, переменная его заменяет) | нет |
 
 После изменения `.env.local` сайт нужно перезапустить. Переменные
 `NEXT_PUBLIC_*` попадают в код при сборке — после их смены нужна пересборка.
