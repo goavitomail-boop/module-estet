@@ -34,6 +34,11 @@ const FINISH = {
   'Золото матовое': '#c2a36b',
   'Золото брашированное': '#c4a66e',
   'Матовый хром': '#aeb3b8',
+  // Торцевые ручки L1–L3
+  'Латунь брашированная': '#c4a46b',
+  'Мартини брашированный': '#bcb4a2',
+  'Чёрный брашированный': '#3a3835',
+  'Серый матовый': '#9c9fa3',
 } as const
 type Finish = keyof typeof FINISH
 const finishes = <T extends Finish>(...names: T[]) => names.map((name) => ({ name, color: FINISH[name] }))
@@ -120,13 +125,44 @@ export function lightScene(color: string): Built {
    Ручки
    ══════════════════════════════════════════════════════════════════════ */
 
-type HandleKind = 'monte' | 'bar' | 'quadra' | 'rail' | 'olsen'
+type HandleKind = 'monte' | 'bar' | 'quadra' | 'rail' | 'olsen' | 'l1' | 'l2' | 'l3'
+
+/**
+ * Торцевые ручки L1–L3 — профиль в разрезе: точки [высота от кромки фасада,
+ * глубина] от верха губы вниз; минус по глубине — перед фасадом. Профиль
+ * протягивается вдоль кромки, сверху — полка на торце фасада
+ */
+const EDGE_PROFILES: Record<'l1' | 'l2' | 'l3', Array<[number, number]>> = {
+  // L1 — прямая губа, край захвата скруглён
+  l1: [[4, -16], [-24, -16], [-28, -15], [-30, -12]],
+  // L2 — волна: губа плавно уходит к фасаду, под пальцы
+  l2: [[4, -15], [-8, -15], [-15, -13], [-21, -9], [-26, -3]],
+  // L3 — гранёная, край захвата скошен
+  l3: [[4, -11], [-7, -11], [-15, -3]],
+}
 
 /** Ручка на фасаде: x — центр, y — высота оси или верхняя кромка фасада (торцевые), длина в мм */
 function Handle({ v, kind, x, y, length, color }: { v: View; kind: HandleKind; x: number; y: number; length: number; color: string }) {
   const { P, front, top, side } = v
   const r: Range = [x - length / 2, x + length / 2]
   const paint = { fill: color, stroke: INK, strokeWidth: 0.6, strokeLinejoin: 'round' as const, style: { transition: 'fill 0.4s' } }
+  if (kind === 'l1' || kind === 'l2' || kind === 'l3') {
+    const outer = EDGE_PROFILES[kind].map(([dy, z]) => [y + dy, z] as [number, number])
+    const z0 = outer[0][1]
+    // Толщина металла 3 мм: внутренняя сторона губы — та же линия, ближе к фасаду
+    const inner = outer.map(([yy, z]) => [yy, z + 3] as [number, number]).reverse()
+    const profile: Array<[number, number]> = [[y + 4, 18], ...outer, ...inner.slice(0, -1), [y + 1, z0 + 3], [y + 1, 18]]
+    return (
+      <g>
+        <path d={top(r, y + 4, [z0, 18])} {...paint} />
+        {outer.slice(0, -1).map(([ya, za], i) => {
+          const [yb, zb] = outer[i + 1]
+          return <path key={i} d={path([P(r[0], ya, za), P(r[1], ya, za), P(r[1], yb, zb), P(r[0], yb, zb)])} {...paint} />
+        })}
+        <path d={path(profile.map(([yy, z]) => P(r[1], yy, z)))} {...paint} />
+      </g>
+    )
+  }
   if (kind === 'monte') {
     // На торце фасада: полка по кромке и губа вниз по лицу
     return (
@@ -327,6 +363,21 @@ const HANDLE_SCENES: Record<HandleKind, (color: string) => Built> = {
       pulls: [{ x: [0, 900], y: [440, T], handle: { y: T - 1.5, length: 897 }, travel: 380, d: 0.35, content: pots, dim: '900 мм', dimAt: T + 110 }],
       still: [{ x: 450, y: 440 - 1.5, length: 128 }, { x: 1050, y: T - 1.5, length: 128 }],
     }),
+  // Торцевые L1–L3: профиль по всей кромке ящика и глухих фасадов. Длины в
+  // каталоге не указаны — размер на схеме не подписываем
+  ...Object.fromEntries(
+    (['l1', 'l2', 'l3'] as const).map((kind) => [
+      kind,
+      (color: string) =>
+        handleScene({
+          kind,
+          color,
+          mods: [{ w: 900, open: [440, T], fronts: [[B, 440]], blind: true }, { w: 300, fronts: [[B, T]], blind: true }],
+          pulls: [{ x: [0, 900], y: [440, T], handle: { y: T - 1.5, length: 897 }, travel: 380, d: 0.35, content: pots }],
+          still: [{ x: 450, y: 440 - 1.5, length: 897 }, { x: 1050, y: T - 1.5, length: 297 }],
+        }),
+    ]),
+  ) as Record<'l1' | 'l2' | 'l3', (color: string) => Built>,
   // Профиль-ручки 320 мм на трёх ящиках
   bar: (color) =>
     handleScene({
@@ -487,6 +538,33 @@ function LightScheme() {
   )
 }
 
+/**
+ * Профиль торцевой ручки в разрезе, крупно: на общей схеме ящика ручка
+ * высотой в пару сантиметров — тонкая полоска, и L1, L2, L3 не различить.
+ * Здесь видно форму губы; цвет — выбранное покрытие
+ */
+function EdgeProfileSection({ kind, color }: { kind: 'l1' | 'l2' | 'l3'; color: string }) {
+  const S = 3.2
+  const outer = EDGE_PROFILES[kind]
+  const z0 = outer[0][1]
+  const inner = outer.map(([dy, z]) => [dy, z + 3] as [number, number]).reverse()
+  const pts: Array<[number, number]> = [[4, 18], ...outer, ...inner.slice(0, -1), [1, z0 + 3], [1, 18]]
+  // Ось x — глубина (перед фасадом — левее), y — высота вверх от кромки
+  const X = (z: number) => (z + 24) * S
+  const Y = (dy: number) => (10 - dy) * S
+  return (
+    <figure className="flex flex-col gap-2">
+      <figcaption className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Профиль в разрезе</figcaption>
+      <svg viewBox={`0 0 ${50 * S} ${46 * S}`} className="h-28 w-auto" role="img" aria-label={`Профиль ручки ${kind.toUpperCase()} на кромке фасада`}>
+        {/* Фасад: торец, уходит вниз */}
+        <rect x={X(0)} y={Y(0)} width={18 * S} height={34 * S} fill="var(--secondary)" stroke={INK} strokeWidth={1} />
+        <polygon points={pts.map(([dy, z]) => `${X(z)},${Y(dy)}`).join(' ')} fill={color} stroke={INK} strokeWidth={1} strokeLinejoin="round" style={{ transition: 'fill 0.4s' }} />
+        <text x={X(9)} y={Y(-30)} textAnchor="middle" fontSize={9} fill="currentColor" opacity={0.55}>фасад</text>
+      </svg>
+    </figure>
+  )
+}
+
 function HandleScheme<T extends Finish>({ kind, text, options }: { kind: HandleKind; text: string; options: { name: T; color: string }[] }) {
   const [color, setColor] = useState<T>(options[0].name)
   return (
@@ -495,6 +573,7 @@ function HandleScheme<T extends Finish>({ kind, text, options }: { kind: HandleK
       aside={
         <>
           {p(text)}
+          {(kind === 'l1' || kind === 'l2' || kind === 'l3') && <EdgeProfileSection kind={kind} color={FINISH[color]} />}
           {options.length > 1 && <ColorChips label="Покрытие" options={options} value={color} onChange={setColor} />}
         </>
       }
@@ -586,6 +665,39 @@ const GROUPS: { id: string; title: string; render: () => ReactNode }[] = [
         kind="rail"
         text="Межцентровое расстояние — между ножками: под него сверлится фасад. Четыре стандартных размера."
         options={finishes('Чёрный матовый', 'Золото брашированное', 'Матовый хром')}
+      />
+    ),
+  },
+  {
+    id: 'handles-l1',
+    title: 'Торцевые ручки L1',
+    render: () => (
+      <HandleScheme
+        kind="l1"
+        text="Профиль надевается на верхнюю кромку фасада, губа идёт прямо вниз: пальцы заходят под неё, и ящик выдвигают за край."
+        options={finishes('Чёрный матовый', 'Латунь брашированная', 'Мартини брашированный', 'Чёрный брашированный', 'Серый матовый')}
+      />
+    ),
+  },
+  {
+    id: 'handles-l2',
+    title: 'Торцевые ручки L2',
+    render: () => (
+      <HandleScheme
+        kind="l2"
+        text="Та же посадка на кромку, но губа волной уходит к фасаду — пальцы ложатся в выемку, а ручка выглядит продолжением фасада."
+        options={finishes('Чёрный матовый', 'Латунь брашированная', 'Мартини брашированный', 'Чёрный брашированный', 'Серый матовый')}
+      />
+    ),
+  },
+  {
+    id: 'handles-l3',
+    title: 'Торцевые ручки L3',
+    render: () => (
+      <HandleScheme
+        kind="l3"
+        text="Самый низкий профиль со скошенной гранью: на фасаде почти незаметен, но за скос удобно взяться."
+        options={finishes('Чёрный матовый', 'Латунь брашированная', 'Мартини брашированный', 'Чёрный брашированный', 'Графит')}
       />
     ),
   },

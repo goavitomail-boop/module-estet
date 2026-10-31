@@ -262,6 +262,24 @@ export const profileHandles: CatalogItem[] = [
   { name: 'Профиль-ручка золото матовое', meta: 'Профиль · 320 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/2-Jw30d8P7StTXaLmvOBo515lWsSZKg4.webp' },
 ]
 
+/**
+ * Торцевые ручки L1–L3 — заведены владельцем в панели; здесь те же названия и
+ * описания, чтобы страница без базы и подсказки панели совпадали с сайтом.
+ * Фото — копии в public/media-fallback (их же отдаёт /media, если хранилище
+ * не отвечает)
+ */
+const edgeFinishes: Record<'l1' | 'l2' | 'l3', Array<[string, string]>> = {
+  l1: [['браш латунь', 'brash-latun'], ['браш мартини', 'brash-martini'], ['браш чёрный', 'brash-chernyy'], ['матовый серый', 'matovyy-seryy'], ['матовый чёрный', 'matovyy-chernyy']],
+  l2: [['браш латунь', 'brash-latun'], ['браш мартини', 'brash-martini'], ['браш чёрный', 'brash-chernyy'], ['матовый серый', 'matovyy-seryy'], ['матовый чёрный', 'matovyy-chernyy']],
+  l3: [['браш латунь', 'brash-latun'], ['браш мартини', 'brash-martini'], ['браш чёрный', 'brash-chernyy'], ['графит', 'grafit'], ['матовый чёрный', 'matovyy-chernyy']],
+}
+const edgeHandles = (kind: 'l1' | 'l2' | 'l3'): CatalogItem[] =>
+  edgeFinishes[kind].map(([name, slug]) => ({
+    name: `${kind.toUpperCase()} ${name}`,
+    meta: 'Торцевая ручка',
+    image: `/media-fallback/catalog/${kind}-${slug}.webp`,
+  }))
+
 export const railings: CatalogItem[] = [
   { name: 'Рейлинг чёрный матовый', meta: '160, 192, 224, 256 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1-WL6GecReJ7uoKhgVKZnpibDjJaZODS.webp' },
   { name: 'Рейлинг золото брашированное', meta: '160, 192, 224 мм', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/2-72fXF0oWilDXQOH6J0pNxtZYEWxrtH.webp' },
@@ -356,6 +374,30 @@ export const fillingSections: CatalogGroup[] = [
     description:
       'Универсальные цилиндрические рейлинги под стандартные межцентровые расстояния 160, 192, 224 и 256 мм.',
     items: railings,
+  },
+  {
+    id: 'handles-l1',
+    eyebrow: 'Ручки',
+    title: 'Торцевые ручки L1',
+    description:
+      'Прямой профиль на торец фасада с аккуратно скруглённым краем захвата. Пять отделок: брашированные латунь, мартини и чёрный, матовые серый и чёрный.',
+    items: edgeHandles('l1'),
+  },
+  {
+    id: 'handles-l2',
+    eyebrow: 'Ручки',
+    title: 'Торцевые ручки L2',
+    description:
+      'Профиль с плавной волной: край изогнут под пальцы, и ручка выглядит продолжением фасада. Пять отделок: брашированные латунь, мартини и чёрный, матовые серый и чёрный.',
+    items: edgeHandles('l2'),
+  },
+  {
+    id: 'handles-l3',
+    eyebrow: 'Ручки',
+    title: 'Торцевые ручки L3',
+    description:
+      'Гранёный профиль со скошенным краем захвата — строгая графика для современных фасадов. Пять отделок: брашированные латунь, мартини и чёрный, графит и матовый чёрный.',
+    items: edgeHandles('l3'),
   },
   {
     id: 'technical',
