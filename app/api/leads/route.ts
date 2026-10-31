@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { COMPANY } from '@/lib/company'
 import { normalizeRussianPhone } from '@/lib/phone'
 import { sendMaxMessage } from '@/lib/max-bot'
 import { newLeadNotification } from '@/lib/max-ui'
@@ -356,6 +357,21 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     deliveryError = error instanceof Error ? error.message : String(error)
     console.error(`[Leads] Ошибка при вызове sendMaxMessage для ${id}:`, error)
+  }
+
+  // Заявка не легла в базу и не ушла менеджеру — её нет нигде. Человек должен
+  // это узнать и позвонить, а не ждать звонка, которого не будет
+  if (!saved && !delivered) {
+    console.error(`[Leads] ЗАЯВКА ${id} ПОТЕРЯНА: не сохранена в базу и не доставлена в MAX, клиенту показана ошибка`)
+    return NextResponse.json(
+      {
+        error: `Заявка не дошла: у нас технический сбой. Позвоните ${COMPANY.phone} или напишите нам в Max — ответим сразу.`,
+        saved,
+        delivered,
+        ...(deliveryError && process.env.NODE_ENV !== 'production' ? { deliveryError } : {}),
+      },
+      { status: 503 }
+    )
   }
 
   return NextResponse.json({

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { formatRussianPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
 import { reachGoal } from '@/lib/metrika'
 import { getAttribution } from '@/lib/attribution'
+import { LEAD_FAILED_MESSAGE, LeadSubmitError, submitLead } from '@/lib/lead-client'
 import { buildMeasurementIcs, downloadIcs } from '@/lib/ics'
 import { COMPANY } from '@/lib/company'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -267,40 +268,29 @@ export function MeasurementBooking() {
     setIsSubmitting(true)
     setErrors({})
     try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'measurement',
-          name: data.name,
-          phone: data.phone,
-          website,
-          startedAt,
-          attribution: getAttribution(),
-          details: { city: data.city, address: data.address, date: data.date, time },
-        }),
+      await submitLead({
+        type: 'measurement',
+        name: data.name,
+        phone: data.phone,
+        website,
+        startedAt,
+        attribution: getAttribution(),
+        details: { city: data.city, address: data.address, date: data.date, time },
       })
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => null)
-
-        // Слот заняли, пока человек дозаполнял форму: обновляем занятость
-        // и возвращаем на шаг выбора времени, а не показываем тупик
-        if (errJson?.slotTaken) {
-          const fresh = await fetch('/api/availability').then((r) => (r.ok ? r.json() : null)).catch(() => null)
-          if (fresh) setAvailability(fresh)
-          setTime('')
-          setStep(1)
-          setErrors({ time: errJson.error })
-          return
-        }
-
-        throw new Error(errJson?.error || 'Lead request failed')
-      }
       reachGoal('lead_measurement')
       setSubmitted(true)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Не удалось отправить заявку. Попробуйте ещё раз через несколько секунд.'
-      setErrors({ submit: msg })
+      // Слот заняли, пока человек дозаполнял форму: обновляем занятость
+      // и возвращаем на шаг выбора времени, а не показываем тупик
+      if (err instanceof LeadSubmitError && err.data?.slotTaken) {
+        const fresh = await fetch('/api/availability').then((r) => (r.ok ? r.json() : null)).catch(() => null)
+        if (fresh) setAvailability(fresh)
+        setTime('')
+        setStep(1)
+        setErrors({ time: err.message })
+        return
+      }
+      setErrors({ submit: err instanceof LeadSubmitError ? err.message : LEAD_FAILED_MESSAGE })
     } finally {
       setIsSubmitting(false)
     }

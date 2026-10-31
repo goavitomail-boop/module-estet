@@ -19,6 +19,7 @@ import {
 import { AnimatePresence, m } from 'framer-motion'
 import { formatRussianPhone, isValidRussianPhone, PHONE_PLACEHOLDER } from '@/lib/phone'
 import { getAttribution } from '@/lib/attribution'
+import { LEAD_FAILED_MESSAGE, LeadSubmitError, submitLead } from '@/lib/lead-client'
 import { trackQuizCompleted, trackQuizStep } from '@/lib/quiz-tracking'
 import { reachGoal } from '@/lib/metrika'
 import { cn } from '@/lib/utils'
@@ -528,36 +529,29 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
         )
       }
 
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'project',
-          name: answers.name.trim(),
-          phone: answers.phone,
-          website,
-          startedAt,
-          attribution: getAttribution(),
-          details: {
-            ...(isKitchen ? {} : { product }),
-            answers: answersForLead(),
-            files: uploaded,
-          },
-        }),
+      const result = await submitLead({
+        type: 'project',
+        name: answers.name.trim(),
+        phone: answers.phone,
+        website,
+        startedAt,
+        attribution: getAttribution(),
+        details: {
+          ...(isKitchen ? {} : { product }),
+          answers: answersForLead(),
+          files: uploaded,
+        },
       })
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => null)
-        throw new Error(errJson?.error || 'Lead request failed')
-      }
-      const result = (await response.json()) as { id?: string }
       setApplicationId(result.id || `ПР-${new Date().getFullYear()}`)
       if (result.id && isKitchen) trackQuizCompleted(result.id)
       reachGoal(isKitchen ? 'lead_project' : 'lead_wardrobe')
       setCompleted(true)
       localStorage.removeItem(DRAFT_KEY)
       window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch {
-      setError('Не получилось отправить — проверьте интернет и нажмите ещё раз. Ответы сохранены.')
+    } catch (err: unknown) {
+      // Ответы лежат в черновике на устройстве — повторная отправка их не потеряет
+      const reason = err instanceof LeadSubmitError ? err.message : LEAD_FAILED_MESSAGE
+      setError(`${reason} Ответы сохранены.`)
     } finally {
       setIsSubmitting(false)
       setUploadProgress({ done: 0, total: 0 })
