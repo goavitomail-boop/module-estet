@@ -3,7 +3,7 @@ import { getMaxBotInfo, adminUserIds } from '@/lib/max-bot'
 import { databaseUrlSource, isDbConfigured, listBotUsers } from '@/lib/db'
 import { isAuthConfigured, isPasswordHashed } from '@/lib/admin-auth'
 import { MEASUREMENT_SLOTS, slotCapacity } from '@/lib/measurement-slots'
-import { BUCKET, checkNeonBucket, isBlobStorage, isNeonStorage } from '@/lib/storage'
+import { BUCKET, checkLocalStorage, checkNeonBucket, isBlobStorage, isLocalStorage, isNeonStorage, localStorageDir } from '@/lib/storage'
 import { Panel } from '../../_components/ui'
 import { TestNotificationButton } from './test-notification'
 
@@ -18,6 +18,7 @@ export default async function SettingsPage() {
   const capacity = slotCapacity()
   // Не переменные, а настоящий доступ: ключ может быть задан, но не подходить к бакету
   const neon = isNeonStorage() ? await checkNeonBucket() : null
+  const local = isLocalStorage() ? await checkLocalStorage() : null
 
   const checks = [
     {
@@ -59,6 +60,15 @@ export default async function SettingsPage() {
         recipients.length > 0
           ? `Заявки уходят ${recipients.length} ${recipients.length === 1 ? 'получателю' : 'получателям'}: ${recipients.join(', ')}`
           : 'Не задано — уведомления некуда отправлять.',
+    },
+    {
+      name: 'Хранилище файлов на сервере (STORAGE_DIR)',
+      ok: Boolean(local?.ok),
+      hint: local?.ok
+        ? `Новые файлы — в папке ${localStorageDir()} на этом сервере. Свободно на диске: ${local.freeGb} ГБ.${(local.freeGb ?? 0) < 1 ? ' Меньше гигабайта — файлы скоро некуда будет класть.' : ''}`
+        : local
+          ? `Задано, но не работает: ${local.error}. Файлы из квиза и панели не сохранятся.`
+          : 'Не задано — файлы хранятся во внешнем хранилище (ниже). Чтобы хранить на сервере, добавьте в .env.local строку STORAGE_DIR=/var/www/storage.',
     },
     {
       name: 'Хранилище файлов — Neon (AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)',

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { allowRequest, clientIp } from '@/lib/request-guard'
-import { isBlobStorage, isNeonStorage, newKey, putFile, signUpload } from '@/lib/storage'
+import { isBlobStorage, isLocalStorage, isNeonStorage, newKey, putFile, signUpload } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,6 +46,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (typeof type !== 'string' || !ALLOWED_TYPES.includes(type)) return NextResponse.json({ error: 'Недопустимый тип файла' }, { status: 400 })
   if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0 || size > MAX_SIZE) return NextResponse.json({ error: 'Недопустимый размер файла' }, { status: 400 })
 
+  // Хранилище на самом сервере: файл и так придёт к нам — запасным путём (PUT ниже)
+  if (isLocalStorage()) return NextResponse.json({ mode: 'server' })
   if (isNeonStorage()) {
     try {
       const pathname = newKey(LEADS_FOLDER, typeof name === 'string' ? name : 'file')

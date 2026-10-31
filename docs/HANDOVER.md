@@ -22,7 +22,7 @@ SEO — что сделано и что нужно от владельца (ад
 | Стек | Next.js 16 (App Router), React 19, Tailwind CSS 4, TypeScript |
 | Пакетный менеджер | pnpm 10 (`packageManager` в `package.json`) |
 | База данных | Postgres (Neon), драйвер `@neondatabase/serverless` |
-| Файлы | Neon Object Storage, **приватный** бакет `files` (`lib/storage.ts`): заявки, планировки, фото квартир, портфолио, каталог. Vercel Blob — запасной на время переезда |
+| Файлы | Папка на сервере `STORAGE_DIR` (`/var/www/storage`, `lib/storage.ts`): заявки, планировки, фото квартир, портфолио, каталог. Neon Object Storage и Vercel Blob — для старых файлов, если доступны |
 | Уведомления | Бот в мессенджере MAX |
 | Аналитика | Яндекс.Метрика, счётчик **113551158** |
 | Хостинг | Собственный облачный сервер Beget (не Vercel) |
@@ -123,6 +123,7 @@ deploy-site --rollback
 | Переменная | Зачем | Обязательна |
 |---|---|---|
 | `DATABASE_URL` | Postgres. Также читаются `POSTGRES_URL`, `DATABASE_URL_UNPOOLED`, `POSTGRES_URL_NON_POOLING` | да — без неё заявки не сохраняются |
+| `STORAGE_DIR` | Папка для файлов сайта на этом сервере, вне `html` и `html-old`: `/var/www/storage`. Если задана — все новые файлы туда | нет — без неё файлы идут в Neon или Blob |
 | `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | Neon Object Storage — бакет `files` для всех файлов сайта. Ключ: `neon credentials create --scope storage:read --scope storage:write` на ветке production | да — без них файлы пишутся в Vercel Blob |
 | `STORAGE_BUCKET`, `STORAGE_CORS_ORIGINS` | Другое имя бакета; ещё адреса для загрузки из браузера (сайт и www разрешены всегда) | нет |
 | `BLOB_READ_WRITE_TOKEN` | Старое хранилище Vercel Blob: читать файлы, ещё не перенесённые в Neon | пока не выполнен перенос |
@@ -152,6 +153,17 @@ deploy-site --rollback
 ### База и файлы
 - Заявки, сессии квиза, замеры, каталог и портфолио — в Postgres
   (`lib/db.ts`).
+- **Файлы — на самом сервере**, если в `.env.local` задан
+  `STORAGE_DIR=/var/www/storage`. Загрузки из квиза и панели идут через
+  сайт (`PUT /api/upload`, `PUT /admin/upload`) и ложатся в эту папку;
+  посетителю картинки отдаёт `/media/...`, менеджеру файлы заявок —
+  `/admin/file`. Состояние и свободное место — «Настройки» в панели.
+  - nginx должен пропускать файлы до 25 МБ: `client_max_body_size 30m;` в
+    блоке `server` сайта, иначе крупные файлы он отклонит сам (по умолчанию 1 МБ).
+  - Папку нужно бэкапить вместе с сервером: копий в другом месте нет.
+  - Выкатка (`deploy-site`) создаёт папку, если её нет, и остановится, если
+    она по ошибке внутри папки сайта.
+- Ниже — прежняя схема с Neon; она работает, если `STORAGE_DIR` не задан.
 - Файлы — в приватном бакете `files` Neon Object Storage (`lib/storage.ts`,
   бакет объявлен в `neon.ts`). Посетителю фото портфолио и каталога отдаёт
   `/media/...` (там белый список папок), админке — `/admin/file`. Браузер

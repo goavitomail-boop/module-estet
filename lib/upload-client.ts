@@ -7,6 +7,7 @@
  *    от того же маршрута.
  * 3. Не вышло ни то ни другое (сеть режет адрес хранилища, нет CORS) —
  *    файл идёт через наш сервер, и уже он кладёт его в хранилище.
+ * 4. Хранилище — папка на самом сервере ({ mode: 'server' }): сразу путь 3.
  *
  * Каждая попытка ограничена таймаутом: форма не имеет права зависнуть на
  * «Загружаем файлы» — человек просто закроет вкладку.
@@ -28,6 +29,7 @@ const withTimeout = <T,>(task: Promise<T>, ms: number) =>
 
 export async function uploadFile(file: File, target: UploadTarget, timeoutMs = 20000): Promise<Uploaded> {
   const { endpoint, folder, blobPath } = target
+  let viaServer = false
 
   try {
     const response = await withTimeout(
@@ -46,6 +48,11 @@ export async function uploadFile(file: File, target: UploadTarget, timeoutMs = 2
       throw new Error(`Хранилище не приняло файл: HTTP ${put.status}`)
     }
 
+    if (response.ok && plan?.mode === 'server') {
+      viaServer = true
+      throw new Error('server')
+    }
+
     if (response.ok && plan?.mode === 'blob') {
       const { upload } = await withTimeout(import('@vercel/blob/client'), 10000)
       const blob = await withTimeout(upload(blobPath, file, { access: 'private', handleUploadUrl: endpoint }), timeoutMs)
@@ -54,7 +61,7 @@ export async function uploadFile(file: File, target: UploadTarget, timeoutMs = 2
 
     throw new Error(`Загрузка не подготовлена: HTTP ${response.status}`)
   } catch (error) {
-    console.warn('Прямая загрузка не удалась, пробуем через сервер:', file.name, error)
+    if (!viaServer) console.warn('Прямая загрузка не удалась, пробуем через сервер:', file.name, error)
   }
 
   const params = new URLSearchParams({ name: file.name, ...(folder ? { folder } : {}) })

@@ -8,6 +8,10 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { createReadStream } from 'node:fs'
+import { mkdir, stat, statfs, unlink, writeFile, access, constants as fsConstants } from 'node:fs/promises'
+import path from 'node:path'
+import { Readable } from 'node:stream'
 import { siteUrl } from '@/lib/seo'
 
 /**
@@ -26,12 +30,27 @@ import { siteUrl } from '@/lib/seo'
  *
  * Ключ объекта — тот же путь, что был в Blob (leads/…, portfolio/…,
  * catalog/…): база хранит пути, и после переноса ничего в ней менять не нужно.
+ *
+ * Третий вариант — папка на самом сервере (STORAGE_DIR, например
+ * /var/www/storage). Если она задана, новые файлы пишутся туда, а читается
+ * сначала она, потом Neon и Blob — старые файлы откроются, если те живы.
+ * Папка должна лежать вне папок сайта (html, html-old): их меняет выкатка.
  */
 
 export const BUCKET = process.env.STORAGE_BUCKET || 'files'
 
-/** Где лежат новые файлы: Neon, Blob или нигде (не настроено ничего) */
-export type StorageKind = 'neon' | 'blob' | null
+/** Где лежат новые файлы: на сервере, в Neon, в Blob или нигде (не настроено ничего) */
+export type StorageKind = 'local' | 'neon' | 'blob' | null
+
+/** Папка хранилища на сервере — абсолютный путь из STORAGE_DIR */
+export function localStorageDir(): string | null {
+  const dir = process.env.STORAGE_DIR?.trim()
+  return dir && path.isAbsolute(dir) ? path.resolve(dir) : null
+}
+
+export function isLocalStorage(): boolean {
+  return localStorageDir() !== null
+}
 
 export function isNeonStorage(): boolean {
   return Boolean(process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
@@ -43,6 +62,7 @@ export function isBlobStorage(): boolean {
 }
 
 export function storageKind(): StorageKind {
+  if (isLocalStorage()) return 'local'
   if (isNeonStorage()) return 'neon'
   if (isBlobStorage()) return 'blob'
   return null
@@ -141,8 +161,39 @@ export async function signUpload(key: string, contentType: string, size: number)
   return { url, headers: { 'Content-Type': contentType } }
 }
 
-/** Положить файл с сервера: в Neon, а пока он не настроен — в Blob */
+/**
+ * Путь файла на диске по ключу. Ключ приходит из базы и из адреса /media, и
+ * выйти за пределы папки хранилища он не должен ни при каком содержимом
+ */
+function localPath(key: string): string {
+  const root = localStorageDir()
+  if (!root) throw new Error('STORAGE_DIR не задан')
+  const full = path.resolve(root, key)
+  if (full !== root && !full.startsWith(root + path.sep)) throw new Error('Недопустимый путь файла')
+  return full
+}
+
+/** Тип файла по расширению: на диске он не хранится, а ключи сохраняют расширение исходного имени */
+const TYPES: Record<string, string> = {
+  '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.avif': 'image/avif',
+  '.heic': 'image/heic', '.pdf': 'application/pdf', '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+}
+
+function typeByName(key: string): string {
+  return TYPES[path.extname(key).toLowerCase()] ?? 'application/octet-stream'
+}
+
+/** Положить файл с сервера: в папку на сервере, иначе в Neon, а пока и он не настроен — в Blob */
 export async function putFile(key: string, body: Uint8Array, contentType: string): Promise<{ pathname: string }> {
+  if (isLocalStorage()) {
+    const full = localPath(key)
+    await mkdir(path.dirname(full), { recursive: true })
+    // wx — не перезаписывать: у ключа случайный хвост, совпадение значит ошибку
+    await writeFile(full, body, { flag: 'wx' })
+    return { pathname: key }
+  }
   if (isNeonStorage()) {
     await s3().send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType, ContentLength: body.byteLength }))
     return { pathname: key }
@@ -165,6 +216,23 @@ const isMissing = (error: unknown) => {
 
 /** Файл по ключу: сначала Neon, потом Blob — там лежат ещё не перенесённые. Нет нигде — null */
 export async function readFile(key: string): Promise<StoredFile | null> {
+  if (isLocalStorage()) {
+    try {
+      const full = localPath(key)
+      const info = await stat(full)
+      if (info.isFile()) {
+        return {
+          stream: Readable.toWeb(createReadStream(full)) as unknown as ReadableStream,
+          contentType: typeByName(key),
+          size: info.size,
+        }
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error
+    }
+    // Файла на сервере нет — возможно, он загружен раньше, в Neon или Blob
+    if (!isNeonStorage() && !isBlobStorage()) return null
+  }
   // Отказ Neon (не «файла нет», а, например, 403) запоминаем и всё равно
   // пробуем Blob: файл мог остаться там, если его ещё не перенесли. Нет его и
   // там — отдаём именно ошибку Neon, чтобы в журнале была настоящая причина
@@ -215,6 +283,17 @@ export async function existsInNeon(key: string): Promise<boolean> {
 export async function deleteFiles(keys: string[]): Promise<void> {
   const list = keys.filter(Boolean)
   if (list.length === 0) return
+  if (isLocalStorage()) {
+    for (const key of list) {
+      try {
+        await unlink(localPath(key))
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+          console.error('[Storage] Не удалось удалить файл с сервера:', key, error instanceof Error ? error.message : error)
+        }
+      }
+    }
+  }
   if (isNeonStorage()) {
     for (let i = 0; i < list.length; i += 1000) {
       try {
@@ -264,6 +343,20 @@ export function describeStorageError(error: unknown): string {
   if (status === 400) return 'хранилище отклонило запрос (400) — чаще всего неверный AWS_REGION или адрес AWS_ENDPOINT_URL_S3'
   const detail = e?.message && e.message !== id ? `: ${e.message.slice(0, 160)}` : ''
   return `${id ?? 'ошибка'}${status ? ` (${status})` : ''}${detail}`
+}
+
+/** Для диагностики: есть ли папка хранилища на сервере, можно ли в неё писать и сколько места */
+export async function checkLocalStorage(): Promise<{ ok: boolean; error?: string; freeGb?: number }> {
+  const dir = localStorageDir()
+  if (!dir) return { ok: false, error: 'STORAGE_DIR не задан или путь не абсолютный' }
+  try {
+    await access(dir, fsConstants.W_OK)
+    const fs = await statfs(dir)
+    return { ok: true, freeGb: Math.round(((fs.bavail * fs.bsize) / 1024 ** 3) * 10) / 10 }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code
+    return { ok: false, error: code === 'ENOENT' ? `папки ${dir} нет — создайте её: mkdir -p ${dir}` : code === 'EACCES' ? `нет прав на запись в ${dir}` : String(error) }
+  }
 }
 
 /** Для диагностики: доступен ли бакет Neon. Ошибку — текстом, без секретов */

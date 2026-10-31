@@ -77,6 +77,17 @@ log "Версия: $(git -C "$NEXT" log -1 --format='%h  %s  (%cd)' --date=forma
 # 2. Настройки — те же, что у рабочего сайта
 cp "$LIVE/.env.local" "$NEXT/.env.local"
 
+# Хранилище файлов на сервере (STORAGE_DIR в .env.local): папка должна быть
+# вне html и html-old — их выкатка меняет местами, и файлы бы «переезжали»
+STORAGE_DIR_VALUE=$(grep -E '^STORAGE_DIR=' "$LIVE/.env.local" | tail -1 | cut -d= -f2- | tr -d "\"' " || true)
+if [ -n "$STORAGE_DIR_VALUE" ]; then
+  case "$STORAGE_DIR_VALUE" in
+    "$LIVE"|"$LIVE"/*|"$NEXT"|"$NEXT"/*) fail "STORAGE_DIR=$STORAGE_DIR_VALUE внутри папки сайта — выкатка её подменит. Укажите, например, $WWW/storage." ;;
+  esac
+  mkdir -p "$STORAGE_DIR_VALUE"
+  log "Файлы хранятся на сервере: $STORAGE_DIR_VALUE (свободно: $(df -h "$STORAGE_DIR_VALUE" | awk 'NR==2{print $4}'))"
+fi
+
 # 3. Сборка. Рабочий сайт в это время работает; упадёт сборка — он не тронут
 cd "$NEXT"
 export NEXT_TELEMETRY_DISABLED=1 COREPACK_ENABLE_DOWNLOAD_PROMPT=0

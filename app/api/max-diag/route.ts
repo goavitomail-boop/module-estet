@@ -11,7 +11,7 @@ import {
   MAX_API_BASE,
 } from '@/lib/max-bot'
 import { getStats, isDbConfigured, listBotUsers, ensureSchema } from '@/lib/db'
-import { BUCKET, checkNeonBucket, isBlobStorage, isNeonStorage } from '@/lib/storage'
+import { BUCKET, checkNeonBucket, isBlobStorage, isLocalStorage, isNeonStorage, localStorageDir } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       ? `задан (${process.env.BLOB_READ_WRITE_TOKEN.length} символов)`
       : 'не задан (нормально при подключении через OIDC)',
     BLOB_STORE_ID: process.env.BLOB_STORE_ID ? 'задан' : 'не задан',
-    STORAGE: isNeonStorage() ? `Neon Object Storage, бакет «${BUCKET}»` : isBlobStorage() ? 'Vercel Blob (Neon не настроен)' : 'НЕ НАСТРОЕНО',
+    STORAGE: isLocalStorage() ? `папка на сервере ${localStorageDir()}` : isNeonStorage() ? `Neon Object Storage, бакет «${BUCKET}»` : isBlobStorage() ? 'Vercel Blob (Neon не настроен)' : 'НЕ НАСТРОЕНО',
   }
 
   const hints: string[] = []
