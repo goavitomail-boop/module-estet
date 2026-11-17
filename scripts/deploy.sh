@@ -5,10 +5,17 @@
 # Порядок тот же, что в docs/HANDOVER.md (раздел 2), только без архива и
 # ручных шагов. Рабочий сайт не трогаем, пока новая версия не собралась.
 #
-#   deploy-site              выкатить свежую версию ветки
+#   deploy-site              показать, какие коммиты уйдут на сайт, спросить и выкатить
+#   deploy-site --yes        то же без вопроса (для запуска из другого скрипта)
 #   deploy-site --rollback   вернуть предыдущую версию (поменять папки обратно)
 #
 # Установка на сервер — один раз, см. docs/HANDOVER.md.
+#
+# Безопасность. Скрипт не слушает сеть и не запускается извне: выкатить может
+# только тот, кто уже зашёл на сервер по SSH. Но он собирает и запускает код
+# из ветки GitHub — значит, доступ к репозиторию равен доступу к серверу.
+# Поэтому перед сборкой он показывает, какие коммиты и от кого уйдут на сайт,
+# и ждёт подтверждения. Что ещё закрыть — docs/HANDOVER.md, раздел 2.
 
 set -euo pipefail
 
@@ -23,8 +30,18 @@ NEXT="$WWW/html-old"
 log() { printf '\n\033[1;33m==>\033[0m %s\n' "$*"; }
 fail() { printf '\n\033[1;31mСтоп:\033[0m %s\n' "$*" >&2; exit 1; }
 
-# Две выкатки одновременно перепутали бы папки
-exec 9>"${TMPDIR:-/tmp}/module-estet-deploy.lock"
+YES=0
+case "${1:-}" in
+  ''|--rollback) ;;
+  -y|--yes) YES=1 ;;
+  *) fail "неизвестный ключ «$1». Есть: --yes, --rollback" ;;
+esac
+
+# Две выкатки одновременно перепутали бы папки. Замок — в папке сайта,
+# а не в /tmp: туда может писать любой пользователь сервера и подложить
+# вместо файла ссылку, которую root потом перезапишет
+[ -d "$WWW" ] || fail "нет папки $WWW."
+exec 9>"$WWW/.deploy.lock"
 flock -n 9 || fail 'выкатка уже идёт в другом окне.'
 
 for tool in git pnpm pm2 curl; do
@@ -61,21 +78,47 @@ fi
 [ -f "$LIVE/.env.local" ] || fail "нет $LIVE/.env.local — без него не будут работать заявки, панель и уведомления."
 
 # 1. Код. Первый раз — клон ветки; дальше — только скачать изменения. node_modules
-#    и кэш сборки в папке остаются (git clean без -x), поэтому установка быстрая
+#    и кэш сборки в папке остаются (git clean без -x), поэтому установка быстрая.
+#    История — на 30 коммитов: по ней видно, что нового по сравнению с сайтом
 if [ -d "$NEXT/.git" ]; then
   log "Скачиваю свежий код ветки $BRANCH"
-  git -C "$NEXT" fetch --depth 1 origin "$BRANCH"
+  git -C "$NEXT" fetch --depth 30 origin "$BRANCH"
   git -C "$NEXT" reset --hard FETCH_HEAD
   git -C "$NEXT" clean -fd
 else
   log "Первая выкатка через git: клонирую $BRANCH в $NEXT"
   rm -rf "$NEXT"
-  git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$NEXT"
+  git clone --depth 30 --branch "$BRANCH" "$REPO_URL" "$NEXT"
 fi
-log "Версия: $(git -C "$NEXT" log -1 --format='%h  %s  (%cd)' --date=format:'%d.%m %H:%M')"
 
-# 2. Настройки — те же, что у рабочего сайта
-cp "$LIVE/.env.local" "$NEXT/.env.local"
+# Что уйдёт на сайт. Чужой коммит в списке — повод остановиться: с ним
+# на сервере выполнится чужой код
+NEW_REV=$(git -C "$NEXT" rev-parse HEAD)
+LIVE_REV=$(git -C "$LIVE" rev-parse HEAD 2>/dev/null || true)
+FORMAT='  %h  %ad  %an  %s'
+log 'Что попадёт на сайт'
+if [ -n "$LIVE_REV" ] && [ "$LIVE_REV" = "$NEW_REV" ]; then
+  echo '  ничего нового: на сайте уже эта версия, будет просто пересборка'
+elif [ -n "$LIVE_REV" ] && git -C "$NEXT" cat-file -e "$LIVE_REV^{commit}" 2>/dev/null; then
+  git -C "$NEXT" --no-pager log --format="$FORMAT" --date=format:'%d.%m %H:%M' "$LIVE_REV..HEAD"
+else
+  git -C "$NEXT" --no-pager log -1 --format="$FORMAT" --date=format:'%d.%m %H:%M' HEAD
+  echo '  (версию на сайте в истории не нашёл — показан только последний коммит)'
+fi
+
+if [ "$YES" -ne 1 ]; then
+  [ -t 0 ] || fail 'нет терминала, чтобы спросить. Без вопроса: deploy-site --yes'
+  printf '\nВыкатить на %s? Проверьте, что все коммиты ваши. [y/N] ' "$SITE_URL"
+  read -r answer || answer=''
+  case "$answer" in
+    y|Y|yes|д|Д|да|Да) ;;
+    *) fail 'выкатка отменена, рабочий сайт не тронут.' ;;
+  esac
+fi
+
+# 2. Настройки — те же, что у рабочего сайта. -p сохраняет права: в файле
+#    пароли и токены, читать его должен только владелец
+cp -p "$LIVE/.env.local" "$NEXT/.env.local"
 
 # Хранилище файлов на сервере (STORAGE_DIR в .env.local): папка должна быть
 # вне html и html-old — их выкатка меняет местами, и файлы бы «переезжали»

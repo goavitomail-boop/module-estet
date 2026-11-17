@@ -27,6 +27,7 @@ SEO — что сделано и что нужно от владельца (ад
 | Аналитика | Яндекс.Метрика, счётчик **113551158** |
 | Хостинг | Собственный облачный сервер Beget (не Vercel) |
 | Репозиторий | `goavitomail-boop/module-estet`, рабочая ветка `claude/ecstatic-pasteur-gr53pi` |
+| Знак и иконки | `components/module-estet-mark.tsx` — знак из шапки, им же пользуется панель; фавикон и иконки приложения собирает `node scripts/gen-icons.mjs` |
 
 Сайт запускается командой `next start` после `next build` (`pnpm build`,
 `pnpm start`). Конфиг Next — `next.config.mjs`.
@@ -47,12 +48,16 @@ SEO — что сделано и что нужно от владельца (ад
 не тронут.
 
 Установить на сервер — один раз (нужен git: `git --version`, если нет —
-`apt install -y git`):
+`apt install -y git`). Сначала скачать и прочитать, потом поставить:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/goavitomail-boop/module-estet/refs/heads/claude/ecstatic-pasteur-gr53pi/scripts/deploy.sh -o /usr/local/bin/deploy-site && chmod +x /usr/local/bin/deploy-site
+curl -fsSL https://raw.githubusercontent.com/goavitomail-boop/module-estet/refs/heads/claude/ecstatic-pasteur-gr53pi/scripts/deploy.sh -o /root/deploy-site.sh && less /root/deploy-site.sh
+```
+```bash
+install -m 755 /root/deploy-site.sh /usr/local/bin/deploy-site && rm /root/deploy-site.sh
 ```
 
-Выкатить:
+Выкатить — скрипт покажет, какие коммиты и от кого уйдут на сайт, и спросит
+подтверждение (`deploy-site --yes` — без вопроса):
 ```bash
 deploy-site
 ```
@@ -68,6 +73,32 @@ deploy-site --rollback
   на сервере запустили `deploy-site`.
 - Скрипт обновляет сам себя из репозитория после каждой выкатки.
 - Другая ветка: `BRANCH=имя-ветки deploy-site`.
+
+### Безопасность выкатки
+
+- **Снаружи скрипт не запустить.** Он не слушает сеть, на сайте и в панели
+  нет кнопки «обновить»: выкатить может только тот, кто уже вошёл на сервер
+  по SSH. Поэтому кнопку выкатки в панель и не добавляли — она открыла бы
+  путь с сайта на сервер.
+- **Главный ключ — аккаунт GitHub.** Скрипт собирает и запускает код из ветки,
+  значит, кто может писать в репозиторий, тот при следующей выкатке выполнит
+  свой код на сервере. Закрыть: двухфакторный вход в аккаунт
+  `goavitomail-boop`, в Settings → Collaborators — никого лишнего, в
+  Settings → Rules — запрет force-push в рабочую ветку. Перед выкаткой
+  скрипт показывает список коммитов с авторами: незнакомый — не подтверждать.
+- **Публичный репозиторий читают все,** но паролей в нём нет — они только
+  в `.env.local` на сервере. Сделать репозиторий приватным можно: тогда
+  серверу нужен ключ развёртывания только на чтение (Settings → Deploy keys)
+  и `REPO_URL=git@github.com:goavitomail-boop/module-estet.git`.
+- **Зависимости.** Версии и контрольные суммы закреплены в `pnpm-lock.yaml`
+  (`--frozen-lockfile`), а pnpm 10 не запускает установочные скрипты пакетов.
+- **Сервер.** Вход по SSH — только по ключу, пароль root отключить
+  (`PasswordAuthentication no`). Лучше, чтобы сайт и сборка работали
+  не от root, а от отдельного пользователя: тогда даже вредный пакет
+  не получит весь сервер.
+- Скрипт обновляет сам себя из репозитория — это та же граница доверия,
+  что и код сайта, отдельного риска не добавляет. `.env.local` копируется
+  с теми же правами (`cp -p`), замок выкатки лежит в `/var/www`, а не в `/tmp`.
 
 ### Вручную (запасной способ)
 
