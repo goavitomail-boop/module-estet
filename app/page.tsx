@@ -7,6 +7,7 @@ import { MaterialsSection } from '@/components/materials-section'
 import { FillingSection } from '@/components/filling-section'
 import { AdvantagesSection } from '@/components/advantages-section'
 import { ProcessSection } from '@/components/process-section'
+import { CabinetSection } from '@/components/cabinet-section'
 import { FaqSection } from '@/components/faq-section'
 import { CtaSection } from '@/components/cta-section'
 import { SiteFooter } from '@/components/site-footer'
@@ -31,6 +32,7 @@ export default function Page() {
         <FillingSection />
         <AdvantagesSection />
         <ProcessSection />
+        <CabinetSection />
         <FaqSection />
         <CtaSection />
       </main>

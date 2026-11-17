@@ -9,7 +9,7 @@ export function FaqSection() {
     <section id="faq" className="px-4 py-16 md:px-6 md:py-24" aria-labelledby="faq-title">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
         <div className="flex flex-col items-start gap-4 lg:sticky lg:top-28 lg:self-start" data-anim>
-          <PlanLabel index={8}>Ответы на вопросы</PlanLabel>
+          <PlanLabel index={9}>Ответы на вопросы</PlanLabel>
           <h2 id="faq-title" className="flyer-title text-balance text-4xl text-foreground md:text-6xl">Частые вопросы</h2>
           <p className="max-w-md text-pretty leading-relaxed text-muted-foreground">Не нашли нужного ответа? Позвоните или напишите нам в соцсеть Макс — расскажем о процессе, материалах и рассчитаем ваш проект.</p>
           <div className="flex flex-wrap items-center gap-2.5">
