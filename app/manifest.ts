@@ -6,7 +6,12 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Модуль Эстет',
     description: 'Проектирование и производство кухонь на заказ в Москве и Московской области.',
     start_url: '/',
-    display: 'standalone',
+    // «browser», а не «standalone»: с ним Chrome и Яндекс Браузер на Android
+    // считали сайт приложением и сами предлагали «Установить приложение».
+    // Посетителю это ни к чему; иконка для «На экран Домой» остаётся.
+    // Устанавливается как приложение только панель — у неё свой манифест
+    // (app/admin/manifest.webmanifest)
+    display: 'browser',
     background_color: '#f8f5ef',
     theme_color: '#1a1a1a',
     lang: 'ru',
