@@ -161,7 +161,7 @@ function CabinetScreen() {
 
       <Card d={1.6} className="flex items-center gap-2.5">
         <span className="flex size-9 shrink-0 flex-col items-center justify-center rounded-lg bg-secondary leading-none">
-          <span className="text-[13px] font-bold">28</span>
+          <span className="text-[13px] font-bold">27</span>
           <span className="text-[8px] uppercase text-muted-foreground">ноя</span>
         </span>
         <span className="min-w-0 flex-1">
