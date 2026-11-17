@@ -45,7 +45,7 @@ export default async function ClientPage({ params }: { params: Promise<{ phone: 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight">{client.names[0] ?? 'Без имени'}</h1>
+            <h1 className="admin-display text-[1.75rem] leading-[1.1] sm:text-[2rem]">{client.names[0] ?? 'Без имени'}</h1>
             {client.leads.length > 1 && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-accent-foreground ring-1 ring-inset ring-primary/30">
                 <Repeat2 className="size-3.5" aria-hidden />
@@ -64,18 +64,19 @@ export default async function ClientPage({ params }: { params: Promise<{ phone: 
 
         <a
           href={telHref(client.phone)}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition hover:opacity-90 active:opacity-80 sm:w-auto"
+          className="admin-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition hover:opacity-90 active:opacity-80 sm:w-auto"
         >
           <Phone className="size-4" aria-hidden />
           Позвонить {prettyPhone(client.phone)}
         </a>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Всего обращений" value={client.leads.length} />
-        <StatTile label="Закрыто сделок" value={done} tone={done > 0 ? 'success' : 'default'} />
-        <StatTile label="Отказов" value={rejected} />
+      <div className="admin-tiles grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatTile index={0} label="Всего обращений" value={client.leads.length} />
+        <StatTile index={1} label="Закрыто сделок" value={done} tone={done > 0 ? 'success' : 'default'} />
+        <StatTile index={2} label="Отказов" value={rejected} />
         <StatTile
+          index={3}
           label="Сумма сделок"
           value={formatMoney(client.totalAmount)}
           tone={client.totalAmount > 0 ? 'accent' : 'default'}

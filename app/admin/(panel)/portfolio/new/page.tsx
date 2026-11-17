@@ -16,7 +16,7 @@ export default function NewPortfolioProjectPage() {
           <ChevronLeft className="size-4" aria-hidden />
           К портфолио
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Новый проект</h1>
+        <h1 className="admin-display mt-1 text-[1.75rem] leading-[1.1] sm:text-[2rem]">Новый проект</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           После сохранения проект встанет последним в галерее — порядок меняется стрелками в списке.
         </p>

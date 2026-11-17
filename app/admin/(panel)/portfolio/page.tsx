@@ -9,7 +9,7 @@ import {
   togglePortfolioAction,
 } from '@/app/admin/portfolio-actions'
 import { plural } from '@/lib/admin-format'
-import { EmptyState, Panel } from '../../_components/ui'
+import { EmptyState, PageHeader, Panel } from '../../_components/ui'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Портфолио' }
@@ -93,7 +93,7 @@ export default async function PortfolioPage() {
                     {project.title}
                   </Link>
                   {!project.published && (
-                    <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                    <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
                       скрыт
                     </span>
                   )}
@@ -191,19 +191,20 @@ export default async function PortfolioPage() {
 
 function Header() {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Портфолио</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Проекты в галерее «Наши кухни» на главной</p>
-      </div>
-      <Link
-        href="/admin/portfolio/new"
-        className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition hover:opacity-90 md:h-10"
-      >
-        <Plus className="size-4" aria-hidden />
-        Новый проект
-      </Link>
-    </header>
+    <PageHeader
+      eyebrow="Сайт"
+      title="Портфолио"
+      description="Проекты в галерее «Наши кухни» на главной"
+      actions={
+        <Link
+          href="/admin/portfolio/new"
+          className="admin-press inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-medium text-background shadow-sm transition hover:opacity-90 md:h-10"
+        >
+          <Plus className="size-4" aria-hidden />
+          Новый проект
+        </Link>
+      }
+    />
   )
 }
 

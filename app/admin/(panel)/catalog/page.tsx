@@ -12,7 +12,7 @@ import { catalogMissingGroups, catalogSeed } from '@/lib/catalog-seed'
 import { addCodeCatalogGroupAction, moveCatalogAction, seedCatalogAction, toggleCatalogAction } from '@/app/admin/catalog-actions'
 import { plural } from '@/lib/admin-format'
 import { cn } from '@/lib/utils'
-import { EmptyState, Panel } from '../../_components/ui'
+import { EmptyState, PageHeader, Panel } from '../../_components/ui'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Каталог' }
@@ -149,7 +149,7 @@ export default async function CatalogPage({
                       {item.name}
                     </Link>
                     {!item.published && (
-                      <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                      <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
                         скрыта
                       </span>
                     )}
@@ -258,19 +258,20 @@ export default async function CatalogPage({
 
 function Header({ section }: { section: CatalogSection }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Каталог</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Наполнение, фасады и столешницы на сайте</p>
-      </div>
-      <Link
-        href={`/admin/catalog/new?section=${section}`}
-        className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition hover:opacity-90 md:h-10"
-      >
-        <Plus className="size-4" aria-hidden />
-        Новая позиция
-      </Link>
-    </header>
+    <PageHeader
+      eyebrow="Сайт"
+      title="Каталог"
+      description="Наполнение, фасады и столешницы на сайте"
+      actions={
+        <Link
+          href={`/admin/catalog/new?section=${section}`}
+          className="admin-press inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-medium text-background shadow-sm transition hover:opacity-90 md:h-10"
+        >
+          <Plus className="size-4" aria-hidden />
+          Новая позиция
+        </Link>
+      }
+    />
   )
 }
 

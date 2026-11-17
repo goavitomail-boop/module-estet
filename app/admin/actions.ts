@@ -3,6 +3,7 @@
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { flash } from '@/lib/admin-flash'
 import {
   ADMIN_ACTOR,
   ADMIN_COOKIE,
@@ -28,8 +29,10 @@ import {
   setDealAmount,
   setLeadStatus,
   setNextContact,
+  updateLeadContact,
   type LeadStatus,
 } from '@/lib/db'
+import { normalizeRussianPhone } from '@/lib/phone'
 import { SLOT_VALUES, slotCapacity, slotLabel } from '@/lib/measurement-slots'
 import { sendMaxMessage } from '@/lib/max-bot'
 import { allowRequest, clientIp, requestCount } from '@/lib/request-guard'
@@ -138,6 +141,30 @@ export async function confirmMeasurementAction(_prev: StatusFormState, formData:
   if (problem) return { error: problem }
 
   await setLeadStatus(id, CONFIRMED_STATUS, ADMIN_ACTOR)
+  revalidateLead(id)
+  return { ok: true }
+}
+
+/**
+ * Правка имени, телефона и адреса замера — из быстрого редактирования
+ * в списке заявок. Телефон приводится к виду +7XXXXXXXXXX, как у заявок
+ * с сайта: иначе поиск по номеру и «повторное обращение» его бы не нашли.
+ */
+export async function updateContactAction(_prev: StatusFormState, formData: FormData): Promise<StatusFormState> {
+  await requireSession()
+  const id = String(formData.get('id') ?? '')
+  const name = String(formData.get('name') ?? '').trim().replace(/\s+/g, ' ').slice(0, 80)
+  const phone = normalizeRussianPhone(String(formData.get('phone') ?? ''))
+  const city = formData.has('city') ? String(formData.get('city') ?? '').trim().slice(0, 80) : undefined
+  const address = formData.has('address') ? String(formData.get('address') ?? '').trim().slice(0, 240) : undefined
+
+  if (!id) return { error: 'Заявка не найдена.' }
+  if (name.length < 2) return { error: 'Имя — хотя бы две буквы.' }
+  if (!phone) return { error: 'Телефон — российский номер из 10 цифр после +7.' }
+
+  const lead = await updateLeadContact(id, { name, phone, city, address }, ADMIN_ACTOR)
+  if (!lead) return { error: 'Заявка не найдена.' }
+
   revalidateLead(id)
   return { ok: true }
 }
@@ -302,6 +329,7 @@ export async function deleteLeadAction(formData: FormData) {
   revalidatePath('/admin/calendar')
   revalidatePath('/admin/analytics')
   revalidatePath('/admin')
+  if (removed) await flash(`Заявка ${id} удалена`)
   // Из календаря удаляют прямо в карточке замера — там и остаёмся
   if (formData.get('stay') === '1') return
   redirect('/admin/leads')

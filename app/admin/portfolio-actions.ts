@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { flash } from '@/lib/admin-flash'
 import { requireSession } from '@/lib/admin-auth'
 import {
   addPortfolioProjects,
@@ -130,6 +131,7 @@ export async function savePortfolioAction(
   revalidatePath('/portfolio', 'layout')
   revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
+  await flash('Проект сохранён')
   redirect('/admin/portfolio')
 }
 
@@ -148,6 +150,7 @@ export async function deletePortfolioAction(formData: FormData) {
   revalidatePath('/portfolio', 'layout')
   revalidatePath('/kuhni', 'layout')
   revalidatePath('/sitemap.xml')
+  if (removed) await flash('Проект удалён')
   redirect('/admin/portfolio')
 }
 

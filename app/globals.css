@@ -1249,10 +1249,7 @@ html[data-preloader='active'] .hero-life * { animation-play-state: paused !impor
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 25%, transparent);
   }
 
-  /* Панель — рабочий инструмент, а не витрина: анимации появления тут мешают */
-  .admin-root main > * {
-    animation: none !important;
-  }
+  /* Облик и движение панели — в app/admin/admin.css */
 }
 
 /* ──────────────────────────────────────────────────────────────────────

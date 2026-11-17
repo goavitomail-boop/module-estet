@@ -11,7 +11,10 @@ import {
   isDbConfigured,
 } from '@/lib/db'
 import { QUIZ_STEP_NAMES, STATUS_TEXT, formatHours, formatMoney, plural } from '@/lib/admin-format'
-import { BarList, DayChart, EmptyState, Panel, STATUS_UI, StatTile } from '../../_components/ui'
+import { Clock, Inbox, TrendingUp, Wallet } from 'lucide-react'
+import { BarList, EmptyState, PageHeader, Panel, STATUS_UI, StatTile } from '../../_components/ui'
+import { CountUp } from '../../_components/count-up'
+import { DayChart } from '../../_components/day-chart'
 import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -49,16 +52,39 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Аналитика</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Откуда приходят заявки, что заказывают и почему уходят</p>
-      </header>
+      <PageHeader
+        eyebrow="Отчёты"
+        title="Аналитика"
+        description="Откуда приходят заявки, что заказывают и почему уходят"
+      />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Всего заявок" value={summary.total} hint={`За месяц: ${summary.month}`} />
-        <StatTile label="Конверсия в закрытые" value={`${summary.conversionMonth}%`} tone="success" hint="За 30 дней" />
-        <StatTile label="Выручка за месяц" value={formatMoney(summary.revenueMonth)} tone="accent" />
+      <div className="admin-tiles grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatTile
+          index={0}
+          icon={Inbox}
+          label="Всего заявок"
+          value={<CountUp value={summary.total} />}
+          hint={`За месяц: ${summary.month}`}
+          spark={byDay.slice(-30).map((d) => d.total)}
+        />
+        <StatTile
+          index={1}
+          icon={TrendingUp}
+          label="Конверсия в закрытые"
+          value={<CountUp value={summary.conversionMonth} format="percent" />}
+          tone="success"
+          hint="За 30 дней"
+        />
+        <StatTile
+          index={2}
+          icon={Wallet}
+          label="Выручка за месяц"
+          value={<CountUp value={summary.revenueMonth} format="money" />}
+          tone="accent"
+        />
+        <StatTile
+          index={3}
+          icon={Clock}
           label="Пик обращений"
           value={`${String(peakHour.hour).padStart(2, '0')}:00`}
           hint={`${peakHour.total} ${plural(peakHour.total, 'заявка', 'заявки', 'заявок')} за 90 дней`}
@@ -143,11 +169,11 @@ export default async function AnalyticsPage() {
             {/* Телефон: по карточке на менеджера вместо таблицы на 640px */}
             <ul className="space-y-3 md:hidden">
               {managers.map((m) => (
-                <li key={m.manager} className="rounded-lg border border-border p-4">
+                <li key={m.manager} className="rounded-xl border border-border p-4">
                   <p className="font-medium">{m.manager}</p>
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
                     <Metric label="Обработал" value={m.handled} />
-                    <Metric label="Закрыл" value={m.done} tone="text-emerald-700" />
+                    <Metric label="Закрыл" value={m.done} tone="text-emerald-700 dark:text-emerald-400" />
                     <Metric label="Отказов" value={m.rejected} tone="text-muted-foreground" />
                     <Metric label="Скорость ответа" value={formatHours(m.avg_hours)} />
                     <Metric label="Выручка" value={formatMoney(m.revenue)} />
@@ -173,7 +199,7 @@ export default async function AnalyticsPage() {
                   <tr key={m.manager}>
                     <td className="py-2.5 font-medium">{m.manager}</td>
                     <td className="py-2.5 text-right tabular-nums">{m.handled}</td>
-                    <td className="py-2.5 text-right tabular-nums text-emerald-700">{m.done}</td>
+                    <td className="py-2.5 text-right tabular-nums text-emerald-700 dark:text-emerald-400">{m.done}</td>
                     <td className="py-2.5 text-right tabular-nums text-muted-foreground">{m.rejected}</td>
                     <td className="py-2.5 text-right tabular-nums">{formatHours(m.avg_hours)}</td>
                     <td className="py-2.5 text-right tabular-nums">{formatMoney(m.revenue)}</td>
@@ -233,8 +259,8 @@ function QuizFunnel({ data }: { data: Awaited<ReturnType<typeof getQuizFunnel>> 
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-secondary">
               <div
-                className={cn('h-full rounded-full', isWorst ? 'bg-destructive/60' : 'bg-primary')}
-                style={{ width: `${Math.max(share, 2)}%` }}
+                className={cn('admin-bar-x h-full rounded-full', isWorst ? 'bg-destructive/60' : 'bg-primary')}
+                style={{ width: `${Math.max(share, 2)}%`, '--i': s.step } as React.CSSProperties}
               />
             </div>
           </div>
@@ -263,18 +289,25 @@ function HourChart({ data }: { data: Array<{ hour: number; total: number }> }) {
     <div>
       {/* h-full у колонки обязателен: иначе процентная высота столбика не резолвится */}
       <div className="flex h-32 gap-[2px]">
-        {data.map((point) => (
-          <div
-            key={point.hour}
-            className="group flex h-full flex-1 flex-col justify-end"
-            title={`${String(point.hour).padStart(2, '0')}:00 — ${point.total}`}
-          >
+        {data.map((point, index) => {
+          // Час пик — латунью, остальные приглушены: глаз сразу находит главное
+          const peak = point.total === max && max > 0
+          return (
             <div
-              className="w-full rounded-t bg-primary/70 transition group-hover:bg-primary"
-              style={{ height: `${Math.max((point.total / max) * 100, 2)}%` }}
-            />
-          </div>
-        ))}
+              key={point.hour}
+              className="group flex h-full flex-1 flex-col justify-end"
+              title={`${String(point.hour).padStart(2, '0')}:00 — ${point.total}`}
+            >
+              <div
+                className={cn(
+                  'admin-bar-y w-full rounded-t-[3px] transition-colors',
+                  peak ? 'bg-primary' : 'bg-foreground/15 group-hover:bg-primary/70'
+                )}
+                style={{ height: `${Math.max((point.total / max) * 100, 2)}%`, '--i': index } as React.CSSProperties}
+              />
+            </div>
+          )
+        })}
       </div>
       <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-muted-foreground">
         <span>00</span>

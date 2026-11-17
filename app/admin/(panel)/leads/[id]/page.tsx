@@ -39,7 +39,7 @@ import {
   telHref,
   timeAgo,
 } from '@/lib/admin-format'
-import { EmptyState, Panel, StatusBadge, TypeBadge } from '../../../_components/ui'
+import { EmptyState, OverdueBadge, Panel, StatusBadge, TypeBadge } from '../../../_components/ui'
 import { deleteLeadAction } from '@/app/admin/actions'
 import { DeleteLeadButton } from './delete-button'
 import { LeadActions } from './lead-actions'
@@ -97,15 +97,16 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
+          <p className="mb-1.5 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-accent-foreground">
+            <span className="h-px w-5 bg-primary" aria-hidden />
+            Заявка <span className="font-mono normal-case tracking-normal">{lead.id}</span>
+          </p>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-mono text-xl font-semibold tracking-tight">{lead.id}</h1>
-            <StatusBadge status={lead.status} />
+            <h1 className="admin-display text-[1.75rem] leading-[1.1] sm:text-[2rem]">{lead.name || 'Без имени'}</h1>
+            {/* key: статус сменился — бейдж заново «выпрыгивает», видно, что сохранилось */}
+            <StatusBadge key={lead.status} status={lead.status} className="admin-pop" />
             <TypeBadge type={lead.type} />
-            {overdue && (
-              <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
-                Просрочена
-              </span>
-            )}
+            {overdue && <OverdueBadge />}
           </div>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Создана {formatDateTime(lead.created_at)} · {timeAgo(lead.created_at)}
@@ -116,7 +117,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row print:hidden">
           <a
             href={telHref(lead.phone)}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition hover:opacity-90 active:opacity-80 sm:h-11 sm:w-auto"
+            className="admin-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-medium text-background shadow-[0_8px_20px_-10px_oklch(0_0_0/0.5)] transition hover:opacity-90 active:opacity-80 sm:h-11 sm:w-auto"
           >
             <Phone className="size-4" aria-hidden />
             Позвонить {prettyPhone(lead.phone)}
@@ -349,20 +350,25 @@ const EVENT_LABELS: Record<LeadEvent['kind'], string> = {
   reminder: 'Напоминание',
   reschedule: 'Замер перенесён',
   file: 'Документ',
+  edit: 'Данные клиента',
 }
 
 function Timeline({ events, createdAt, status }: { events: LeadEvent[]; createdAt: string; status: string }) {
   return (
-    <ol className="relative space-y-4 border-l border-border pl-5">
-      <li className="relative">
-        <span className="absolute -left-[26px] top-1 size-2.5 rounded-full bg-primary ring-4 ring-card" />
+    <ol className="admin-timeline space-y-4 pl-5">
+      <li className="relative" style={{ '--i': 0 } as React.CSSProperties}>
+        <span className="absolute -left-[25px] top-1 size-2.5 rounded-full bg-primary ring-4 ring-card" />
         <p className="text-sm font-medium">Заявка создана</p>
         <p className="text-xs text-muted-foreground">{formatDateTime(createdAt)}</p>
       </li>
 
-      {events.map((event) => (
-        <li key={event.id} className="relative">
-          <span className="absolute -left-[26px] top-1 size-2.5 rounded-full bg-border ring-4 ring-card" />
+      {events.map((event, index) => (
+        <li key={event.id} className="relative" style={{ '--i': index + 1 } as React.CSSProperties}>
+          <span
+            className={`absolute -left-[25px] top-1 size-2.5 rounded-full ring-4 ring-card ${
+              index === events.length - 1 ? 'bg-primary/70' : 'bg-border'
+            }`}
+          />
           <p className="text-sm">
             <span className="font-medium">{EVENT_LABELS[event.kind] ?? event.kind}</span>
             {event.kind === 'status' && event.to_status && (
@@ -385,8 +391,8 @@ function Timeline({ events, createdAt, status }: { events: LeadEvent[]; createdA
       ))}
 
       {events.length === 0 && (
-        <li className="relative">
-          <span className="absolute -left-[26px] top-1 size-2.5 rounded-full bg-border ring-4 ring-card" />
+        <li className="relative" style={{ '--i': 1 } as React.CSSProperties}>
+          <span className="absolute -left-[25px] top-1 size-2.5 rounded-full bg-border ring-4 ring-card" />
           {/* У заявок, созданных до появления истории, статус есть, а событий нет */}
           <p className="text-sm text-muted-foreground">
             {status === 'new'

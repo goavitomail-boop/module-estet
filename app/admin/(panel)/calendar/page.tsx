@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import { getMeasurementsInRange, isDbConfigured, type ScheduledMeasurement } from '@/lib/db'
 import { prettyPhone, telHref } from '@/lib/admin-format'
 import { MEASUREMENT_SLOTS, slotCapacity } from '@/lib/measurement-slots'
-import { EmptyState, Panel, StatusBadge } from '../../_components/ui'
+import { EmptyState, PageHeader, Panel, StatusBadge } from '../../_components/ui'
+import { WeekSwipe } from '../../_components/week-swipe'
 import { cn } from '@/lib/utils'
 import { deleteLeadAction } from '@/app/admin/actions'
 import { DeleteLeadButton } from '../leads/[id]/delete-button'
@@ -71,41 +72,46 @@ export default async function CalendarPage({
   const pendingCount = measurements.filter(isPending).length
 
   const monthLabel = start.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric', timeZone: MSK })
+  const weekLabel = `${start.getDate()}–${end.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
+  const prevHref = `/admin/calendar?week=${iso(addDays(start, -7))}`
+  const nextHref = `/admin/calendar?week=${iso(addDays(start, 7))}`
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Календарь замеров</h1>
-          {/* first-letter, а не capitalize: последний поднимает каждое слово
-              и превращает «сентябрь 2026 г.» в «Сентябрь 2026 Г.» */}
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="inline-block first-letter:uppercase">{monthLabel}</span> · подтверждено на неделю:{' '}
-            <strong className="text-foreground">{confirmedCount}</strong>
+      <PageHeader
+        eyebrow={`${monthLabel} · ${weekLabel}`}
+        title="Календарь замеров"
+        description={
+          <>
+            Подтверждено на неделю: <strong className="text-foreground">{confirmedCount}</strong>
             {pendingCount > 0 && (
               <>
                 {' '}· ждут подтверждения:{' '}
-                <strong className="text-amber-700">{pendingCount}</strong>
+                <strong className="text-amber-700 dark:text-amber-400">{pendingCount}</strong>
               </>
             )}
-          </p>
-        </div>
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <NavLink href={prevHref} label="Предыдущая неделя">
+              <ChevronLeft className="size-4" aria-hidden />
+            </NavLink>
+            <Link
+              href="/admin/calendar"
+              className="admin-press flex h-11 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium shadow-sm transition hover:bg-secondary"
+            >
+              Текущая
+            </Link>
+            <NavLink href={nextHref} label="Следующая неделя">
+              <ChevronRight className="size-4" aria-hidden />
+            </NavLink>
+          </div>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <NavLink href={`/admin/calendar?week=${iso(addDays(start, -7))}`} label="Предыдущая неделя">
-            <ChevronLeft className="size-4" aria-hidden />
-          </NavLink>
-          <Link
-            href="/admin/calendar"
-            className="flex h-11 items-center rounded-lg border border-border bg-card px-4 text-sm font-medium transition hover:bg-secondary"
-          >
-            Текущая
-          </Link>
-          <NavLink href={`/admin/calendar?week=${iso(addDays(start, 7))}`} label="Следующая неделя">
-            <ChevronRight className="size-4" aria-hidden />
-          </NavLink>
-        </div>
-      </header>
+      <WeekSwipe key={iso(start)} week={iso(start)} prevHref={prevHref} nextHref={nextHref}>
+      <div className="space-y-6">
 
       {/* ── Телефон: список по дням. Сетка 7×3 на 375px нечитаема ── */}
       <div className="space-y-3 lg:hidden">
@@ -117,7 +123,7 @@ export default async function CalendarPage({
               key={dayIso}
               className={cn(
                 'rounded-xl border bg-card shadow-sm',
-                dayIso === todayIso ? 'border-primary' : 'border-border',
+                dayIso === todayIso ? 'border-primary ring-1 ring-primary/30' : 'border-border',
                 items.length === 0 && 'opacity-60'
               )}
             >
@@ -229,6 +235,10 @@ export default async function CalendarPage({
           hint="Здесь появятся заявки на замер с выбранной клиентом датой. Время занимается после подтверждения в карточке заявки."
         />
       )}
+      </div>
+      </WeekSwipe>
+
+      <p className="text-center text-xs text-muted-foreground lg:hidden">Листайте недели свайпом вбок</p>
     </div>
   )
 }
@@ -260,11 +270,12 @@ function SlotCard({
       className={cn(
         'rounded-lg border bg-background p-2.5',
         // Пунктир — запрос, который ещё не занял время; сплошная рамка — занятое
-        pending ? 'border-dashed border-amber-500/60 bg-amber-400/5' : 'border-border'
+        pending ? 'border-dashed border-amber-500/60 bg-amber-400/5 dark:border-amber-400/40' : 'border-border',
+        'transition-shadow hover:shadow-sm'
       )}
     >
       {pending && (
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
           {slotFull ? 'Не подтверждён · время уже занято' : 'Не подтверждён'}
         </p>
       )}
@@ -297,7 +308,7 @@ function SlotCard({
       {pending && (
         <Link
           href={`/admin/leads/${measurement.id}`}
-          className="mt-2 flex h-9 items-center justify-center rounded-md border border-amber-500/60 text-xs font-medium text-amber-800 transition hover:bg-amber-400/15"
+          className="admin-press mt-2 flex h-9 items-center justify-center rounded-md border border-amber-500/60 text-xs font-medium text-amber-800 transition hover:bg-amber-400/15 dark:text-amber-300"
         >
           {slotFull ? 'Перенести' : 'Подтвердить'}
         </Link>
@@ -316,7 +327,7 @@ function NavLink({ href, label, children }: { href: string; label: string; child
     <Link
       href={href}
       aria-label={label}
-      className="flex size-11 items-center justify-center rounded-lg border border-border bg-card transition hover:bg-secondary"
+      className="admin-press flex size-11 items-center justify-center rounded-lg border border-border bg-card shadow-sm transition hover:bg-secondary"
     >
       {children}
     </Link>

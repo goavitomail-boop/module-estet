@@ -4,7 +4,7 @@ import { databaseUrlSource, isDbConfigured, listBotUsers } from '@/lib/db'
 import { isAuthConfigured, isPasswordHashed } from '@/lib/admin-auth'
 import { MEASUREMENT_SLOTS, slotCapacity } from '@/lib/measurement-slots'
 import { BUCKET, checkLocalStorage, checkNeonBucket, isBlobStorage, isLocalStorage, isNeonStorage, localStorageDir } from '@/lib/storage'
-import { Panel } from '../../_components/ui'
+import { PageHeader, Panel } from '../../_components/ui'
 import { TestNotificationButton } from './test-notification'
 
 export const dynamic = 'force-dynamic'
@@ -92,17 +92,14 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Настройки</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Состояние интеграций и диагностика</p>
-      </header>
+      <PageHeader eyebrow="Система" title="Настройки" description="Состояние интеграций и диагностика" />
 
       <Panel title="Проверка конфигурации">
         <ul className="divide-y divide-border">
           {checks.map((check) => (
             <li key={check.name} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
               {check.ok ? (
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" aria-label="Настроено" />
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-label="Настроено" />
               ) : (
                 <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" aria-label="Не настроено" />
               )}
@@ -162,7 +159,7 @@ export default async function SettingsPage() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate font-medium">{user.name || 'Без имени'}</span>
                     {recipients.includes(user.user_id) ? (
-                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                         получает заявки
                       </span>
                     ) : (
@@ -190,7 +187,7 @@ export default async function SettingsPage() {
                     <td className="py-2.5 font-mono text-xs">{user.user_id}</td>
                     <td className="py-2.5">
                       {recipients.includes(user.user_id) ? (
-                        <span className="text-emerald-700">да</span>
+                        <span className="text-emerald-700 dark:text-emerald-400">да</span>
                       ) : (
                         <span className="text-muted-foreground">нет</span>
                       )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { LEAD_STATUSES, REJECT_REASONS, type Lead, type LeadStatus } from '@/lib/db'
 import {
@@ -15,6 +15,8 @@ import {
 import { MEASUREMENT_SLOTS, slotLabel } from '@/lib/measurement-slots'
 import { STATUS_TEXT, formatDate } from '@/lib/admin-format'
 import { STATUS_UI } from '@/app/admin/_components/ui'
+import { toast } from '@/app/admin/_components/toast'
+import { refreshPulse } from '@/app/admin/_components/pulse'
 import { cn } from '@/lib/utils'
 
 /**
@@ -37,6 +39,15 @@ export function LeadActions({
   const [pendingStatus, setPendingStatus] = useState<LeadStatus | null>(null)
   const [statusState, statusAction] = useActionState(changeStatusAction, null)
   const needsReason = pendingStatus === 'rejected'
+  const savedStatus = useRef<LeadStatus | null>(null)
+
+  useEffect(() => {
+    if (!statusState?.ok) return
+    toast.success(savedStatus.current ? `Статус: ${STATUS_TEXT[savedStatus.current]}` : 'Статус сохранён')
+    setPendingStatus(null)
+    // Счётчик новых заявок в меню мог измениться
+    refreshPulse()
+  }, [statusState])
 
   return (
     <div className="space-y-4">
@@ -45,7 +56,7 @@ export function LeadActions({
         <RescheduleBlock lead={lead} occupancy={occupancy} capacity={capacity} />
       )}
       <Block title="Статус">
-        <form action={statusAction} className="space-y-3">
+        <form action={statusAction} onSubmit={() => (savedStatus.current = pendingStatus)} className="space-y-3">
           <input type="hidden" name="id" value={lead.id} />
           <div className="grid grid-cols-2 gap-2">
             {LEAD_STATUSES.map((status) => {
@@ -56,7 +67,7 @@ export function LeadActions({
                 <label
                   key={status}
                   className={cn(
-                    'flex cursor-pointer flex-col items-center gap-1 rounded-lg border px-2.5 py-2.5 text-center text-xs font-medium transition',
+                    'admin-press flex cursor-pointer flex-col items-center gap-1 rounded-lg border px-2.5 py-2.5 text-center text-xs font-medium transition',
                     current && 'cursor-default border-primary bg-primary/10 text-foreground',
                     !current && selected && 'border-foreground bg-foreground text-background',
                     !current && !selected && 'border-border bg-card hover:bg-secondary'
@@ -117,7 +128,9 @@ export function LeadActions({
               <option key={m} value={m} />
             ))}
           </datalist>
-          <Submit variant="secondary">Назначить</Submit>
+          <Submit variant="secondary" done="Ответственный назначен">
+            Назначить
+          </Submit>
         </form>
       </Block>
 
@@ -132,7 +145,9 @@ export function LeadActions({
             className="input-admin"
           />
           <p className="text-xs text-muted-foreground">Заполните при закрытии — попадёт в отчёт по выручке.</p>
-          <Submit variant="secondary">Сохранить сумму</Submit>
+          <Submit variant="secondary" done="Сумма сохранена">
+            Сохранить сумму
+          </Submit>
         </form>
       </Block>
 
@@ -146,7 +161,9 @@ export function LeadActions({
             className="input-admin"
           />
           <p className="text-xs text-muted-foreground">Заявка появится на дашборде за сутки до срока.</p>
-          <Submit variant="secondary">Поставить напоминание</Submit>
+          <Submit variant="secondary" done="Напоминание поставлено">
+            Поставить напоминание
+          </Submit>
         </form>
       </Block>
 
@@ -160,7 +177,9 @@ export function LeadActions({
             placeholder="Что обсудили, о чём договорились…"
             className="input-admin resize-y"
           />
-          <Submit variant="secondary">Добавить в историю</Submit>
+          <Submit variant="secondary" done="Заметка добавлена в историю">
+            Добавить в историю
+          </Submit>
         </form>
       </Block>
     </div>
@@ -176,6 +195,14 @@ export function LeadActions({
  */
 function ConfirmBlock({ lead }: { lead: Lead }) {
   const [state, formAction] = useActionState(confirmMeasurementAction, null)
+  const wasConfirmed = useRef(lead.status === 'scheduled')
+
+  useEffect(() => {
+    if (!state?.ok) return
+    toast.success(wasConfirmed.current ? 'Подтверждение снято — время снова свободно' : 'Замер подтверждён, время занято')
+    refreshPulse()
+  }, [state])
+
   const details = (lead.details ?? {}) as Record<string, unknown>
   const date = typeof details.date === 'string' ? details.date : ''
   const slot = typeof details.time === 'string' ? details.time : ''
@@ -191,7 +218,9 @@ function ConfirmBlock({ lead }: { lead: Lead }) {
     <section
       className={cn(
         'rounded-xl border p-4 shadow-sm',
-        confirmed ? 'border-emerald-600/30 bg-emerald-500/10' : 'border-amber-500/40 bg-amber-400/10'
+        confirmed
+          ? 'border-emerald-600/30 bg-emerald-500/10 dark:border-emerald-400/25'
+          : 'border-amber-500/40 bg-amber-400/10 dark:border-amber-400/30'
       )}
     >
       <h2 className="mb-1 text-sm font-semibold">{confirmed ? 'Замер подтверждён' : 'Замер не подтверждён'}</h2>
@@ -201,7 +230,7 @@ function ConfirmBlock({ lead }: { lead: Lead }) {
           : `Клиент просит: ${when}. Пока вы не подтвердите, это время в календаре свободно и его может выбрать другой клиент.`}
       </p>
 
-      <form action={formAction} className="space-y-3">
+      <form action={formAction} onSubmit={() => (wasConfirmed.current = confirmed)} className="space-y-3">
         <input type="hidden" name="id" value={lead.id} />
         <input type="hidden" name="confirm" value={confirmed ? '0' : '1'} />
 
@@ -237,6 +266,10 @@ function RescheduleBlock({
   const [date, setDate] = useState(currentDate)
   const [slot, setSlot] = useState(currentSlot)
   const [state, formAction] = useActionState(rescheduleAction, null)
+
+  useEffect(() => {
+    if (state?.ok) toast.success('Замер перенесён')
+  }, [state])
 
   const isBusy = (value: string) => {
     if (!date) return false
@@ -295,9 +328,6 @@ function RescheduleBlock({
         {state?.error && (
           <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{state.error}</p>
         )}
-        {state?.ok && (
-          <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-800">Замер перенесён.</p>
-        )}
 
         <Submit disabled={!changed || !date || !slot} variant="secondary">
           Перенести замер
@@ -320,12 +350,25 @@ function Submit({
   children,
   disabled = false,
   variant = 'primary',
+  done,
 }: {
   children: React.ReactNode
   disabled?: boolean
   variant?: 'primary' | 'secondary'
+  /** Что сказать, когда форма без своего состояния отработала */
+  done?: string
 }) {
   const { pending } = useFormStatus()
+  const wasPending = useRef(false)
+
+  useEffect(() => {
+    if (pending) wasPending.current = true
+    else if (wasPending.current) {
+      wasPending.current = false
+      if (done) toast.success(done)
+    }
+  }, [pending, done])
+
   return (
     <button
       type="submit"

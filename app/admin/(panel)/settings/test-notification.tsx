@@ -26,7 +26,7 @@ export function TestNotificationButton() {
       {result && (
         <p
           className={`rounded-lg px-3 py-2 text-sm ${
-            result.ok ? 'bg-emerald-500/10 text-emerald-800' : 'bg-destructive/10 text-destructive'
+            result.ok ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300' : 'bg-destructive/10 text-destructive'
           }`}
         >
           {result.ok ? '✅ ' : '❌ '}

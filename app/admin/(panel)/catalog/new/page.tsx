@@ -28,7 +28,7 @@ export default async function NewCatalogItemPage({
           <ChevronLeft className="size-4" aria-hidden />
           К каталогу
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+        <h1 className="admin-display mt-1 text-[1.75rem] leading-[1.1] sm:text-[2rem]">
           Новая позиция · {catalogSectionLabel(section)}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">

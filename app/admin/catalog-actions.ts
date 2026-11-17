@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { flash } from '@/lib/admin-flash'
 import { requireSession } from '@/lib/admin-auth'
 import {
   addCatalogItems,
@@ -130,6 +131,7 @@ export async function saveCatalogAction(
   if (previous && previous.image !== image) await removeBlob(previous.image)
 
   refresh(section)
+  await flash('Позиция сохранена')
   redirect(`/admin/catalog?section=${section}`)
 }
 
@@ -142,6 +144,7 @@ export async function deleteCatalogAction(formData: FormData) {
   if (removed) {
     await removeBlob(removed.image)
     refresh(removed.section)
+    await flash('Позиция удалена')
     redirect(`/admin/catalog?section=${removed.section}`)
   }
 

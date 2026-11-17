@@ -80,7 +80,7 @@ export interface LeadEvent {
   id: number
   lead_id: string
   actor: string
-  kind: 'status' | 'note' | 'assign' | 'amount' | 'reminder' | 'reschedule' | 'file'
+  kind: 'status' | 'note' | 'assign' | 'amount' | 'reminder' | 'reschedule' | 'file' | 'edit'
   from_status: string | null
   to_status: string | null
   comment: string | null
@@ -606,6 +606,50 @@ export async function assignLead(leadId: string, assignee: string | null, actor:
   await addLeadEvent({ leadId, actor, kind: 'assign', comment: assignee || 'снято назначение' })
 }
 
+/**
+ * Правка данных клиента из панели: опечатка в имени, другой номер, уточнённый
+ * адрес замера. В историю пишется, что именно поменялось, — прежнее значение
+ * не теряется, его видно в журнале.
+ */
+export async function updateLeadContact(
+  leadId: string,
+  patch: { name: string; phone: string; city?: string; address?: string },
+  actor: string
+): Promise<Lead | null> {
+  await ensureSchema()
+  const lead = await getLead(leadId)
+  if (!lead) return null
+
+  const details = (lead.details ?? {}) as Record<string, unknown>
+  const changes: string[] = []
+  if (patch.name !== lead.name) changes.push(`имя «${lead.name}» → «${patch.name}»`)
+  if (patch.phone !== lead.phone) changes.push(`телефон ${lead.phone} → ${patch.phone}`)
+  const detailPatch: Record<string, string> = {}
+  for (const key of ['city', 'address'] as const) {
+    const next = patch[key]
+    if (next === undefined) continue
+    const prev = typeof details[key] === 'string' ? (details[key] as string) : ''
+    if (next !== prev) {
+      detailPatch[key] = next
+      changes.push(`${key === 'city' ? 'город' : 'адрес'} «${prev || '—'}» → «${next || '—'}»`)
+    }
+  }
+  if (changes.length === 0) return lead
+
+  const sql = client()
+  await sql`
+    UPDATE leads
+       SET name = ${patch.name},
+           phone = ${patch.phone},
+           phone_digits = ${patch.phone.replace(/\D/g, '')},
+           details = COALESCE(details, '{}'::jsonb) || ${JSON.stringify(detailPatch)}::jsonb,
+           updated_at = now()
+     WHERE id = ${leadId}
+  `
+  await addLeadEvent({ leadId, actor, kind: 'edit', comment: changes.join('; ') })
+  return getLead(leadId)
+}
+
 /** Сумма сделки — заполняется при закрытии, питает отчёт по выручке */
 export async function setDealAmount(leadId: string, amount: number | null, actor: string): Promise<void> {
   await ensureSchema()
@@ -838,6 +882,44 @@ export async function getDashboardSummary(slaHours = 2): Promise<DashboardSummar
     avgResponseHours: r?.avg_response_hours != null ? Number(r.avg_response_hours) : null,
     revenueMonth: Number(r?.revenue_month ?? 0),
     conversionMonth: r && r.month_total > 0 ? Math.round((r.month_done / r.month_total) * 100) : 0,
+  }
+}
+
+export interface LeadPulse {
+  /** Заявки в статусе «новая» — счётчик на вкладке «Заявки» */
+  newCount: number
+  /** Из них дольше SLA-порога без ответа */
+  overdue: number
+  /** Самая свежая заявка: по смене id панель понимает, что пришла новая */
+  latest: { id: string; name: string; type: LeadType; created_at: string } | null
+}
+
+/**
+ * Лёгкий снимок для опроса из панели раз в минуту: два запроса по индексу
+ * created_at вместо полной сводки дашборда.
+ */
+export async function getLeadPulse(slaHours = 2): Promise<LeadPulse> {
+  await ensureSchema()
+  const sql = client()
+
+  const [counts, latest] = await Promise.all([
+    sql`
+      SELECT
+        count(*) FILTER (WHERE status = 'new')::int AS new_count,
+        count(*) FILTER (
+          WHERE status = 'new' AND created_at < now() - make_interval(hours => ${slaHours})
+        )::int AS overdue
+      FROM leads
+    ` as unknown as Promise<Array<{ new_count: number; overdue: number }>>,
+    sql`SELECT id, name, type, created_at FROM leads ORDER BY created_at DESC LIMIT 1` as unknown as Promise<
+      Array<{ id: string; name: string; type: LeadType; created_at: string }>
+    >,
+  ])
+
+  return {
+    newCount: counts[0]?.new_count ?? 0,
+    overdue: counts[0]?.overdue ?? 0,
+    latest: latest[0] ?? null,
   }
 }
 

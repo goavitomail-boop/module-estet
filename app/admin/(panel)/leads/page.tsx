@@ -9,7 +9,10 @@ import {
   type LeadType,
 } from '@/lib/db'
 import { STATUS_TEXT, hoursSince, leadSource, prettyPhone, telHref, timeAgo } from '@/lib/admin-format'
-import { EmptyState, STATUS_UI, StatusBadge, TypeBadge } from '../../_components/ui'
+import { EmptyState, OverdueBadge, PageHeader, STATUS_UI, StatusBadge, TypeBadge } from '../../_components/ui'
+import { StatusTabs } from '../../_components/status-tabs'
+import { QuickEditButton, QuickEditDrawer } from '../../_components/quick-edit'
+import { toQuickLead } from '@/lib/quick-lead'
 import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -80,45 +83,46 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Заявки</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+      <PageHeader
+        eyebrow={status === 'all' ? 'Все обращения' : STATUS_TEXT[status]}
+        title="Заявки"
+        description={
+          <>
             Найдено: <strong className="text-foreground tabular-nums">{total}</strong>
-          </p>
-        </div>
-        <a
-          href={exportHref}
-          className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium transition hover:bg-secondary active:bg-secondary"
-        >
-          <Download className="size-4" aria-hidden />
-          <span className="hidden sm:inline">Выгрузить</span> CSV
-        </a>
-      </header>
+          </>
+        }
+        actions={
+          <a
+            href={exportHref}
+            className="admin-press inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium shadow-sm transition hover:bg-secondary active:bg-secondary"
+          >
+            <Download className="size-4" aria-hidden />
+            <span className="hidden sm:inline">Выгрузить</span> CSV
+          </a>
+        }
+      />
 
       {/* Статусы вкладками — самый частый фильтр, должен быть в один клик.
           На телефоне лента прокручивается вбок: перенос на три строки съедал бы экран.
           Отрицательные отступы дают ленте уходить под края, чтобы было видно,
           что она продолжается. */}
       <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
-        <div className="flex w-max gap-2 lg:w-auto lg:flex-wrap">
-          <FilterTab href={buildHref(params, { status: undefined, page: undefined })} active={status === 'all'}>
-            Все
-          </FilterTab>
-          {LEAD_STATUSES.map((value) => {
-            const Icon = STATUS_UI[value].icon
-            return (
-              <FilterTab
-                key={value}
-                href={buildHref(params, { status: value, page: undefined })}
-                active={status === value}
-              >
-                <Icon className="size-3.5 shrink-0" aria-hidden />
-                {STATUS_TEXT[value]}
-              </FilterTab>
-            )
-          })}
-        </div>
+        <StatusTabs
+          tabs={[
+            {
+              key: 'all',
+              href: buildHref(params, { status: undefined, page: undefined }),
+              label: 'Все',
+              active: status === 'all',
+            },
+            ...LEAD_STATUSES.map((value) => ({
+              key: value,
+              href: buildHref(params, { status: value, page: undefined }),
+              label: STATUS_TEXT[value],
+              active: status === value,
+            })),
+          ]}
+        />
       </div>
 
       {/* details вместо состояния: сворачивание работает без JS и одинаково на всех
@@ -136,7 +140,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               </span>
             )}
           </span>
-          <ChevronDown className="size-4 transition group-open:rotate-180" aria-hidden />
+          <ChevronDown className="size-4 transition-transform duration-300 group-open:rotate-180" aria-hidden />
         </summary>
 
         <form method="get" className="grid gap-3 border-t border-border p-5 sm:grid-cols-2 lg:grid-cols-6">
@@ -204,18 +208,21 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         <>
           {/* ── Телефон: карточки. Таблица на 900px здесь превращается в
                  горизонтальную прокрутку, в которой ничего не найти. ── */}
-          <ul className="space-y-3 lg:hidden">
-            {rows.map((lead) => {
+          <ul className="admin-stagger space-y-3 lg:hidden">
+            {rows.map((lead, index) => {
               const overdue = lead.status === 'new' && hoursSince(lead.created_at) > SLA_HOURS
               return (
                 <li
                   key={lead.id}
+                  style={{ '--i': index } as React.CSSProperties}
                   className={cn(
-                    'overflow-hidden rounded-xl border bg-card shadow-sm',
+                    'relative overflow-hidden rounded-xl border bg-card shadow-sm',
                     overdue ? 'border-destructive/40' : 'border-border'
                   )}
                 >
-                  <Link href={`/admin/leads/${lead.id}`} className="block p-4 active:bg-secondary/60">
+                  {/* Цветная кромка слева — статус виден, даже когда бейдж не читаешь */}
+                  <span className={cn('absolute inset-y-0 left-0 w-[3px]', STATUS_UI[lead.status]?.dot)} aria-hidden />
+                  <Link href={`/admin/leads/${lead.id}`} className="block p-4 transition-colors active:bg-secondary/60">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold leading-tight">{lead.name}</p>
@@ -226,11 +233,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <TypeBadge type={lead.type} />
-                      {overdue && (
-                        <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
-                          Просрочена
-                        </span>
-                      )}
+                      {overdue && <OverdueBadge />}
                       <span className="ml-auto text-xs text-muted-foreground">{timeAgo(lead.created_at)}</span>
                     </div>
 
@@ -244,13 +247,17 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
                   {/* Звонок вынесен из ссылки на карточку: вложенные ссылки недопустимы,
                       да и промахнуться по нему на ходу проще, чем по всей карточке */}
-                  <a
-                    href={telHref(lead.phone)}
-                    className="flex h-12 items-center justify-center gap-2 border-t border-border bg-secondary/40 text-sm font-medium tabular-nums transition active:bg-secondary"
-                  >
-                    <Phone className="size-4 opacity-60" aria-hidden />
-                    {prettyPhone(lead.phone)}
-                  </a>
+                  <div className="flex border-t border-border">
+                    <a
+                      href={telHref(lead.phone)}
+                      className="flex h-12 flex-1 items-center justify-center gap-2 bg-secondary/40 text-sm font-medium tabular-nums transition active:bg-secondary"
+                    >
+                      <Phone className="size-4 opacity-60" aria-hidden />
+                      {prettyPhone(lead.phone)}
+                    </a>
+                    {/* Статус, заметка, напоминание — не уходя из списка */}
+                    <QuickEditButton lead={toQuickLead(lead)} variant="bar" />
+                  </div>
                 </li>
               )
             })}
@@ -269,14 +276,18 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                   <th className="px-4 py-3 font-medium">Статус</th>
                   <th className="px-4 py-3 font-medium">Источник</th>
                   <th className="px-4 py-3 font-medium">Менеджер</th>
-                  <th className="px-4 py-3 text-right font-medium">Создана</th>
+                  <th className="py-3 pl-4 pr-14 text-right font-medium">Создана</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((lead) => {
+              <tbody className="admin-stagger divide-y divide-border">
+                {rows.map((lead, index) => {
                   const overdue = lead.status === 'new' && hoursSince(lead.created_at) > SLA_HOURS
                   return (
-                    <tr key={lead.id} className={cn('transition hover:bg-secondary/50', overdue && 'bg-destructive/5')}>
+                    <tr
+                      key={lead.id}
+                      style={{ '--i': index } as React.CSSProperties}
+                      className={cn('group transition-colors hover:bg-secondary/60', overdue && 'bg-destructive/[0.04]')}
+                    >
                       <td className="px-4 py-3">
                         <Link
                           href={`/admin/leads/${lead.id}`}
@@ -285,8 +296,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                           {lead.id}
                         </Link>
                         {overdue && (
-                          <span className="ml-2 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
-                            просрочена
+                          <span className="ml-2">
+                            <OverdueBadge compact />
                           </span>
                         )}
                       </td>
@@ -314,8 +325,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
                       <td className="max-w-[120px] truncate px-4 py-3 text-muted-foreground">
                         {lead.assigned_to || lead.status_by || '—'}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-muted-foreground">
-                        {timeAgo(lead.created_at)}
+                      <td className="whitespace-nowrap py-1.5 pl-4 pr-2 text-right text-muted-foreground">
+                        {/* Карандаш — быстрое редактирование, не уходя из списка */}
+                        <span className="inline-flex items-center gap-1.5">
+                          {timeAgo(lead.created_at)}
+                          <QuickEditButton lead={toQuickLead(lead)} />
+                        </span>
                       </td>
                     </tr>
                   )
@@ -326,6 +341,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           </div>
         </>
       )}
+
+      <QuickEditDrawer managers={managers} />
 
       {pages > 1 && (
         <nav className="flex items-center justify-center gap-2" aria-label="Страницы">
@@ -353,30 +370,13 @@ function Field({ label, className, children }: { label: string; className?: stri
   )
 }
 
-function FilterTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        // На телефоне это основной способ фильтровать — зона касания 44px
-        'inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition md:h-9 md:px-3.5',
-        active
-          ? 'bg-foreground text-background'
-          : 'border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-      )}
-    >
-      {children}
-    </Link>
-  )
-}
-
 function PageLink({ href, disabled, children }: { href: string; disabled: boolean; children: React.ReactNode }) {
   const base = 'flex h-11 min-w-[104px] items-center justify-center rounded-lg border border-border px-4 text-sm'
   if (disabled) {
     return <span className={cn(base, 'text-muted-foreground/50')}>{children}</span>
   }
   return (
-    <Link href={href} className={cn(base, 'bg-card transition hover:bg-secondary active:bg-secondary')}>
+    <Link href={href} className={cn(base, 'admin-press bg-card transition hover:bg-secondary active:bg-secondary')}>
       {children}
     </Link>
   )
