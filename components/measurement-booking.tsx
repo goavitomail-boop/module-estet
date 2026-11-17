@@ -22,21 +22,29 @@ import { PlanLabel } from '@/components/plan'
 import { EASE_OUT, FormMotion, itemVariants, riseVariants, stepVariants, successVariants } from '@/components/form-motion'
 import { enter } from '@/components/scene-kit'
 import { CheckBadge, NextSteps } from '@/components/thanks-scene'
-import { BookingScene, SlotDial } from '@/components/booking-scenes'
+import { BookingScene, DateTicket, SlotDial } from '@/components/booking-scenes'
 import { BOOKING_HORIZON_DAYS, bookingLastDay, moscowToday } from '@/lib/measurement-slots'
 
 import { MEASUREMENT_BOOKING_ALT_EVENT, MEASUREMENT_BOOKING_EVENT } from '@/lib/booking-events'
 
-const TOTAL_STEPS = 3
+const TOTAL_STEPS = 4
 
 // Порядок — от лёгкого к трудному: выбрать дату проще, чем вспоминать
 // адрес с номером квартиры. Адрес последним и необязательный — менеджер
-// всё равно перезванивает подтвердить запись
+// всё равно перезванивает подтвердить запись.
+// Дата и время — разными шагами: на одном время уходило под сгиб экрана,
+// и на телефоне не все догадывались пролистать вниз
 const stepContent = [
   {
-    eyebrow: 'Время визита',
+    eyebrow: 'Дата визита',
     title: 'Когда вам удобно встретить мастера?',
-    description: 'Замер занимает от 40 до 90 минут. Выберите подходящую дату и диапазон времени.',
+    description: 'Замер занимает от 40 до 90 минут. Выберите день — время на следующем шаге.',
+    icon: CalendarDays,
+  },
+  {
+    eyebrow: 'Время визита',
+    title: 'В какое время приехать?',
+    description: 'Мастер приедет в выбранный промежуток. Менеджер позвонит и подтвердит время.',
     icon: Clock,
   },
   {
@@ -116,6 +124,7 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
   const [startedAt, setStartedAt] = useState(() => Date.now())
   const [errors, setErrors] = useState<Record<string, string>>({})
   const firstFieldRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const [availability, setAvailability] = useState<Availability | null>(null)
 
@@ -179,6 +188,9 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
   const lastStep = useRef(step)
   const direction = step >= lastStep.current ? 1 : -1
   useEffect(() => { lastStep.current = step }, [step])
+  // Новый шаг — с самого верха: иначе он открывался прокрученным, как
+  // предыдущий, и на маленьком телефоне верх шага прятался под шапкой
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }) }, [step])
 
   useEffect(() => {
     const openBooking = () => {
@@ -237,16 +249,18 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
       else if (data.date < bookingToday) nextErrors.date = 'Эта дата уже прошла — выберите другую'
       else if (data.date > lastBookingDay) nextErrors.date = `Запись открыта на ${BOOKING_HORIZON_DAYS} дней вперёд — выберите дату пораньше`
       else if (dayIsFull(data.date)) nextErrors.date = 'На эту дату всё занято — выберите другой день'
-      if (!time) nextErrors.time = 'Выберите период времени'
-      else if (isSlotBusy(data.date, time)) nextErrors.time = 'Это время уже занято — выберите другое'
     }
     if (currentStep === 2) {
+      if (!time) nextErrors.time = 'Выберите время визита'
+      else if (isSlotBusy(data.date, time)) nextErrors.time = 'Это время уже занято — выберите другое'
+    }
+    if (currentStep === 3) {
       if (data.name.trim().length < 2) nextErrors.name = 'Укажите ваше имя'
       if (isForeignPhone(data.phone)) nextErrors.phone = FOREIGN_PHONE_MESSAGE
       else if (!isValidRussianPhone(data.phone)) nextErrors.phone = `Введите номер в формате ${PHONE_PLACEHOLDER}`
       if (!consent) nextErrors.consent = 'Необходимо согласие на обработку данных'
     }
-    if (currentStep === 3) {
+    if (currentStep === 4) {
       if (!data.city.trim()) nextErrors.city = 'Укажите город'
       // Адрес необязателен, но если начали вводить — пусть будет похож на адрес
       const address = data.address.trim()
@@ -291,7 +305,7 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
         const fresh = await fetch('/api/availability').then((r) => (r.ok ? r.json() : null)).catch(() => null)
         if (fresh) setAvailability(fresh)
         setTime('')
-        setStep(1)
+        setStep(2)
         setErrors({ time: err.message })
         return
       }
@@ -457,7 +471,8 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
                       </m.div>
                       <div className="flex flex-col gap-1">
                         <m.h2 variants={itemVariants} className="flyer-title text-balance text-2xl sm:text-3xl">{activeStep.title}</m.h2>
-                        <m.p variants={itemVariants} className="text-pretty text-xs text-muted-foreground sm:text-sm">{activeStep.description}</m.p>
+                        {/* На низком экране (iPhone SE) описание уступает место полям шага */}
+                        <m.p variants={itemVariants} className="text-pretty text-xs text-muted-foreground sm:text-sm [@media(max-height:700px)]:hidden">{activeStep.description}</m.p>
                       </div>
                     </m.div>
                   </AnimatePresence>
@@ -472,7 +487,7 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
                 </div>
               </header>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 sm:px-9 sm:py-6">
+              <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-5 sm:px-9 sm:py-6">
                 <AnimatePresence mode="wait" custom={direction}>
                 <m.div
                   key={step}
@@ -484,9 +499,20 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
                   onAnimationComplete={focusFirstField}
                   className="mx-auto flex max-w-xl flex-col gap-5 sm:gap-6"
                 >
-                  {/* Сцена шага: лазерный замер, звонок с подтверждением, маршрут к дому (booking-scenes.tsx) */}
-                  <BookingScene step={step} date={data.date} time={time} name={data.name} city={data.city} address={data.address} />
-                  {step === 3 && (
+                  {/* Сцена шага: лазерный замер, звонок с подтверждением, маршрут к дому (booking-scenes.tsx).
+                      На шаге времени её нет — там листок с датой, чтобы варианты времени
+                      помещались в экран телефона */}
+                  {step !== 2 && (
+                    <BookingScene
+                      scene={step === 1 ? 'measure' : step === 3 ? 'call' : 'route'}
+                      date={data.date}
+                      time={time}
+                      name={data.name}
+                      city={data.city}
+                      address={data.address}
+                    />
+                  )}
+                  {step === 4 && (
                     <FieldGroup className="gap-4 sm:gap-5">
                       <Field className="min-w-0" data-invalid={Boolean(errors.city)}>
                         <FieldLabel htmlFor="booking-city">Город</FieldLabel>
@@ -541,19 +567,39 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
                             })}
                           </div>
                         )}
+                        {/* Всё занято — говорим сразу, а не после «Далее» */}
+                        {data.date && dayIsFull(data.date) && !errors.date && (
+                          <p className="rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+                            На эту дату всё занято. Выберите другой день — ближайшие свободные выше.
+                          </p>
+                        )}
                         {errors.date && <FieldError>{errors.date}</FieldError>}
                       </Field>
+                    </FieldGroup>
+                  )}
+
+                  {step === 2 && (
+                    <div className="flex flex-col gap-4 sm:gap-5 [@media(max-height:700px)]:gap-3">
+                      <DateTicket date={data.date} time={time} onChange={goBack} />
                       <fieldset className="flex min-w-0 flex-col gap-3">
-                        <legend className="mb-3 text-sm font-medium">Период времени</legend>
-                        <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-3 sm:gap-3">
-                          {timeSlots.map((slot) => {
+                        <legend className="mb-3 text-sm font-medium [@media(max-height:700px)]:mb-2">Во сколько удобно</legend>
+                        {/* Ошибка — над вариантами, а не под ними: под ними на маленьком
+                            экране её не видно без прокрутки */}
+                        {errors.time && <FieldError className="-mt-1">{errors.time}</FieldError>}
+                        {/* Строками во всю ширину: на телефоне все три видны сразу,
+                            без прокрутки, и в каждую легко попасть пальцем */}
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+                          {timeSlots.map((slot, index) => {
                             const selected = time === slot.value
                             const busy = isSlotBusy(data.date, slot.value)
                             return (
-                              <button
+                              <m.button
                                 key={slot.value}
                                 type="button"
                                 disabled={busy}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: 0.12 + index * 0.07, ease: EASE_OUT }}
                                 onClick={() => {
                                   setTime(slot.value)
                                   setErrors((current) => {
@@ -563,7 +609,8 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
                                   })
                                 }}
                                 className={cn(
-                                  'flex min-h-14 items-center gap-3 rounded-xl border px-4 py-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 min-[380px]:min-h-24 min-[380px]:flex-col min-[380px]:items-start min-[380px]:justify-between min-[380px]:gap-2 min-[380px]:px-3',
+                                  // На низком экране (iPhone SE) строки ниже — все три помещаются без прокрутки
+                                  'flex min-h-[4.25rem] items-center gap-3.5 rounded-xl border px-4 py-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 sm:min-h-28 sm:flex-col sm:items-start sm:justify-between sm:gap-2 sm:px-3 [@media(max-height:700px)]:min-h-14 [@media(max-height:700px)]:py-2',
                                   busy
                                     ? 'cursor-not-allowed border-border bg-muted/60 text-muted-foreground'
                                     : selected
@@ -573,31 +620,22 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
                                 aria-pressed={selected}
                               >
                                 {/* Циферблат: дуга — часы визита; выбор прочерчивает её заново */}
-                                <SlotDial key={selected ? 'on' : 'off'} slot={slot.value} selected={selected} busy={busy} className="size-9 min-[380px]:size-10" />
-                                <span className="flex min-w-0 flex-col gap-0.5">
-                                  <span className={cn('font-medium', busy && 'line-through')}>{slot.label}</span>
-                                  <span className={cn('text-xs', selected && !busy ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+                                <SlotDial key={selected ? 'on' : 'off'} slot={slot.value} selected={selected} busy={busy} className="size-10 sm:size-11 [@media(max-height:700px)]:size-9" />
+                                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                  <span className={cn('text-base font-medium', busy && 'line-through')}>{slot.label}</span>
+                                  <span className={cn('text-sm', selected && !busy ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
                                     {busy ? 'Занято' : slot.detail}
                                   </span>
                                 </span>
-                              </button>
+                              </m.button>
                             )
                           })}
                         </div>
-
-                        {/* Пояснение появляется только когда занято хоть что-то:
-                            иначе это лишний текст на пустом месте */}
-                        {data.date && dayIsFull(data.date) && (
-                          <p className="rounded-xl border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
-                            На эту дату всё занято. Выберите другой день — ближайшие свободные даты под полем даты.
-                          </p>
-                        )}
-                        {errors.time && <FieldError>{errors.time}</FieldError>}
                       </fieldset>
-                    </FieldGroup>
+                    </div>
                   )}
 
-                  {step === 2 && (
+                  {step === 3 && (
                     <FieldGroup className="gap-4 sm:grid sm:grid-cols-2 sm:gap-5">
                       <Field className="min-w-0" data-invalid={Boolean(errors.name)}>
                         <FieldLabel htmlFor="booking-name">Ваше имя</FieldLabel>

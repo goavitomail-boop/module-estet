@@ -14,11 +14,13 @@ import './booking-scenes.css'
  * Сцены формы записи на замер (measurement-booking.tsx) — в каркасе, как
  * схемы квиза (scheme-kit.tsx). У каждого шага своя:
  *
- * 1. Время визита — лазер прочерчивает стену кухни, вдоль неё пунктиром
+ * 1. Дата визита — лазер прочерчивает стену кухни, вдоль неё пунктиром
  *    встают будущие модули: замер — основа проекта.
- * 2. Контакты — звонок от «Модуль Эстет»: в сообщении уже выбранные дата и
+ * 2. Время визита — без большой сцены: листок календаря с выбранной датой
+ *    (DateTicket), чтобы три варианта времени помещались в экран телефона.
+ * 3. Контакты — звонок от «Модуль Эстет»: в сообщении уже выбранные дата и
  *    время, имя подставляется, пока его вводят; потом — напоминание.
- * 3. Адрес — план квартала: прочерчивается маршрут, на дом падает метка
+ * 4. Адрес — план квартала: прочерчивается маршрут, на дом падает метка
  *    с введённым адресом, рядом — что мастер привезёт с собой.
  *
  * Тексты — из самой формы. Сцена встаёт, когда шаг уже выехал (Later), и
@@ -261,18 +263,70 @@ function CallScene({ name, date, time }: { name: string; date: string; time: str
 const MEASURE_BUILT = measureScene()
 
 /** Рамка сцены над полями шага: встаёт, когда шаг выехал, и отыгрывает один раз */
-export function BookingScene({ step, date, time, name, city: town, address }: {
-  step: number; date: string; time: string; name: string; city: string; address: string
+export function BookingScene({ scene, date, time, name, city: town, address }: {
+  scene: 'measure' | 'call' | 'route'; date: string; time: string; name: string; city: string; address: string
 }) {
   return (
     <div className="paper relative mx-auto w-full max-w-[440px] shrink-0 overflow-hidden rounded-2xl border border-primary/30" style={{ aspectRatio: `${VIEW.w} / ${VIEW.h}` }} aria-hidden="true">
       <Later after={380}>
         <span className="hs ss ss-card absolute inset-0 block">
-          {step === 1 && <SchemeSvg built={MEASURE_BUILT} id="booking-measure" view={VIEW} pad={PAD} />}
-          {step === 2 && <CallScene name={name} date={date} time={time} />}
-          {step === 3 && <RouteScene city={town} address={address} />}
+          {scene === 'measure' && <SchemeSvg built={MEASURE_BUILT} id="booking-measure" view={VIEW} pad={PAD} />}
+          {scene === 'call' && <CallScene name={name} date={date} time={time} />}
+          {scene === 'route' && <RouteScene city={town} address={address} />}
         </span>
       </Later>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   2. Время визита: листок календаря с выбранной датой
+   ══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Листок отрывного календаря: выбранный день крупно, рядом — время, как
+ * только его выбрали (вспыхивает латунью). Низкий, чтобы три варианта
+ * времени под ним помещались в экран телефона без прокрутки.
+ */
+export function DateTicket({ date, time, onChange }: { date: string; time: string; onChange: () => void }) {
+  const parsed = new Date(`${date}T12:00:00`)
+  const valid = Boolean(date) && !Number.isNaN(parsed.getTime())
+  const slot = MEASUREMENT_SLOTS.find((s) => s.value === time)
+  return (
+    <div className="hs flex items-center gap-3.5 rounded-2xl border border-primary/30 bg-card p-2.5 pr-3 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.45)]">
+      {/* Листок падает на место, как сорванный с календаря */}
+      <span
+        className="hs-in flex w-14 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-background text-center shadow-sm"
+        style={enter(0.05, { t: 0.6, from: 'translateY(-30%) rotate(-6deg)', ease: 'var(--spring)' })}
+        aria-hidden="true"
+      >
+        <span className="bg-primary py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+          {valid ? parsed.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '') : '—'}
+        </span>
+        <span className="flyer-title py-1 text-2xl leading-none text-foreground">{valid ? parsed.getDate() : '?'}</span>
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-primary [@media(max-height:700px)]:hidden">Дата замера</span>
+        <span className="truncate text-sm font-semibold text-foreground first-letter:uppercase sm:text-base">
+          {valid ? (
+            <>
+              {/* На узком экране день недели коротко, иначе дата обрезалась бы */}
+              <span className="min-[400px]:hidden">{parsed.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
+              <span className="hidden min-[400px]:inline">{parsed.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+            </>
+          ) : (
+            'Дата не выбрана'
+          )}
+        </span>
+        {slot && (
+          <span key={slot.value} className="hs-in truncate text-xs font-medium text-muted-foreground" style={enter(0, POP)}>
+            {slot.time}
+          </span>
+        )}
+      </span>
+      <button type="button" onClick={onChange} className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-primary underline-offset-2 hover:underline">
+        Изменить
+      </button>
     </div>
   )
 }
