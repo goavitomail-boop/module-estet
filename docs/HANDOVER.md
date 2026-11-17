@@ -48,7 +48,17 @@ SEO — что сделано и что нужно от владельца (ад
 не тронут.
 
 Установить на сервер — один раз (нужен git: `git --version`, если нет —
-`apt install -y git`). Сначала скачать и прочитать, потом поставить:
+`apt install -y git`).
+
+Если сайт лежит не в `/var/www/html` или процесс в pm2 называется не
+`nextjs-app` (`pm2 list`), сначала записать это в файл настроек — скрипт
+обновляет сам себя, поэтому свои пути хранятся отдельно от него:
+```bash
+printf 'SITE_DIR=/var/www/ME\nPM2_APP=nextjs-app\n' > /etc/deploy-site.conf
+```
+Новая версия будет собираться рядом, в `/var/www/ME-old`.
+
+Скрипт — сначала скачать и прочитать, потом поставить:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/goavitomail-boop/module-estet/refs/heads/claude/ecstatic-pasteur-gr53pi/scripts/deploy.sh -o /root/deploy-site.sh && less /root/deploy-site.sh
 ```

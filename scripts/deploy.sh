@@ -11,6 +11,12 @@
 #
 # Установка на сервер — один раз, см. docs/HANDOVER.md.
 #
+# Настройки сервера — в /etc/deploy-site.conf (скрипт обновляет сам себя из
+# репозитория, поэтому свои пути в нём не пишем). Например:
+#   SITE_DIR=/var/www/ME        папка рабочего сайта (по умолчанию /var/www/html)
+#   PM2_APP=nextjs-app          имя процесса в pm2 (pm2 list)
+# Новая версия собирается рядом, в «<SITE_DIR>-old», и папки меняются местами.
+#
 # Безопасность. Скрипт не слушает сеть и не запускается извне: выкатить может
 # только тот, кто уже зашёл на сервер по SSH. Но он собирает и запускает код
 # из ветки GitHub — значит, доступ к репозиторию равен доступу к серверу.
@@ -19,13 +25,27 @@
 
 set -euo pipefail
 
+# Настройки сервера. Переменные из командной строки главнее файла:
+# BRANCH=другая-ветка deploy-site
+DEPLOY_CONF="${DEPLOY_CONF:-/etc/deploy-site.conf}"
+if [ -f "$DEPLOY_CONF" ]; then
+  _env_branch="${BRANCH:-}"; _env_site="${SITE_DIR:-}"; _env_pm2="${PM2_APP:-}"
+  # shellcheck disable=SC1090
+  . "$DEPLOY_CONF"
+  BRANCH="${_env_branch:-${BRANCH:-}}"; SITE_DIR="${_env_site:-${SITE_DIR:-}}"; PM2_APP="${_env_pm2:-${PM2_APP:-}}"
+fi
+
 REPO_URL="${REPO_URL:-https://github.com/goavitomail-boop/module-estet.git}"
 BRANCH="${BRANCH:-claude/ecstatic-pasteur-gr53pi}"
 WWW="${WWW:-/var/www}"
 PM2_APP="${PM2_APP:-nextjs-app}"
 SITE_URL="${SITE_URL:-https://module-estet.ru}"
-LIVE="$WWW/html"
-NEXT="$WWW/html-old"
+# Рабочий сайт и папка, где собирается следующая версия, — рядом друг с другом
+LIVE="${SITE_DIR:-$WWW/html}"
+LIVE="${LIVE%/}"
+NEXT="${BUILD_DIR:-$LIVE-old}"
+NEXT="${NEXT%/}"
+PARENT="$(dirname "$LIVE")"
 
 log() { printf '\n\033[1;33m==>\033[0m %s\n' "$*"; }
 fail() { printf '\n\033[1;31mСтоп:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -40,8 +60,8 @@ esac
 # Две выкатки одновременно перепутали бы папки. Замок — в папке сайта,
 # а не в /tmp: туда может писать любой пользователь сервера и подложить
 # вместо файла ссылку, которую root потом перезапишет
-[ -d "$WWW" ] || fail "нет папки $WWW."
-exec 9>"$WWW/.deploy.lock"
+[ -d "$LIVE" ] || fail "нет папки сайта $LIVE. Укажите её в $DEPLOY_CONF: SITE_DIR=/var/www/…"
+exec 9>"$PARENT/.deploy.lock"
 flock -n 9 || fail 'выкатка уже идёт в другом окне.'
 
 for tool in git pnpm pm2 curl; do
@@ -49,8 +69,8 @@ for tool in git pnpm pm2 curl; do
 done
 
 swap() {
-  cd "$WWW"
-  mv html html-tmp && mv html-old html && mv html-tmp html-old
+  cd "$PARENT"
+  mv "$LIVE" "$LIVE.swap-tmp" && mv "$NEXT" "$LIVE" && mv "$LIVE.swap-tmp" "$NEXT"
   # 9>&- — pm2 не должен унаследовать замок выкатки: если restart поднимет
   # фоновый процесс pm2 заново, тот держал бы замок, и следующая выкатка не запустилась бы
   pm2 restart "$PM2_APP" --update-env >/dev/null 9>&-
@@ -121,11 +141,11 @@ fi
 cp -p "$LIVE/.env.local" "$NEXT/.env.local"
 
 # Хранилище файлов на сервере (STORAGE_DIR в .env.local): папка должна быть
-# вне html и html-old — их выкатка меняет местами, и файлы бы «переезжали»
+# вне папки сайта и папки сборки — их выкатка меняет местами, и файлы бы «переезжали»
 STORAGE_DIR_VALUE=$(grep -E '^STORAGE_DIR=' "$LIVE/.env.local" | tail -1 | cut -d= -f2- | tr -d "\"' " || true)
 if [ -n "$STORAGE_DIR_VALUE" ]; then
   case "$STORAGE_DIR_VALUE" in
-    "$LIVE"|"$LIVE"/*|"$NEXT"|"$NEXT"/*) fail "STORAGE_DIR=$STORAGE_DIR_VALUE внутри папки сайта — выкатка её подменит. Укажите, например, $WWW/storage." ;;
+    "$LIVE"|"$LIVE"/*|"$NEXT"|"$NEXT"/*) fail "STORAGE_DIR=$STORAGE_DIR_VALUE внутри папки сайта — выкатка её подменит. Укажите, например, $PARENT/storage." ;;
   esac
   mkdir -p "$STORAGE_DIR_VALUE"
   log "Файлы хранятся на сервере: $STORAGE_DIR_VALUE (свободно: $(df -h "$STORAGE_DIR_VALUE" | awk 'NR==2{print $4}'))"
@@ -152,6 +172,6 @@ fi
 
 # Скрипт обновляет сам себя из репозитория. install пишет новый файл, а не
 # правит текущий, — выполняющийся скрипт это не задевает
-if [ -w /usr/local/bin ] && [ -f "$WWW/html/scripts/deploy.sh" ]; then
-  install -m 755 "$WWW/html/scripts/deploy.sh" /usr/local/bin/deploy-site
+if [ -w /usr/local/bin ] && [ -f "$LIVE/scripts/deploy.sh" ]; then
+  install -m 755 "$LIVE/scripts/deploy.sh" /usr/local/bin/deploy-site
 fi
