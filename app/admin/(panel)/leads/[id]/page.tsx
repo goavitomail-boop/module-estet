@@ -6,6 +6,7 @@ import {
   FileText,
   FolderOpen,
   Globe,
+  KeyRound,
   MapPin,
   MessageSquare,
   Monitor,
@@ -45,6 +46,11 @@ import { DeleteLeadButton } from './delete-button'
 import { LeadActions } from './lead-actions'
 import { ManagerFiles } from './manager-files'
 import { PrintButton } from './print-button'
+import { getClientByPhone, listOrdersByLead } from '@/lib/cabinet-db'
+import { isCabinetConfigured } from '@/lib/cabinet-auth'
+import { stageLabel } from '@/lib/cabinet-shared'
+import { NewOrderForm } from '../../kabinety/[id]/client-forms'
+import type { Lead } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -161,6 +167,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               </Link>
             )}
           </Panel>
+
+          <CabinetBlock lead={lead} />
 
           {sections.map((section) => (
             <Panel key={section.title} title={section.title}>
@@ -404,3 +412,73 @@ function Timeline({ events, createdAt, status }: { events: LeadEvent[]; createdA
     </ol>
   )
 }
+
+/**
+ * Личный кабинет клиента прямо в заявке: открыть кабинет одним нажатием
+ * (имя и телефон подставятся) или перейти к уже открытому и его заказу.
+ */
+async function CabinetBlock({ lead }: { lead: Lead }) {
+  if (!isCabinetConfigured()) return null
+  const [client, orders] = await Promise.all([
+    getClientByPhone(lead.phone_digits).catch(() => null),
+    listOrdersByLead(lead.id).catch(() => []),
+  ])
+
+  return (
+    <Panel
+      className="print:hidden"
+      title={
+        <span className="flex items-center gap-2">
+          <KeyRound className="size-4" aria-hidden />
+          Личный кабинет
+        </span>
+      }
+    >
+      {!client ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-md text-sm text-muted-foreground">
+            Кабинета у клиента нет. В нём он увидит этап заказа, визиты, проект, документы и фото — и получит
+            новости в MAX.
+          </p>
+          <Link
+            href={`/admin/kabinety/novyi?lead=${encodeURIComponent(lead.id)}`}
+            className="admin-press inline-flex h-10 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-medium text-background hover:opacity-90"
+          >
+            Открыть кабинет
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm">
+            Кабинет:{' '}
+            <Link href={`/admin/kabinety/${client.id}`} className="font-medium underline-offset-2 hover:underline">
+              {client.name}
+            </Link>
+            {client.max_user_id ? ' · MAX привязан' : ''}
+          </p>
+          {orders.length > 0 ? (
+            <ul className="space-y-1.5">
+              {orders.map((order) => (
+                <li key={order.id}>
+                  <Link
+                    href={`/admin/zakazy/${order.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-secondary"
+                  >
+                    <span className="truncate font-medium">{order.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{stageLabel(order.stage)} →</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-muted-foreground">Заказа по этой заявке в кабинете ещё нет.</span>
+              <NewOrderForm clientId={client.id} leadId={lead.id} compact />
+            </div>
+          )}
+        </div>
+      )}
+    </Panel>
+  )
+}
+

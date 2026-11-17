@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Search,
   Settings,
+  UserRound,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,8 @@ const items = [
   { href: '/admin/leads', label: 'Заявки', icon: Inbox, exact: false },
   { href: '/admin/calendar', label: 'Замеры', icon: CalendarDays, exact: false },
   { href: '/admin/analytics', label: 'Аналитика', icon: BarChart3, exact: false },
+  // Заказы клиентов живут внутри кабинетов — раздел подсвечен и на /admin/zakazy/…
+  { href: '/admin/kabinety', label: 'Кабинеты', icon: UserRound, exact: false, also: '/admin/zakazy' },
   { href: '/admin/portfolio', label: 'Портфолио', icon: Images, exact: false },
   { href: '/admin/catalog', label: 'Каталог', icon: LayoutGrid, exact: false },
   { href: '/admin/settings', label: 'Настройки', icon: Settings, exact: false },
@@ -41,9 +44,14 @@ const PRIMARY_COUNT = 4
 const primary = items.slice(0, PRIMARY_COUNT)
 const secondary = items.slice(PRIMARY_COUNT)
 
+const ALSO: Record<string, string> = Object.fromEntries(
+  items.flatMap((item) => ('also' in item && item.also ? [[item.href, item.also]] : []))
+)
+
 function useActiveHref() {
   const pathname = usePathname()
-  return (href: string, exact: boolean) => (exact ? pathname === href : pathname.startsWith(href))
+  return (href: string, exact: boolean) =>
+    exact ? pathname === href : pathname.startsWith(href) || (ALSO[href] ? pathname.startsWith(ALSO[href]) : false)
 }
 
 /** Сколько новых заявок показать на вкладке «Заявки». Просроченные — красным */

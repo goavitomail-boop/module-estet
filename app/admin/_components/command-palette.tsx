@@ -17,6 +17,7 @@ import {
   Plus,
   Search,
   Settings,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react'
 import { STATUS_TEXT, prettyPhone, timeAgo } from '@/lib/admin-format'
@@ -57,12 +58,14 @@ const SECTIONS: Array<{ href: string; label: string; icon: LucideIcon; words: st
   { href: '/admin/leads?status=new', label: 'Новые заявки', icon: Inbox, words: 'новые требуют реакции' },
   { href: '/admin/calendar', label: 'Календарь замеров', icon: CalendarDays, words: 'замеры неделя calendar' },
   { href: '/admin/analytics', label: 'Аналитика', icon: BarChart3, words: 'отчёты воронка источники' },
+  { href: '/admin/kabinety', label: 'Кабинеты клиентов', icon: UserRound, words: 'личный кабинет клиенты заказы доступ' },
   { href: '/admin/portfolio', label: 'Портфолио', icon: Images, words: 'проекты фото' },
   { href: '/admin/catalog', label: 'Каталог', icon: LayoutGrid, words: 'фасады столешницы наполнение' },
   { href: '/admin/settings', label: 'Настройки', icon: Settings, words: 'max бот уведомления слоты' },
 ]
 
 const ACTIONS: Array<{ href: string; label: string; icon: LucideIcon; words: string; hard?: boolean }> = [
+  { href: '/admin/kabinety/novyi', label: 'Открыть кабинет клиенту', icon: Plus, words: 'новый кабинет клиент доступ пароль' },
   { href: '/admin/portfolio/new', label: 'Новый проект в портфолио', icon: Plus, words: 'добавить проект' },
   { href: '/admin/catalog/new', label: 'Новая позиция каталога', icon: Plus, words: 'добавить позицию' },
   { href: '/admin/export', label: 'Выгрузить заявки в CSV', icon: Download, words: 'экспорт excel csv', hard: true },

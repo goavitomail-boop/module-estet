@@ -69,15 +69,15 @@ function LazyMeasurementBooking() {
 }
 
 /**
- * Прелоадер и плавающий виджет — это витрина сайта. В админ-панели они мешают,
- * поэтому на /admin не рендерятся вовсе.
+ * Прелоадер и плавающий виджет — это витрина сайта. В админ-панели и личном
+ * кабинете клиента они мешают, поэтому на /admin и /kabinet не рендерятся вовсе.
  *
  * Заодно слот прелоадера снимает utm-метки: он монтируется на первой же
  * странице визита, то есть ровно там, где метки ещё есть в адресе.
  */
 export function SiteChrome({ slot }: { slot: 'preloader' | 'widget' }) {
   const pathname = usePathname()
-  const isAdmin = pathname?.startsWith('/admin') ?? false
+  const isAdmin = (pathname?.startsWith('/admin') || pathname?.startsWith('/kabinet')) ?? false
 
   useEffect(() => {
     if (slot !== 'preloader' || isAdmin) return

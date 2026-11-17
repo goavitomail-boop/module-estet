@@ -134,6 +134,12 @@ export function SiteFooter() {
                 <FooterBookingLink className={linkClass} />
               </li>
               <li>
+                {/* Кабинет открывает менеджер — ссылка для тех, у кого он уже есть */}
+                <Link href="/kabinet/vhod" className={linkClass} prefetch={false}>
+                  Личный кабинет
+                </Link>
+              </li>
+              <li>
                 <Link href="/privacy" className={linkClass}>
                   Политика конфиденциальности
                 </Link>

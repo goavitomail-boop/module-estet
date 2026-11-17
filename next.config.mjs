@@ -33,6 +33,8 @@ const nextConfig = {
       { source: '/:path*', headers: securityHeaders },
       // Панель и служебные маршруты поисковикам не показываем даже случайно
       { source: '/admin/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      { source: '/kabinet/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+      { source: '/kabinet', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
       { source: '/api/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
     ]
   },

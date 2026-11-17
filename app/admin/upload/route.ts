@@ -25,8 +25,8 @@ const PHOTO_FOLDERS = ['portfolio/', 'catalog/']
 
 const MAX_SIZE = 25 * 1024 * 1024
 
-/** Папки панели: файлы к заявке, каталог, портфолио — не глубже одной подпапки */
-const FOLDER = /^(leads|catalog|portfolio)\/[^/]{1,120}$/
+/** Папки панели: файлы к заявке, к заказу в кабинете клиента, каталог, портфолио — не глубже одной подпапки */
+const FOLDER = /^(leads|orders|catalog|portfolio)\/[^/]{1,120}$/
 
 function checkFolder(folder: unknown): string | null {
   return typeof folder === 'string' && FOLDER.test(folder) && !folder.includes('..') ? folder : null

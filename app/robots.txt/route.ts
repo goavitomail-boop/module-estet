@@ -8,6 +8,7 @@ import { siteUrl } from '@/lib/seo'
  *  /api/*   — приём заявок, вебхук бота, диагностика
  *  /call    — страница набора номера клиента, инструмент менеджера
  *  /admin/* — панель управления заявками
+ *  /kabinet — личный кабинет клиента
  *
  * Clean-param: адрес с метками рекламы и аналитики — та же страница. Без него
  * Яндекс обходит и держит в индексе копии вида /?utm_source=… и тратит на них
@@ -28,6 +29,7 @@ export function GET() {
     'Disallow: /api/',
     'Disallow: /call',
     'Disallow: /admin',
+    'Disallow: /kabinet',
     `Clean-param: ${CLEAN_PARAMS.join('&')}`,
     '',
     `Sitemap: ${siteUrl}/sitemap.xml`,

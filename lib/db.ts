@@ -208,6 +208,11 @@ function client() {
   return neon(url)
 }
 
+/** Подключение для соседних модулей данных (lib/cabinet-db.ts) — сама функция client() остаётся внутренней */
+export function db() {
+  return client()
+}
+
 let schemaReady: Promise<void> | null = null
 
 /** Создаёт таблицы при первом обращении. Безопасно вызывать сколько угодно раз. */
@@ -398,6 +403,99 @@ export function ensureSchema(): Promise<void> {
           updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `
+
+      /* ── Личный кабинет клиента (lib/cabinet-db.ts) ──────────────────
+         Клиента заводит администратор: регистрации на сайте нет. Вход —
+         по телефону и паролю либо кодом из бота MAX. */
+      await sql`
+        CREATE TABLE IF NOT EXISTS clients (
+          id              TEXT PRIMARY KEY,
+          name            TEXT NOT NULL,
+          phone           TEXT NOT NULL,
+          phone_digits    TEXT NOT NULL UNIQUE,
+          password_hash   TEXT,
+          max_user_id     TEXT,
+          blocked         BOOLEAN NOT NULL DEFAULT false,
+          session_version INT NOT NULL DEFAULT 1,
+          created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+          last_login_at   TIMESTAMPTZ
+        )
+      `
+      await sql`CREATE INDEX IF NOT EXISTS clients_max_idx ON clients (max_user_id) WHERE max_user_id IS NOT NULL`
+      /** Одноразовые ссылки и коды: приглашение, привязка MAX, вход кодом.
+       *  В базе только хеши — утечка таблицы не даёт войти */
+      await sql`
+        CREATE TABLE IF NOT EXISTS client_tokens (
+          id          BIGSERIAL PRIMARY KEY,
+          client_id   TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+          purpose     TEXT NOT NULL,
+          token_hash  TEXT NOT NULL UNIQUE,
+          code_hash   TEXT,
+          attempts    INT NOT NULL DEFAULT 0,
+          expires_at  TIMESTAMPTZ NOT NULL,
+          used_at     TIMESTAMPTZ,
+          created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `
+      await sql`CREATE INDEX IF NOT EXISTS client_tokens_client_idx ON client_tokens (client_id, purpose, created_at DESC)`
+      await sql`
+        CREATE TABLE IF NOT EXISTS orders (
+          id                 TEXT PRIMARY KEY,
+          client_id          TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+          lead_id            TEXT,
+          title              TEXT NOT NULL,
+          product            TEXT NOT NULL DEFAULT 'kitchen',
+          stage              TEXT NOT NULL DEFAULT 'consultation',
+          address            TEXT NOT NULL DEFAULT '',
+          ready_date         DATE,
+          production_started DATE,
+          manager_name       TEXT NOT NULL DEFAULT '',
+          manager_phone      TEXT NOT NULL DEFAULT '',
+          project_status     TEXT NOT NULL DEFAULT 'none',
+          spec               JSONB NOT NULL DEFAULT '[]'::jsonb,
+          created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+          updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `
+      await sql`CREATE INDEX IF NOT EXISTS orders_client_idx ON orders (client_id, created_at DESC)`
+      await sql`
+        CREATE TABLE IF NOT EXISTS order_visits (
+          id         BIGSERIAL PRIMARY KEY,
+          order_id   TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+          kind       TEXT NOT NULL DEFAULT 'other',
+          starts_at  TIMESTAMPTZ NOT NULL,
+          note       TEXT NOT NULL DEFAULT '',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `
+      await sql`CREATE INDEX IF NOT EXISTS order_visits_order_idx ON order_visits (order_id, starts_at)`
+      await sql`
+        CREATE TABLE IF NOT EXISTS order_files (
+          id           BIGSERIAL PRIMARY KEY,
+          order_id     TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+          pathname     TEXT NOT NULL,
+          name         TEXT NOT NULL,
+          size         BIGINT NOT NULL DEFAULT 0,
+          content_type TEXT NOT NULL DEFAULT '',
+          kind         TEXT NOT NULL DEFAULT 'other',
+          caption      TEXT NOT NULL DEFAULT '',
+          visible      BOOLEAN NOT NULL DEFAULT true,
+          created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `
+      await sql`CREATE INDEX IF NOT EXISTS order_files_order_idx ON order_files (order_id, created_at DESC)`
+      /** Лента заказа: что произошло — и со стороны компании, и со стороны клиента */
+      await sql`
+        CREATE TABLE IF NOT EXISTS order_feed (
+          id         BIGSERIAL PRIMARY KEY,
+          order_id   TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+          actor      TEXT NOT NULL DEFAULT 'manager',
+          kind       TEXT NOT NULL DEFAULT 'message',
+          text       TEXT NOT NULL DEFAULT '',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `
+      await sql`CREATE INDEX IF NOT EXISTS order_feed_order_idx ON order_feed (order_id, created_at DESC)`
     })().catch((err) => {
       // Сбрасываем кэш, чтобы следующий запрос попробовал заново
       schemaReady = null

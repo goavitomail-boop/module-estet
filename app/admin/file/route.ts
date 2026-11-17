@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Не указан файл' }, { status: 400 })
   }
 
-  // Пускаем только внутрь leads/ — чтобы параметром нельзя было вытащить
-  // произвольный объект из хранилища
-  if (!pathname.startsWith('leads/') || pathname.includes('..')) {
+  // Пускаем только внутрь leads/ и orders/ (файлы заказов в кабинете клиента) —
+  // чтобы параметром нельзя было вытащить произвольный объект из хранилища
+  if (!(pathname.startsWith('leads/') || pathname.startsWith('orders/')) || pathname.includes('..')) {
     return NextResponse.json({ error: 'Недопустимый путь' }, { status: 400 })
   }
 
