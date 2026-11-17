@@ -46,9 +46,14 @@ export const metadata: Metadata = {
   description,
   applicationName: 'Модуль Эстет',
   alternates: { canonical: '/' },
+  // Иконки — из знака в шапке сайта, собирает scripts/gen-icons.mjs.
+  // favicon.ico — для браузеров без SVG-фавиконов и для Яндекса
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    shortcut: '/icon.svg',
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
     apple: '/apple-icon.png',
   },
   // Без этого блока ссылка на сайт в мессенджерах приходит голым адресом

@@ -1,17 +1,10 @@
-<svg width="180" height="180" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
-  <!-- Знак «Модуль Эстет»: золотая рама с «М» на белой плашке -->
-  <rect width="96" height="96" rx="20" fill="#ffffff"/>
-  <g transform="translate(-27.2 -42.4) scale(0.2442)">
-    <g fill="none" stroke="#B99358" stroke-width="16">
-      <path d="M148 536 V198 H420"/>
-      <path d="M462 196 V292"/>
-      <path d="M252 490 V536 H462 V312"/>
-    </g>
-    <g fill="#B99358">
-      <path d="M204 204 L240 204 L322 446 L286 446 Z"/>
-      <path d="M362 204 L402 204 L320 446 L284 446 Z"/>
-      <rect x="366" y="204" width="36" height="154"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 440">
+  <rect width="440" height="440" rx="96" fill="#1A1A1A"/>
+  <g transform="translate(220 220) scale(0.78) translate(-220 -220)">
+    <g transform="translate(10 10)" stroke="#B2935A" fill="none">
+    <path d="M18 18H402V118 M18 18V416H116 M402 416H304 M402 416V316" stroke-width="26" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M104 348V104L210 216L316 104V348" stroke-width="26" stroke-linecap="square" stroke-linejoin="miter"/>
+    <line x1="132" y1="262" x2="132" y2="314" stroke-width="11.700000000000001" stroke-linecap="round"/>
+  </g>
   </g>
 </svg>
-

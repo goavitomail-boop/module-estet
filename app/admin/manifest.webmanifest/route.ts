@@ -20,12 +20,15 @@ export function GET() {
       scope: '/admin',
       display: 'standalone',
       orientation: 'portrait',
-      background_color: '#f5f4f1',
+      background_color: '#f7f5f0',
       theme_color: '#1a1a1a',
       lang: 'ru',
+      // Тот же знак, что у сайта (scripts/gen-icons.mjs)
       icons: [
         { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },
-        { src: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
       ],
       // Долгое нажатие по иконке откроет нужный раздел сразу
       shortcuts: [

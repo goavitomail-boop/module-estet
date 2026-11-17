@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { getSession, isAuthConfigured } from '@/lib/admin-auth'
-import { BrandLogo } from '@/components/brand-logo'
+import { ModuleEstetMark } from '@/components/module-estet-mark'
 import { cn } from '@/lib/utils'
 import { THEME_COOKIE } from '@/lib/admin-theme'
 import { LoginForm } from './login-form'
@@ -29,11 +29,17 @@ export default async function LoginPage() {
       />
 
       <div className="relative w-full max-w-sm">
-        {/* Логотип прорисовывается линией: рама, кухня, потом слова */}
-        <div className="mb-6 flex justify-center text-[15px] text-foreground">
-          <BrandLogo animated />
+        {/* Знак сайта прорисовывается линией, следом проступает название —
+            тот же логотип, что в шапке module-estet.ru */}
+        <div className="mb-7 flex flex-col items-center text-center">
+          <ModuleEstetMark draw className="size-20" />
+          <p className="admin-login-word mt-4 text-[1.35rem] font-semibold uppercase leading-none tracking-[0.14em] text-foreground">
+            Модуль Эстет
+          </p>
+          <p className="admin-login-caption mt-2.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            Панель управления заявками
+          </p>
         </div>
-        <p className="admin-login-caption mb-6 text-center text-sm text-muted-foreground">Панель управления заявками</p>
 
         <div className="admin-login-card">
           {isAuthConfigured() ? (

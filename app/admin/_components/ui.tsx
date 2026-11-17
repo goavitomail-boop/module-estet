@@ -14,26 +14,26 @@ import {
 import type { LeadStatus, LeadType } from '@/lib/db'
 import { statusText, typeText } from '@/lib/admin-format'
 import { cn } from '@/lib/utils'
+import { ModuleEstetMark } from '@/components/module-estet-mark'
 
-/* ── Знак бренда ───────────────────────────────────────────────────────
-   Рама с «М» из логотипа. Свой, а не ModuleEstetMark из components:
-   тот модуль тянет полный framer-motion, а здесь нужна статичная линия,
-   которую CSS перерисовывает при наведении (.admin-mark в admin.css). */
+/* ── Логотип ──────────────────────────────────────────────────────────
+   Тот же локап, что в шапке сайта (components/site-header.tsx): знак
+   и «Модуль Эстет» прописными с разрядкой. Вместо статуса работы под
+   названием — подпись панели. */
 
-export function AdminMark({ className }: { className?: string }) {
+export function AdminBrand({ subtitle = 'Панель заявок', className }: { subtitle?: string; className?: string }) {
   return (
-    <svg className={cn('admin-mark', className)} viewBox="0 0 440 440" fill="none" aria-hidden>
-      <g transform="translate(10 10)" stroke="var(--sidebar-primary)">
-        <path
-          d="M18 18H402V118 M18 18V416H116 M402 416H304 M402 416V316"
-          strokeWidth="22"
-          strokeLinecap="square"
-          pathLength={1}
-        />
-        <path d="M104 348V104L210 216L316 104V348" strokeWidth="22" strokeLinecap="square" pathLength={1} />
-        <line x1="132" y1="262" x2="132" y2="314" strokeWidth="10" strokeLinecap="round" pathLength={1} />
-      </g>
-    </svg>
+    <span className={cn('flex min-w-0 items-center gap-2.5', className)}>
+      <ModuleEstetMark className="h-10 w-auto shrink-0" />
+      <span className="flex min-w-0 flex-col leading-none">
+        <span className="truncate text-[1.05rem] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground">
+          Модуль Эстет
+        </span>
+        <span className="mt-1.5 truncate text-[9px] uppercase tracking-[0.22em] text-sidebar-foreground/60">
+          {subtitle}
+        </span>
+      </span>
+    </span>
   )
 }
 

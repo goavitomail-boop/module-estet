@@ -10,30 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#f8f5ef',
     theme_color: '#1a1a1a',
     lang: 'ru',
+    // Собирает scripts/gen-icons.mjs из знака в шапке сайта
     icons: [
-      {
-        src: '/icon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
-      // PNG-иконки появятся после запуска _gen-icons.ps1 —
-      // раскомментируйте эти блоки, когда файлы будут созданы:
-      // {
-      //   src: '/icon-192.png',
-      //   sizes: '192x192',
-      //   type: 'image/png',
-      // },
-      // {
-      //   src: '/icon-512.png',
-      //   sizes: '512x512',
-      //   type: 'image/png',
-      // },
-      {
-        // TODO: заменить экспорт из нового знака (см. public/brand/preview.html)
-        src: '/apple-icon.png',
-        sizes: '180x180',
-        type: 'image/png',
-      },
+      { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }
 }

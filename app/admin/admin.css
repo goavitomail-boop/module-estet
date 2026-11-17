@@ -393,10 +393,10 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .admin-login-card {
-    animation: admin-rise 700ms var(--a-out) 650ms backwards;
+    animation: admin-rise 700ms var(--a-out) 850ms backwards;
   }
   .admin-login-caption {
-    animation: admin-fade 600ms ease-out 450ms backwards;
+    animation: admin-fade 600ms ease-out 800ms backwards;
   }
 }
 
@@ -460,27 +460,6 @@ html:has(.admin-root.dark) body {
   transition: none;
 }
 
-/* Знак в боковом меню перерисовывается при наведении */
-.admin-mark path,
-.admin-mark line {
-  stroke-dasharray: 1;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .group:hover .admin-mark path,
-  .group:hover .admin-mark line,
-  .group:focus-visible .admin-mark path,
-  .group:focus-visible .admin-mark line {
-    animation: admin-draw 900ms var(--a-in-out) backwards;
-  }
-  .group:hover .admin-mark :nth-child(2) {
-    animation-delay: 120ms;
-  }
-  .group:hover .admin-mark :nth-child(3) {
-    animation-delay: 300ms;
-  }
-}
-
 /* Сетка плиток не поднимается целиком — плитки идут своей очередью */
 .admin-root main > * > .admin-tiles {
   animation: none;
@@ -491,5 +470,37 @@ html:has(.admin-root.dark) body {
   .admin-stagger > * {
     animation: admin-rise var(--a-enter) var(--a-out) backwards;
     animation-delay: calc(90ms + min(var(--i, 0), 12) * 28ms);
+  }
+}
+
+/* Экран входа: знак сайта прорисовывается линией — рама, «М», засечка
+   (ModuleEstetMark с draw, pathLength = 1) */
+@media (prefers-reduced-motion: no-preference) {
+  /* Концы линий квадратные и круглые: до старта они видны точкой,
+     поэтому в первом кадре линия ещё и прозрачна (admin-draw-in) */
+  .me-draw path,
+  .me-draw line {
+    stroke-dasharray: 1;
+    animation: admin-draw-in 1s var(--a-in-out) backwards;
+  }
+  .me-draw path:nth-of-type(2) {
+    animation-delay: 220ms;
+  }
+  .me-draw line {
+    animation-duration: 400ms;
+    animation-delay: 950ms;
+  }
+  .admin-login-word {
+    animation: admin-rise 600ms var(--a-out) 700ms backwards;
+  }
+}
+
+@keyframes admin-draw-in {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
   }
 }

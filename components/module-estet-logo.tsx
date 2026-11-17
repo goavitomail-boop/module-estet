@@ -145,17 +145,5 @@ export default function ModuleEstetLogo({
   );
 }
 
-export function ModuleEstetMark({ className = "" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 440 440" xmlns="http://www.w3.org/2000/svg"
-      fill="none" role="img" aria-label="Модуль Эстет">
-      <g transform="translate(10 10)" stroke={GOLD}>
-        <path d="M18 18H402V118 M18 18V416H116 M402 416H304 M402 416V316"
-          strokeWidth="16" strokeLinecap="square" strokeLinejoin="miter" />
-        <path d="M104 348V104L210 216L316 104V348"
-          strokeWidth="16" strokeLinecap="square" strokeLinejoin="miter" />
-        <line x1="132" y1="262" x2="132" y2="314" strokeWidth="7" strokeLinecap="round" />
-      </g>
-    </svg>
-  );
-}
+// Статичный знак живёт отдельно, без framer-motion: его берут шапка, подвал и панель
+export { ModuleEstetMark } from "./module-estet-mark";

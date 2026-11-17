@@ -7,7 +7,7 @@ import { getSession } from '@/lib/admin-auth'
 import { isDbConfigured } from '@/lib/db'
 import { logoutAction } from '@/app/admin/actions'
 import { cn } from '@/lib/utils'
-import { AdminMark } from '../_components/ui'
+import { AdminBrand } from '../_components/ui'
 import { MotionProvider } from '../_components/motion'
 import { PulseProvider } from '../_components/pulse'
 import { Toaster } from '../_components/toast'
@@ -47,14 +47,8 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <PulseProvider>
           {/* ── Шапка: только на мобильном, на десктопе её роль играет сайдбар ── */}
           <header className="admin-sidebar sticky top-0 z-30 flex items-center justify-between gap-2 px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-sidebar-foreground lg:hidden">
-            <Link href="/admin" className="group relative flex min-w-0 items-center gap-2.5">
-              <AdminMark className="size-8 shrink-0" />
-              <span className="min-w-0">
-                <span className="block truncate font-[family-name:var(--font-oswald)] text-sm font-medium uppercase tracking-[0.18em]">
-                  Модуль Эстет
-                </span>
-                <span className="block text-[11px] text-sidebar-foreground/55">Панель заявок</span>
-              </span>
+            <Link href="/admin" className="relative min-w-0" aria-label="Модуль Эстет — дашборд">
+              <AdminBrand />
             </Link>
             <div className="relative flex items-center gap-1">
               <MobileSearchButton />
@@ -73,14 +67,8 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <div className="mx-auto flex max-w-[1600px]">
             {/* ── Боковое меню: только с lg. Липкое — не уезжает с длинной страницей ── */}
             <aside className="admin-sidebar relative hidden shrink-0 flex-col text-sidebar-foreground lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64">
-              <Link href="/admin" className="group relative flex items-center gap-3 px-5 pb-4 pt-5">
-                <AdminMark className="size-9 shrink-0" />
-                <span>
-                  <span className="block font-[family-name:var(--font-oswald)] text-sm font-medium uppercase tracking-[0.18em]">
-                    Модуль Эстет
-                  </span>
-                  <span className="mt-0.5 block text-xs text-sidebar-foreground/55">Панель заявок</span>
-                </span>
+              <Link href="/admin" className="relative block px-5 pb-4 pt-5" aria-label="Модуль Эстет — дашборд">
+                <AdminBrand />
               </Link>
 
               <div className="relative px-3 pb-2">
