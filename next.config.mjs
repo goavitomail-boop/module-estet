@@ -26,6 +26,13 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com' }],
   },
+  // Типы проверяются не в сборке на сервере, а отдельно: `pnpm typecheck`
+  // и GitHub Actions на каждый push (.github/workflows/check.yml). Проверка
+  // типов внутри next build требует около 650 МБ памяти — на сервере сборка
+  // падала с нехваткой памяти и сайт не выкатывался.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
