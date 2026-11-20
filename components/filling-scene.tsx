@@ -292,8 +292,8 @@ export function FillingScene({ drawing, id }: { drawing: FillingDrawing; id: str
               </g>
               <path className="hs-draw-x" style={{ '--d': 'calc(var(--lag, 0s) + 1.55s)', '--t': '0.6s' } as CSSProperties} d={line([dimA, dimB])} stroke={BRASS} strokeWidth={1.2} />
               <g className="hs-in" style={at(2, { t: 0.4, from: 'scale(0.4)', ease: 'var(--pop)' })}>
-                {[dimA, dimB].map(([a, b]) => (
-                  <path key={a} d={`M${(a - 5).toFixed(1)},${(b + 5).toFixed(1)}L${(a + 5).toFixed(1)},${(b - 5).toFixed(1)}`} stroke={BRASS} strokeWidth={1.4} />
+                {[dimA, dimB].map(([a, b], i) => (
+                  <path key={i} d={`M${(a - 5).toFixed(1)},${(b + 5).toFixed(1)}L${(a + 5).toFixed(1)},${(b - 5).toFixed(1)}`} stroke={BRASS} strokeWidth={1.4} />
                 ))}
               </g>
               {/* Число — вдоль размерной линии, под ней, как на чертеже */}

@@ -336,6 +336,7 @@ export function HeroShowcase() {
     <section
       ref={rootRef}
       id="top"
+      data-hero
       data-own-motion
       aria-labelledby="hero-title"
       className={cn('hs hs-stone relative isolate overflow-hidden bg-foreground text-background', paused && 'hs-paused')}

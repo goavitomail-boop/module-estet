@@ -182,7 +182,6 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
   const bookingToday = availability?.today ?? moscowToday()
   const lastBookingDay = useMemo(() => bookingLastDay(bookingToday), [bookingToday])
   const activeStep = stepContent[step - 1]
-  const ActiveIcon = activeStep.icon
 
   // Направление листания для анимации: «Далее» — шаг приходит справа, «Назад» — слева
   const lastStep = useRef(step)
@@ -208,11 +207,11 @@ export function MeasurementBooking({ onReady }: { onReady?: () => void } = {}) {
   }, [])
 
   // Форма смонтирована в общем layout и переживает переходы между
-  // страницами — ищем hero заново на каждом адресе. Нет hero (внутренние
-  // страницы) — нет и мобильной кнопки, как было раньше
+  // страницами — ищем первый экран заново на каждом адресе (data-hero:
+  // главная и /wardrobes). Нет его (внутренние страницы) — нет и мобильной кнопки
   useEffect(() => {
     setHeroPassed(false)
-    const hero = document.querySelector('.hero-life')
+    const hero = document.querySelector('[data-hero]')
     if (!hero) return
     const observer = new IntersectionObserver(
       ([entry]) => setHeroPassed(!entry.isIntersecting && entry.boundingClientRect.bottom < 0),

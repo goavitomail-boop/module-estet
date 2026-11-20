@@ -84,7 +84,7 @@ export function WardrobesHero({ intro, action, sections }: { intro: string; acti
   const paused = userPaused || !inView
 
   return (
-    <header ref={rootRef} data-own-motion className={cn('hs grain relative isolate overflow-hidden bg-foreground text-background', paused && 'hs-paused')}>
+    <header ref={rootRef} data-hero data-own-motion className={cn('hs grain relative isolate overflow-hidden bg-foreground text-background', paused && 'hs-paused')}>
       <CropMarks className="inset-x-4 bottom-4 top-24 md:inset-x-6 md:top-28" />
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pb-10 pt-28 md:px-8 md:pb-14 md:pt-36 lg:gap-10">
         <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12">

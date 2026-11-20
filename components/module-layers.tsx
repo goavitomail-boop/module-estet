@@ -149,8 +149,8 @@ function Dim({ a, b, from, label, angle, on, d, size }: { a: Pt; b: Pt; from: [P
       <path className="ml-show" {...data} d={`${line([from[0], a])}${line([from[1], b])}`} stroke={BRASS} strokeWidth={0.8} />
       <path className="ml-line" {...data} pathLength={1} d={line([a, b])} stroke={BRASS} strokeWidth={1.2} fill="none" />
       <g className="ml-show" {...data}>
-        {[a, b].map(([x, y]) => (
-          <path key={x} d={`M${(x - 5).toFixed(1)},${(y + 5).toFixed(1)}L${(x + 5).toFixed(1)},${(y - 5).toFixed(1)}`} stroke={BRASS} strokeWidth={1.4} />
+        {[a, b].map(([x, y], i) => (
+          <path key={i} d={`M${(x - 5).toFixed(1)},${(y + 5).toFixed(1)}L${(x + 5).toFixed(1)},${(y - 5).toFixed(1)}`} stroke={BRASS} strokeWidth={1.4} />
         ))}
       </g>
       <g transform={`translate(${mid[0].toFixed(1)} ${mid[1].toFixed(1)}) rotate(${angle.toFixed(1)})`}>
