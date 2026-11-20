@@ -54,7 +54,7 @@ SEO — что сделано и что нужно от владельца (ад
 `nextjs-app` (`pm2 list`), сначала записать это в файл настроек — скрипт
 обновляет сам себя, поэтому свои пути хранятся отдельно от него:
 ```bash
-printf 'SITE_DIR=/var/www/ME\nPM2_APP=nextjs-app\n' > /etc/deploy-site.conf
+printf 'SITE_DIR=/var/www/ME\nPM2_APP=ME\n' > /etc/deploy-site.conf
 ```
 Новая версия будет собираться рядом, в `/var/www/ME-old`.
 
@@ -131,12 +131,13 @@ deploy-site --rollback
    cd /var/www
    mv html html-tmp && mv html-old html && mv html-tmp html-old
    ```
-6. **Перезапустить сайт.** Он работает под pm2, процесс `nextjs-app`:
+6. **Перезапустить сайт.** Он работает под pm2, процесс `ME` (имя записано
+   в `/etc/deploy-site.conf`, проверить — `pm2 list`):
    ```bash
-   pm2 restart nextjs-app
+   pm2 restart ME --update-env
    pm2 save
    ```
-   Список процессов и их состояние — `pm2 list`, журнал сайта — `pm2 logs nextjs-app`.
+   Журнал сайта — `pm2 logs ME`.
 7. **Проверить** главную, `/quiz`, `/admin`.
 
 ### Откат
@@ -204,7 +205,8 @@ deploy-site --rollback
   `/admin/file`. Состояние и свободное место — «Настройки» в панели.
   - nginx должен пропускать файлы до 25 МБ: `client_max_body_size 30m;` в
     блоке `server` сайта, иначе крупные файлы он отклонит сам (по умолчанию 1 МБ).
-  - Папку нужно бэкапить вместе с сервером: копий в другом месте нет.
+  - Папку нужно бэкапить: копий в другом месте нет. Ежедневный архив
+    файлов и базы делает `scripts/site-task.sh backup` (раздел 4, «Регулярные задачи»).
   - Выкатка (`deploy-site`) создаёт папку, если её нет, и остановится, если
     она по ошибке внутри папки сайта.
 - Ниже — прежняя схема с Neon; она работает, если `STORAGE_DIR` не задан.
@@ -236,7 +238,7 @@ deploy-site --rollback
 TOP-STAYS SE»), — их можно добавить одной кнопкой. Фото у них лежат в сайте.
 
 Причина отказа хранилища — в журнале сайта:
-`pm2 logs nextjs-app --lines 500 --nostream | grep Медиа | tail -3`.
+`pm2 logs ME --lines 500 --nostream | grep Медиа | tail -3`.
 
 ### Переезд файлов в Neon — один раз
 1. Проверить регион проекта Neon: Object Storage есть в `aws-us-east-1`,
@@ -285,17 +287,43 @@ TOP-STAYS SE»), — их можно добавить одной кнопкой.
   | `click_max` | клик по ссылке на MAX |
 
 ### Регулярные задачи
-В `vercel.json` описаны две задачи на 06:00 UTC (09:00 МСК), но на Beget
-этот файл не работает. **Нужен системный cron на сервере:**
+`vercel.json` на своём сервере ничего не запускает — расписание живёт в
+системном cron. Все задачи запускает один скрипт `scripts/site-task.sh`;
+секреты он берёт из `.env.local` сайта, в crontab их писать не нужно:
 
-```cron
-# Москва, 09:00 — сводка за сутки и напоминания «пора связаться» в MAX
-0 9 * * * curl -fsS -H "Authorization: Bearer ВАШ_CRON_SECRET" https://module-estet.ru/api/cron/digest
-2 9 * * * curl -fsS -H "Authorization: Bearer ВАШ_CRON_SECRET" https://module-estet.ru/api/cron/reminders
-```
+| Команда | Что делает |
+|---|---|
+| `site-task.sh digest` | сводка за сутки менеджеру в MAX |
+| `site-task.sh reminders` | напоминания «пора связаться» в MAX (повтор в тот же день не дублирует) |
+| `site-task.sh backup` | архив `STORAGE_DIR` и выгрузка базы (`pg_dump`) в `/var/backups/module-estet`, хранит 14 дней |
 
-Если часовой пояс сервера UTC — ставить `0 6` и `2 6`. Повторный запуск
-в тот же день напоминания не дублирует.
+Настройка — один раз:
+
+1. Секрет для задач (без него адреса `/api/cron/*` открыты всем, и скрипт
+   откажется их вызывать):
+   ```bash
+   echo "CRON_SECRET=$(openssl rand -hex 32)" >> /var/www/ME/.env.local
+   pm2 restart ME --update-env
+   ```
+2. Клиент Postgres для выгрузки базы — не старше версии Postgres в Neon
+   (`pg_dump --version`; при ошибке версии — `postgresql-client-17` из
+   репозитория PostgreSQL):
+   ```bash
+   apt install -y postgresql-client
+   ```
+3. Расписание (`crontab -e`). Время — по часам сервера; если на сервере UTC
+   (`date`), 09:00 по Москве — это 06:00:
+   ```cron
+   0 6 * * *  /var/www/ME/scripts/site-task.sh digest    >> /var/log/module-estet-tasks.log 2>&1
+   2 6 * * *  /var/www/ME/scripts/site-task.sh reminders >> /var/log/module-estet-tasks.log 2>&1
+   30 0 * * * /var/www/ME/scripts/site-task.sh backup    >> /var/log/module-estet-tasks.log 2>&1
+   ```
+4. Копия вне сервера: архив на том же сервере не спасёт, если пропадёт сам
+   сервер. Настроить `rclone config` (Яндекс Диск, Object Storage и т. п.) и
+   добавить в `/etc/deploy-site.conf` строку `BACKUP_REMOTE=<имя>:module-estet`.
+
+Проверить вручную: `/var/www/ME/scripts/site-task.sh backup`, журнал —
+`tail /var/log/module-estet-tasks.log`.
 
 ---
 
@@ -446,21 +474,24 @@ TOP-STAYS SE»), — их можно добавить одной кнопкой.
 ## 8. Что осталось сделать
 
 ### На стороне владельца
-- [x] Вписать в раздел 2 точную команду перезапуска сайта (`pm2 restart nextjs-app`).
+- [x] Вписать в раздел 2 точную команду перезапуска сайта (`pm2 restart ME`).
 - [ ] Завести пять целей в Метрике (раздел 4).
-- [ ] Настроить cron на сервере (раздел 4) и задать `CRON_SECRET`.
+- [ ] Настроить cron на сервере (раздел 4, «Регулярные задачи»): `CRON_SECRET`,
+      сводка, напоминания и ежедневный бэкап.
+- [ ] Настроить копию бэкапов вне сервера (`BACKUP_REMOTE`).
+- [ ] После слияния рабочей ветки в `main` выкатывать из `main`: добавить
+      `BRANCH=main` в `/etc/deploy-site.conf`.
 - [ ] Перейти с `ADMIN_PASSWORD` на `ADMIN_PASSWORD_HASH`, если ещё не сделано.
 - [ ] Решить, убирать ли из портфолио фото проекта 1 с человеком в кадре
       (`public/images/portfolio/project-real-1/main.webp`). В hero оно не используется.
 
 ### По коду
-- [ ] Когда новый первый экран утверждён — удалить старый:
-      `components/hero-section.tsx`, `hero-plan.tsx`, `hero-proof-card.tsx`
-      и стили `.hero-life*`, `.hero-plan*` в `app/globals.css`. Осторожно:
-      `.hero-life__status*` используется ещё и в финальном призыве.
-- [x] На Beget не нужен скрипт Vercel Analytics: он даёт 404 на
-      `/_vercel/insights/script.js`. Можно убрать `@vercel/analytics`
-      из `app/layout.tsx`.
+- [x] Старый первый экран удалён (`hero-section`, `hero-plan`,
+      `hero-proof-card` и их стили); от него остался только статус
+      «на связи» `.hero-life__status*` в финальном призыве.
+- [x] Vercel Analytics убран — и из `app/layout.tsx`, и из зависимостей.
+- [ ] 35 подсказок линтера `react-hooks/*` (правила для React Compiler)
+      разбирать по мере правок соответствующих файлов.
 
 ### Идеи в том же стиле (по приоритету)
 1. «Было / стало» на реальных проектах в галерее и окне портфолио.
@@ -502,5 +533,8 @@ TOP-STAYS SE»), — их можно добавить одной кнопкой.
 - Не трогать рабочие заявки в базе при тестах; отправку форм в тестах
   перехватывать (так делает `tools/motion/render-thanks.cjs`).
 - `.env.local` не коммитить, пароли в документы не писать.
+- Перед коммитом — `pnpm lint` (ошибок быть не должно; подсказки
+  `react-hooks/*` допустимы) и `pnpm build`: сборка теперь проверяет типы
+  TypeScript и не пропустит ошибку на сайт.
 - Анимации — по правилам из [MOTION.md](./MOTION.md): только `transform`
   и `opacity`, не ниже 45 fps на телефоне.
