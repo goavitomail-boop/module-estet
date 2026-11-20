@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   ArrowLeft,
@@ -618,9 +619,9 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
                     Написать нам в Max
                   </a>
                 )}
-                <a href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border border-background/30 px-7 font-bold text-background transition-colors hover:border-primary hover:text-primary">
+                <Link href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border border-background/30 px-7 font-bold text-background transition-colors hover:border-primary hover:text-primary">
                   Вернуться на сайт
-                </a>
+                </Link>
                 <button type="button" onClick={startAgain} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 font-semibold text-background/70 transition-colors hover:text-primary">
                   <RotateCcw className="size-4" />
                   Пройти ещё раз
@@ -650,7 +651,7 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE_OUT }}
         >
-          <a href="/" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground transition-colors hover:text-primary"><ArrowLeft className="size-4" />На главную</a>
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground transition-colors hover:text-primary"><ArrowLeft className="size-4" />На главную</Link>
           <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">{isKitchen ? 'Расчёт кухни' : 'Расчёт шкафа'}</p>
             {onChangeProduct && (
@@ -821,7 +822,11 @@ export function ProjectQuiz({ product = 'kitchen', onChangeProduct }: { product?
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-bold text-background"><Paperclip className="size-4" />Прикрепить</button>
                       <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => e.target.files && addFiles(e.target.files)} className="sr-only" />
                     </div>
-                    {files.length > 0 && <ul className="grid gap-3 sm:grid-cols-2">{files.map((item) => <li key={item.id} className="flex items-center gap-3 rounded-xl border border-border p-3">{item.url ? <img src={item.url} alt="Предпросмотр загруженного файла" className="size-12 rounded-lg object-cover" /> : <span className="flex size-12 items-center justify-center rounded-lg bg-muted"><FileText className="size-5" /></span>}<span className="min-w-0 flex-1 truncate text-sm font-semibold">{item.file.name}</span><button type="button" onClick={() => removeFile(item.id)} aria-label={`Удалить ${item.file.name}`} className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Trash2 className="size-4" /></button></li>)}</ul>}
+                    {files.length > 0 && <ul className="grid gap-3 sm:grid-cols-2">{files.map((item) => <li key={item.id} className="flex items-center gap-3 rounded-xl border border-border p-3">{item.url ? (
+                      // Предпросмотр выбранного файла (адрес blob:) — next/image для него не подходит
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.url} alt="Предпросмотр загруженного файла" className="size-12 rounded-lg object-cover" />
+                    ) : <span className="flex size-12 items-center justify-center rounded-lg bg-muted"><FileText className="size-5" /></span>}<span className="min-w-0 flex-1 truncate text-sm font-semibold">{item.file.name}</span><button type="button" onClick={() => removeFile(item.id)} aria-label={`Удалить ${item.file.name}`} className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Trash2 className="size-4" /></button></li>)}</ul>}
                   </div>
                 </Optional>
                 <label className="flex items-start gap-3 rounded-2xl bg-muted p-4 text-sm leading-relaxed">

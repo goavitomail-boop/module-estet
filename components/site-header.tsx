@@ -140,7 +140,7 @@ export function SiteHeader({ overHero = false }: { overHero?: boolean }) {
       {/* На широком экране шапка шире контента: в 6xl семь пунктов меню
           с кнопками упирались в логотип */}
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:h-20 md:px-6 xl:max-w-7xl xl:px-8">
-        <a
+        <Link
           href="/#top"
           className={cn(
             'group flex items-center gap-2.5 transition-colors duration-500 md:gap-3',
@@ -167,7 +167,7 @@ export function SiteHeader({ overHero = false }: { overHero?: boolean }) {
               )}
             />
           </span>
-        </a>
+        </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-6 px-8 xl:flex 2xl:gap-8" aria-label="Основная навигация">
           {navItems.map((item) =>

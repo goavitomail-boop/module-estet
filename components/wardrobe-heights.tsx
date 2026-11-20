@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { BRASS, FACE, FAINT, INK, K, SHADE, fitTo, line, wardrobeView, type Pt, type Range } from '@/components/axo'
+import { BRASS, FACE, FAINT, INK, K, SHADE, fitTo, line, wardrobeView, type Range } from '@/components/axo'
 import { RollingCount } from '@/components/rolling-count'
 import { enter } from '@/components/scene-kit'
 import { wardrobeHeights } from '@/lib/wardrobes-data'

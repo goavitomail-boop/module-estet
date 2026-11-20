@@ -26,9 +26,7 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: 'https', hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com' }],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },  async headers() {
+  async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
       // Панель и служебные маршруты поисковикам не показываем даже случайно

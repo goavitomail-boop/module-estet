@@ -152,6 +152,8 @@ export async function GET(request: NextRequest) {
   const updatesData = updates.data as { updates?: unknown[]; marker?: number } | null
   if (updatesData && Array.isArray(updatesData.updates)) {
     for (const raw of updatesData.updates) {
+      // Ответ MAX без схемы: поля проверяются по месту
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const upd = raw as Record<string, any>
       const sender = upd?.message?.sender ?? upd?.user
       if (sender?.user_id && !sender?.is_bot) {

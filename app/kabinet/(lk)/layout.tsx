@@ -40,9 +40,9 @@ export default async function LkLayout({ children }: { children: React.ReactNode
               {COMPANY.phone}
             </a>
           </span>
-          <a href="/" className="hover:text-foreground">
+          <Link href="/" className="hover:text-foreground">
             На сайт module-estet.ru →
-          </a>
+          </Link>
         </div>
       </footer>
     </>

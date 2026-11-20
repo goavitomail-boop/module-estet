@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ModuleEstetMark } from '@/components/module-estet-mark'
@@ -19,7 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       />
 
       <div className="relative w-full max-w-sm">
-        <a href="/" className="mb-7 flex flex-col items-center text-center" aria-label="На сайт «Модуль Эстет»">
+        <Link href="/" className="mb-7 flex flex-col items-center text-center" aria-label="На сайт «Модуль Эстет»">
           <ModuleEstetMark draw className="size-16" />
           <span className="admin-login-word mt-4 text-[1.2rem] font-semibold uppercase leading-none tracking-[0.14em] text-foreground">
             Модуль Эстет
@@ -27,7 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <span className="admin-login-caption mt-2.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             Личный кабинет
           </span>
-        </a>
+        </Link>
 
         <div className="admin-login-card">
           {e === 'link' && (

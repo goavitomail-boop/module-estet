@@ -16,7 +16,6 @@ import {
   DEFAULT_LIST_STATE,
   PAGE_SIZE,
   decodeState,
-  encodeState,
   filterMenu,
   leadCard,
   leadList,
@@ -151,6 +150,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
 
+  // Обновление MAX — внешний JSON без схемы: поля проверяются там, где читаются
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let update: Record<string, any>
   try {
     update = await request.json()
