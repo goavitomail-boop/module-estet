@@ -496,6 +496,14 @@ export function ensureSchema(): Promise<void> {
         )
       `
       await sql`CREATE INDEX IF NOT EXISTS order_feed_order_idx ON order_feed (order_id, created_at DESC)`
+      /** Служебные отметки сайта «ключ → время», например когда ушла последняя сводка */
+      await sql`
+        CREATE TABLE IF NOT EXISTS app_state (
+          key        TEXT PRIMARY KEY,
+          value      TEXT NOT NULL DEFAULT '',
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `
     })().catch((err) => {
       // Сбрасываем кэш, чтобы следующий запрос попробовал заново
       schemaReady = null
@@ -891,15 +899,44 @@ export async function getStats(): Promise<LeadStats> {
   }
 }
 
-/** Заявки за последние сутки — для утренней сводки */
-export async function getDigestLeads(): Promise<Lead[]> {
+/** Сводке не нужно больше трёх суток: после долгого перерыва список всё равно режется до 15 строк */
+const DIGEST_MAX_HOURS = 72
+
+/**
+ * Заявки для сводки — с момента предыдущей сводки. Так сводки можно слать
+ * по любому расписанию (в 9:00 и 19:00, раз в день), и заявки в них не
+ * повторяются. Первая сводка — за сутки. until — момент выборки: от него
+ * начнётся следующая сводка, чтобы заявка, пришедшая во время отправки,
+ * не потерялась между двумя сводками.
+ */
+export async function getDigestLeads(): Promise<{ leads: Lead[]; since: string; until: string }> {
   await ensureSchema()
   const sql = client()
-  return (await sql`
+  const [row] = (await sql`
+    SELECT now() AS until,
+           GREATEST(
+             COALESCE((SELECT updated_at FROM app_state WHERE key = 'digest_sent'), now() - interval '24 hours'),
+             now() - make_interval(hours => ${DIGEST_MAX_HOURS})
+           ) AS since
+  `) as unknown as Array<{ since: string | Date; until: string | Date }>
+  const since = new Date(row.since).toISOString()
+  const until = new Date(row.until).toISOString()
+  const leads = (await sql`
     SELECT * FROM leads
-     WHERE created_at >= now() - interval '24 hours'
+     WHERE created_at >= ${since}::timestamptz AND created_at < ${until}::timestamptz
      ORDER BY created_at DESC
   `) as unknown as Lead[]
+  return { leads, since, until }
+}
+
+/** Сводка доставлена — следующая начнётся с момента её выборки */
+export async function markDigestSent(until: string): Promise<void> {
+  await ensureSchema()
+  const sql = client()
+  await sql`
+    INSERT INTO app_state (key, value, updated_at) VALUES ('digest_sent', '', ${until}::timestamptz)
+    ON CONFLICT (key) DO UPDATE SET updated_at = EXCLUDED.updated_at
+  `
 }
 
 /** Запоминает того, кто написал боту — чтобы было видно кандидатов в получатели */

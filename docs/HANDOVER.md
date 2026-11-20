@@ -293,7 +293,7 @@ TOP-STAYS SE»), — их можно добавить одной кнопкой.
 
 | Команда | Что делает |
 |---|---|
-| `site-task.sh digest` | сводка за сутки менеджеру в MAX |
+| `site-task.sh digest` | сводка заявок менеджеру в MAX — с момента предыдущей сводки, поэтому её можно слать хоть дважды в день: заявки не повторятся |
 | `site-task.sh reminders` | напоминания «пора связаться» в MAX (повтор в тот же день не дублирует) |
 | `site-task.sh backup` | архив `STORAGE_DIR` и выгрузка базы (`pg_dump`) в `/var/backups/module-estet`, хранит 14 дней |
 
@@ -312,9 +312,10 @@ TOP-STAYS SE»), — их можно добавить одной кнопкой.
    apt install -y postgresql-client
    ```
 3. Расписание (`crontab -e`). Время — по часам сервера; если на сервере UTC
-   (`date`), 09:00 по Москве — это 06:00:
+   (`date`), 09:00 по Москве — это 06:00, 19:00 — 16:00. Сводки в 9:00 и 19:00:
    ```cron
    0 6 * * *  /var/www/ME/scripts/site-task.sh digest    >> /var/log/module-estet-tasks.log 2>&1
+   0 16 * * * /var/www/ME/scripts/site-task.sh digest    >> /var/log/module-estet-tasks.log 2>&1
    2 6 * * *  /var/www/ME/scripts/site-task.sh reminders >> /var/log/module-estet-tasks.log 2>&1
    30 0 * * * /var/www/ME/scripts/site-task.sh backup    >> /var/log/module-estet-tasks.log 2>&1
    ```

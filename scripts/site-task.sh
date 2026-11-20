@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Регулярные задачи сайта для системного cron на сервере.
 #
-#   site-task.sh digest      утренняя сводка за сутки менеджеру в MAX
+#   site-task.sh digest      сводка заявок менеджеру в MAX (с момента прошлой сводки)
 #   site-task.sh reminders   напоминания «пора связаться» менеджеру в MAX
 #   site-task.sh backup      резервная копия файлов сайта и базы
 #
 # vercel.json на своём сервере ничего не запускает — расписание живёт в crontab
-# (docs/HANDOVER.md, раздел 4, «Регулярные задачи»). Пример для сервера в UTC
-# (09:00 и 06:30 по Москве):
+# (docs/HANDOVER.md, раздел 4, «Регулярные задачи»). Пример для сервера в UTC:
+# сводки в 09:00 и 19:00 по Москве, напоминания в 09:02, бэкап в 03:30
 #   0 6 * * *  /var/www/ME/scripts/site-task.sh digest    >> /var/log/module-estet-tasks.log 2>&1
+#   0 16 * * * /var/www/ME/scripts/site-task.sh digest    >> /var/log/module-estet-tasks.log 2>&1
 #   2 6 * * *  /var/www/ME/scripts/site-task.sh reminders >> /var/log/module-estet-tasks.log 2>&1
 #   30 3 * * * /var/www/ME/scripts/site-task.sh backup    >> /var/log/module-estet-tasks.log 2>&1
 #

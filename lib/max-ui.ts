@@ -489,10 +489,42 @@ export function reminderCard(leads: Lead[]): { text: string; attachments: MaxAtt
 
 /* ────────────────── Утренняя сводка ────────────────── */
 
-export function digestCard(leads: Lead[], stats: { today: number; week: number }): { text: string; attachments: MaxAttachment[] } {
+const MSK_TIME = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })
+const MSK_DAY = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long' })
+const MSK_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' })
+const MSK_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hourCycle: 'h23' })
+
+/**
+ * За какой период сводка: «за сутки», «с 09:00», «с 19:00 вчера»,
+ * «с 17 ноября, 19:00». Время — московское
+ */
+export function digestPeriod(since: string, until: string): string {
+  const from = new Date(since)
+  const to = new Date(until)
+  const hours = (to.getTime() - from.getTime()) / 3_600_000
+  if (hours >= 23 && hours <= 25) return 'за сутки'
+  const time = MSK_TIME.format(from)
+  const dayFrom = MSK_DATE.format(from)
+  if (dayFrom === MSK_DATE.format(to)) return `с ${time}`
+  const yesterday = MSK_DATE.format(new Date(to.getTime() - 86_400_000))
+  if (dayFrom === yesterday) return `с ${time} вчера`
+  return `с ${MSK_DAY.format(from)}, ${time}`
+}
+
+export function digestCard(
+  leads: Lead[],
+  stats: { today: number; week: number },
+  since: string,
+  until: string,
+): { text: string; attachments: MaxAttachment[] } {
+  const period = digestPeriod(since, until)
+  // Утром — солнце, вечером — луна: по часам Москвы
+  const icon = Number(MSK_HOUR.format(new Date(until))) < 15 ? '☀️' : '🌙'
+  const title = `${icon} **СВОДКА ${period.toUpperCase()}**`
+
   if (leads.length === 0) {
     return {
-      text: '☀️ **СВОДКА ЗА СУТКИ**\n\nНовых заявок за последние 24 часа не было.',
+      text: `${title}\n\nНовых заявок ${period} не было.`,
       attachments: keyboard([[cb('📊 Статистика', 'st'), cb('🏠 В меню', 'm')]]),
     }
   }
@@ -504,7 +536,7 @@ export function digestCard(leads: Lead[], stats: { today: number; week: number }
   const newCount = leads.filter((l) => l.status === 'new').length
 
   const text = [
-    '☀️ **СВОДКА ЗА СУТКИ**',
+    title,
     '',
     `Всего заявок: **${leads.length}**${newCount > 0 ? `, из них необработанных: **${newCount}**` : ''}`,
     `За 7 дней: **${stats.week}**`,
