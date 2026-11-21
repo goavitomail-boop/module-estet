@@ -1,0 +1,235 @@
+name: Neon — ветка базы и проверка сайта
+
+# Каждый запуск работает на своей ветке базы — копии production. Боевые
+# данные не трогаются: тестовая заявка уходит в копию, копия потом
+# удаляется. Ключ и проект — из связки Neon с GitHub: секрет NEON_API_KEY
+# и переменная NEON_PROJECT_ID.
+#
+# Строки подключения содержат пароль, поэтому в журнал не попадают: CLI
+# получает их во время работы, они сразу скрываются (::add-mask::), а всё,
+# что печатает CLI, проходит через фильтр postgres://***
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  push:
+    branches: ['claude/**']
+    paths:
+      - 'neon.ts'
+      - 'lib/db.ts'
+      - 'lib/storage.ts'
+      - 'lib/upload-client.ts'
+      - 'app/api/leads/**'
+      - 'app/api/upload/**'
+      - 'app/admin/upload/**'
+      - 'app/admin/file/**'
+      - 'app/media/**'
+      - 'scripts/neon-storage.mjs'
+      - '.github/workflows/neon.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  NEON: npx -y neon@8.8.0
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+  # Ветка PR живёт до закрытия PR, ветка пуша — только на время проверки
+  BRANCH: ${{ github.event_name == 'pull_request' && format('preview/pr-{0}', github.event.number) || format('preview/{0}', github.ref_name) }}
+
+jobs:
+  check:
+    name: Сборка и проверка на ветке базы
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Ветка базы из production, neon deploy
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -uo pipefail
+          redact() { sed -E 's#postgres(ql)?://[^ "'"'"']+#postgres://***#g'; }
+          if [ -z "${NEON_API_KEY:-}" ] || [ -z "$NEON_PROJECT_ID" ]; then
+            echo "::error::Нет секрета NEON_API_KEY или переменной NEON_PROJECT_ID: подключите репозиторий в Neon → Integrations → GitHub"
+            exit 1
+          fi
+          echo "Проект Neon: $NEON_PROJECT_ID, ветка базы: $BRANCH"
+          # Регион — не секрет: от него зависит, есть ли в проекте Object Storage
+          echo "Регион проекта: $($NEON projects get "$NEON_PROJECT_ID" -o json 2>/dev/null | jq -r '.region_id // .project.region_id // "не удалось узнать"' 2>/dev/null || echo 'не удалось узнать')"
+
+          log="$RUNNER_TEMP/neon.log"
+          {
+            $NEON link --project-id "$NEON_PROJECT_ID" --branch production -y --no-env-pull &&
+            $NEON checkout "$BRANCH" --create --no-env-pull &&
+            # Применяет neon.ts к ветке и пишет её DATABASE_URL… в .env.local
+            $NEON deploy -y
+          } > "$log" 2>&1
+          status=$?
+
+          # Всё, что пришло в .env.local, — скрыть в журнале, пароль отдельно.
+          # Имя ветки не секрет: его оставляем видимым
+          if [ -f .env.local ]; then
+            for key in $(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' .env.local | tr -d = | grep -vx NEON_BRANCH); do
+              node --env-file=.env.local -e '
+                const value = process.env[process.argv[1]] || ""
+                if (!value) process.exit(0)
+                console.log("::add-mask::" + value)
+                try { const url = new URL(value); if (url.password) console.log("::add-mask::" + decodeURIComponent(url.password)) } catch {}
+              ' "$key"
+            done
+            echo "В .env.local: $(grep -oE '^[A-Za-z_][A-Za-z0-9_]*' .env.local | tr '\n' ' ')"
+          fi
+          redact < "$log"
+          exit $status
+
+      - name: Сборка (npm run build)
+        run: npm run build
+
+      - name: Запуск сайта
+        env:
+          # Браузерная загрузка в бакет на проверке идёт с localhost — его тоже пускаем в CORS
+          STORAGE_CORS_ORIGINS: http://localhost:3000
+          # Свой бакет ветки, а не унаследованный от production files: у
+          # унаследованного Neon не даёт менять CORS (отвечает NoSuchBucket)
+          STORAGE_BUCKET: ci-files
+        run: |
+          npm run start > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null http://localhost:3000/ && exit 0
+            sleep 1
+          done
+          echo "::error::Сайт не ответил за минуту"
+          exit 1
+
+      - name: Проверка базы через сайт
+        run: |
+          set -euo pipefail
+          db=$(node --env-file=.env.local -e 'console.log(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "")')
+          [ -n "$db" ] || { echo "::error::В .env.local нет DATABASE_URL"; exit 1; }
+
+          # 0. Что уже было в production до проверки (ветка — его копия):
+          #    таблицы и число позиций каталога по разделам, без данных
+          echo "Таблицы в production: $(psql "$db" -tAc "SELECT coalesce(string_agg(table_name, ', ' ORDER BY table_name), 'нет') FROM information_schema.tables WHERE table_schema = 'public'")"
+          if [ "$(psql "$db" -tAc "SELECT to_regclass('public.catalog_items') IS NOT NULL")" = t ]; then
+            echo "Каталог в production: $(psql "$db" -tAc "SELECT coalesce(string_agg(section || ' — ' || n, ', '), 'пусто') FROM (SELECT section, count(*) AS n FROM catalog_items GROUP BY section ORDER BY section) s")"
+          fi
+
+          # 1. Заявка из формы сайта сохраняется в базе
+          started=$(( $(date +%s%3N) - 10000 ))
+          body=$(curl -sS -X POST http://localhost:3000/api/leads -H 'content-type: application/json' \
+            --data "{\"type\":\"project\",\"name\":\"Проверка CI\",\"phone\":\"+7 999 000-00-00\",\"startedAt\":$started,\"details\":{\"comment\":\"Автопроверка подключения Neon\"}}")
+          echo "Ответ /api/leads: $body"
+          id=$(node -e 'const r = JSON.parse(process.argv[1]); if (!r.ok || !r.saved) process.exit(1); console.log(r.id)' "$body") \
+            || { echo "::error::Сайт не сохранил заявку в базу"; exit 1; }
+          row=$(psql "$db" -tAc "SELECT type || ' | ' || name || ' | ' || status FROM leads WHERE id = '$id'")
+          echo "В базе: $id → $row"
+          [ "$row" = "project | Проверка CI | new" ]
+
+          # 2. Таблицы после первого обращения сайта (недостающие он создаёт сам)
+          echo "Таблицы после проверки: $(psql "$db" -tAc "SELECT string_agg(table_name, ', ' ORDER BY table_name) FROM information_schema.tables WHERE table_schema = 'public'")"
+
+          # 3. Страницы и маршруты, которые читают базу
+          for path in /api/availability /facades /countertops /filling; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")
+            echo "$path → $code"
+            [ "$code" = 200 ]
+          done
+          echo "Всё в порядке: сайт пишет в базу Neon и читает из неё"
+
+      - name: Хранилище файлов Neon через сайт
+        env:
+          STORAGE_CORS_ORIGINS: http://localhost:3000
+          STORAGE_BUCKET: ci-files
+        run: |
+          set -euo pipefail
+          # Ключи AWS_* — в .env.local (их пишет neon deploy), в журнале они уже скрыты
+          storage() { node --env-file=.env.local scripts/neon-storage.mjs "$@"; }
+          json() { node -e 'const v = JSON.parse(process.argv[1]); console.log(process.argv[2].split(".").reduce((o, k) => (o == null ? o : o[k]), v) ?? "")' "$1" "$2"; }
+          grep -q '^AWS_ENDPOINT_URL_S3=' .env.local || { echo "::error::neon deploy не выдал ключи хранилища (AWS_*): бакет из neon.ts не создан"; exit 1; }
+
+          storage setup
+          echo 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' | base64 -d > ci.png
+          size=$(stat -c %s ci.png)
+
+          # 1. Прямая загрузка: сайт подписывает ссылку, файл идёт в бакет мимо сервера
+          plan=$(curl -sS -X POST http://localhost:3000/api/upload -H 'content-type: application/json' \
+            --data "{\"name\":\"ci.png\",\"type\":\"image/png\",\"size\":$size}")
+          url=$(json "$plan" url); key=$(json "$plan" pathname)
+          # Подписанная ссылка живёт 10 минут, но в открытый журнал ей незачем
+          [ -n "$url" ] && echo "::add-mask::$url"
+          [ "$(json "$plan" mode)" = put ] || { echo "::error::Сайт не выдал ссылку для загрузки в Neon: $(json "$plan" error)"; exit 1; }
+          echo "Ключ: $key"
+          allow=$(curl -sS -o /dev/null -D - -X OPTIONS "$url" -H 'Origin: http://localhost:3000' \
+            -H 'Access-Control-Request-Method: PUT' -H 'Access-Control-Request-Headers: content-type' | tr -d '\r' | grep -i '^access-control-allow-origin:' || true)
+          echo "CORS для браузера: ${allow:-нет заголовка}"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "$url" -H 'Content-Type: image/png' --data-binary @ci.png)
+          echo "PUT по ссылке → $code"
+          [ "$code" = 200 ]
+          storage head "$key" && echo "Файл в бакете"
+          # Размер подписан: файл другого размера по той же ссылке не примут
+          printf 'лишнее' | cat ci.png - > ci-bigger.png
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT "$url" -H 'Content-Type: image/png' --data-binary @ci-bigger.png)
+          echo "PUT другого размера → $code (ждём отказ)"
+          [ "$code" != 200 ] || echo "::warning::Хранилище приняло файл другого размера: подпись размера не проверяется"
+
+          # 2. Запасной путь: файл через сайт
+          res=$(curl -sS -X PUT "http://localhost:3000/api/upload?name=ci-fallback.png" -H 'Content-Type: image/png' --data-binary @ci.png)
+          key2=$(json "$res" pathname)
+          [ -n "$key2" ] || { echo "::error::Запасная загрузка не прошла: $(json "$res" error)"; exit 1; }
+          storage head "$key2" && echo "Запасной путь: файл в бакете ($key2)"
+
+          # 3. Чтение через сайт: фото каталога по /media
+          storage put catalog/ci/ci-test.png ci.png image/png
+          code=$(curl -sS -o media.png -w '%{http_code}' http://localhost:3000/media/catalog/ci/ci-test.png)
+          echo "/media/catalog/ci/ci-test.png → $code"
+          [ "$code" = 200 ] && cmp -s media.png ci.png && echo "Сайт отдаёт файл из бакета байт в байт"
+
+          # 4. Заявка с файлом: путь сохраняется в базе. Номер свой у каждого
+          # запуска: ветка базы PR живёт между запусками, и заявка с тем же
+          # номером через несколько минут — дубль, у которого остаётся старый файл
+          n=$(printf '%07d' $(( GITHUB_RUN_ID % 10000000 )))
+          phone="+7 999 ${n:0:3}-${n:3:2}-${n:5:2}"
+          started=$(( $(date +%s%3N) - 10000 ))
+          body=$(curl -sS -X POST http://localhost:3000/api/leads -H 'content-type: application/json' \
+            --data "{\"type\":\"project\",\"name\":\"Проверка файлов CI\",\"phone\":\"$phone\",\"startedAt\":$started,\"details\":{\"files\":[{\"name\":\"ci.png\",\"size\":$size,\"type\":\"image/png\",\"pathname\":\"$key\"}]}}")
+          id=$(json "$body" id)
+          db=$(node --env-file=.env.local -e 'console.log(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "")')
+          saved=$(psql "$db" -tAc "SELECT details->'files'->0->>'pathname' FROM leads WHERE id = '$id'")
+          echo "Заявка $id, путь файла в базе: $saved"
+          [ "$saved" = "$key" ]
+
+          storage check
+          for k in "$key" "$key2" catalog/ci/ci-test.png; do storage delete "$k"; done
+          echo "Всё в порядке: файлы идут в Neon Object Storage и читаются сайтом"
+
+      - name: Журнал сайта
+        if: always()
+        run: sed -E 's#postgres(ql)?://[^ "]+#postgres://***#g' "$RUNNER_TEMP/server.log" 2>/dev/null | tail -60 || true
+
+      - name: Удалить ветку базы
+        if: always() && github.event_name != 'pull_request'
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -o pipefail
+          $NEON branches delete "$BRANCH" --project-id "$NEON_PROJECT_ID" 2>&1 | sed -E 's#postgres(ql)?://[^ "]+#postgres://***#g'
+
+  cleanup:
+    name: Удалить ветку базы закрытого PR
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}

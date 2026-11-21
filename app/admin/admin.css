@@ -1,0 +1,610 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Панель управления /admin — облик и движение.
+
+   Правила — в docs/MOTION.md, раздел «Панель». Коротко: панель — рабочий
+   инструмент, поэтому движение здесь в 3–4 раза короче, чем на сайте,
+   и только объясняет: откуда пришло, что сохранилось, что изменилось.
+   Анимируются только transform, opacity и clip-path — 60 кадров на телефоне.
+
+   Почти всё — с fill-mode backwards, а не both: transform, оставшийся на
+   блоке после анимации, сделал бы его контейнером для position: fixed,
+   и окна внутри страницы открывались бы не по центру экрана.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Токены ─────────────────────────────────────────────────────────── */
+
+.admin-root {
+  /* Кривые те же, что на сайте (components/scene-kit.css) */
+  --a-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --a-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --a-leave: cubic-bezier(0.55, 0, 0.75, 0);
+  --a-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --a-pop: cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  /* Время: отклик / переход / появление блока / рост данных */
+  --a-fast: 140ms;
+  --a-base: 220ms;
+  --a-enter: 420ms;
+  --a-data: 720ms;
+  /* Шаг очереди между соседними блоками */
+  --a-step: 45ms;
+
+  /* Тёплая «бумага» вместо серого фона — как чертёжный лист сайта */
+  --admin-bg: oklch(0.974 0.006 84);
+  --admin-line: oklch(0.905 0.008 80);
+  --admin-glow: color-mix(in oklch, var(--primary) 16%, transparent);
+  --admin-shadow:
+    0 1px 0 oklch(0.4 0.02 80 / 0.03),
+    0 1px 2px oklch(0.3 0.02 80 / 0.05),
+    0 10px 28px -16px oklch(0.3 0.03 80 / 0.16);
+  --admin-shadow-lift:
+    0 1px 0 oklch(0.4 0.02 80 / 0.03),
+    0 2px 6px oklch(0.3 0.02 80 / 0.06),
+    0 18px 40px -18px oklch(0.3 0.04 80 / 0.28);
+
+  background: var(--admin-bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  .admin-root {
+    /* Пружины: затухание 0,82 (перелёт ~1 %) и 0,62 (перелёт ~8 %) */
+    --a-spring: linear(0, 0.017, 0.061, 0.124, 0.198, 0.278, 0.359, 0.439, 0.515, 0.586, 0.652, 0.71, 0.762, 0.807, 0.847, 0.88, 0.908, 0.932, 0.951, 0.967, 0.979, 0.989, 0.996, 1.002, 1.006, 1.008, 1.01, 1.011, 1.011, 1.011, 1.01, 1.01, 1.009, 1.008, 1.007, 1.006, 1.005, 1.005, 1.004, 1.003, 1);
+    --a-pop: linear(0, 0.03, 0.107, 0.213, 0.335, 0.461, 0.583, 0.695, 0.794, 0.878, 0.945, 0.997, 1.035, 1.061, 1.076, 1.083, 1.083, 1.078, 1.071, 1.061, 1.05, 1.04, 1.03, 1.021, 1.014, 1.007, 1.002, 0.999, 0.996, 0.994, 0.993, 0.993, 0.993, 0.994, 0.994, 0.995, 0.996, 0.997, 0.998, 0.999, 1);
+  }
+}
+
+/* Тёмная тема панели. Цвета токенов (--background, --card…) задаёт общий
+   класс .dark из globals.css, здесь — только то, что своё у панели */
+.admin-root.dark {
+  --admin-bg: oklch(0.175 0.004 84);
+  --admin-line: oklch(1 0 0 / 10%);
+  --admin-glow: color-mix(in oklch, var(--primary) 22%, transparent);
+  --admin-shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 10px 28px -16px oklch(0 0 0 / 0.6);
+  --admin-shadow-lift: 0 1px 0 oklch(1 0 0 / 0.06) inset, 0 18px 40px -18px oklch(0 0 0 / 0.75);
+  --card: oklch(0.225 0.004 84);
+  --popover: oklch(0.24 0.004 84);
+  --secondary: oklch(0.265 0.004 84);
+  --muted: oklch(0.265 0.004 84);
+  --sidebar: oklch(0.145 0.004 84);
+}
+
+/* Тени карточек — мягкие и тёплые вместо серых. Вне слоёв намеренно:
+   так правило перебивает утилиту shadow-sm, но только внутри панели */
+.admin-root .shadow-sm {
+  --tw-shadow: var(--admin-shadow);
+}
+
+.admin-root ::selection {
+  background: color-mix(in oklch, var(--primary) 32%, transparent);
+}
+
+/* Крупные цифры и заголовки — Oswald, как логотип */
+.admin-display {
+  font-family: var(--font-oswald), var(--font-sans);
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+
+.admin-num {
+  font-family: var(--font-oswald), var(--font-sans);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Боковое меню: едва заметная латунная подсветка сверху и шум, как на сцене сайта */
+.admin-sidebar {
+  background:
+    radial-gradient(120% 60% at 0% 0%, var(--admin-glow), transparent 60%),
+    var(--sidebar);
+}
+
+.admin-sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--noise);
+  opacity: 0.035;
+  pointer-events: none;
+}
+
+/* ── Отклик на касание ───────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* data-no-press — для кнопок, которые двигает framer-motion: CSS-переход
+     по transform растягивал бы каждый его кадр */
+  .admin-root button:not(:disabled):not([data-no-press]),
+  .admin-press {
+    transition-property: color, background-color, border-color, opacity, transform;
+    transition-duration: var(--a-fast);
+    transition-timing-function: var(--a-out);
+  }
+
+  .admin-root button:not(:disabled):not([data-no-press]):active,
+  .admin-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Карточка-ссылка приподнимается под мышью */
+  @media (hover: hover) {
+    /* Тень меняется без перехода: анимировать box-shadow нельзя (MOTION.md, раздел 6) */
+    .admin-lift {
+      transition: transform var(--a-base) var(--a-out), border-color var(--a-base) var(--a-out);
+    }
+    .admin-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--admin-shadow-lift);
+    }
+  }
+}
+
+/* ── Появление страницы ──────────────────────────────────────────────
+   Блоки страницы (дети корневого div) поднимаются очередью. Срабатывает
+   на любой вставке в DOM: переход по разделам, подмена скелетона
+   данными. После сохранения формы те же узлы остаются — и ничего не
+   моргает. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-root main > * > * {
+    animation: admin-rise var(--a-enter) var(--a-out) backwards;
+  }
+  .admin-root main > * > :nth-child(2) { animation-delay: calc(var(--a-step) * 1); }
+  .admin-root main > * > :nth-child(3) { animation-delay: calc(var(--a-step) * 2); }
+  .admin-root main > * > :nth-child(4) { animation-delay: calc(var(--a-step) * 3); }
+  .admin-root main > * > :nth-child(5) { animation-delay: calc(var(--a-step) * 4); }
+  .admin-root main > * > :nth-child(6) { animation-delay: calc(var(--a-step) * 5); }
+  .admin-root main > * > :nth-child(n + 7) { animation-delay: calc(var(--a-step) * 6); }
+
+  /* Плитки показателей — своя очередь внутри сетки */
+  .admin-tiles > * {
+    animation: admin-rise var(--a-enter) var(--a-out) backwards;
+    animation-delay: calc(var(--a-step) * (var(--i, 0) + 1));
+  }
+}
+
+@keyframes admin-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes admin-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ── Скелетоны загрузки ──────────────────────────────────────────────
+   Появляются с задержкой: если база ответила быстро, их не видно вовсе,
+   и экран не мигает серым. */
+
+.admin-root main > .admin-loading {
+  animation: admin-fade var(--a-base) 160ms ease-out backwards;
+}
+
+.admin-root main > .admin-loading > * {
+  animation: none;
+}
+
+.admin-skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in oklch, var(--card) 70%, transparent) 50%,
+      transparent 80%
+    )
+    var(--muted);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-skeleton {
+    animation: admin-shimmer 1.5s linear infinite;
+  }
+}
+
+@keyframes admin-shimmer {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/* ── Данные ──────────────────────────────────────────────────────────
+   Полоски растут от нуля по очереди (--i — номер строки). clip-path,
+   а не scale: скругления не сплющиваются по ходу роста. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-bar-x {
+    animation: admin-grow-x var(--a-data) var(--a-out) backwards;
+    animation-delay: calc(120ms + var(--i, 0) * 55ms);
+  }
+
+  .admin-bar-y {
+    animation: admin-grow-y var(--a-data) var(--a-out) backwards;
+    animation-delay: calc(100ms + var(--i, 0) * 14ms);
+  }
+
+  /* Спарклайн открывается слева направо, как прочерченный. Не через
+     stroke-dasharray: при vector-effect: non-scaling-stroke Chrome считает
+     длину штриха в пикселях экрана, и линия обрывалась на середине */
+  .admin-spark {
+    animation: admin-reveal-x 1s var(--a-in-out) 200ms backwards;
+  }
+  .admin-spark path[data-area] {
+    animation: admin-fade 900ms ease-out 600ms backwards;
+  }
+}
+
+@keyframes admin-grow-x {
+  from {
+    clip-path: inset(0 100% 0 0 round 999px);
+  }
+}
+
+@keyframes admin-reveal-x {
+  from {
+    clip-path: inset(-4px 100% -4px 0);
+  }
+  to {
+    clip-path: inset(-4px 0 -4px 0);
+  }
+}
+
+@keyframes admin-grow-y {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes admin-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* Просроченная заявка: точка с расходящимся кольцом */
+.admin-pulse {
+  position: relative;
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--destructive);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: admin-ping 1.8s var(--a-out) infinite;
+  }
+}
+
+@keyframes admin-ping {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+/* Значок, который только что сменился (статус в шапке карточки) */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-pop {
+    animation: admin-pop 460ms var(--a-pop) backwards;
+  }
+}
+
+@keyframes admin-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+/* ── История заявки ──────────────────────────────────────────────────
+   Линия прорисовывается сверху вниз, события проступают по очереди */
+
+.admin-timeline {
+  position: relative;
+}
+
+.admin-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 1px;
+  background: linear-gradient(var(--primary), var(--border) 30%);
+  transform-origin: top;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-timeline::before {
+    animation: admin-line-y 900ms var(--a-in-out) 150ms backwards;
+  }
+  .admin-timeline > li {
+    animation: admin-rise var(--a-enter) var(--a-out) backwards;
+    animation-delay: calc(200ms + min(var(--i, 0), 10) * 60ms);
+  }
+}
+
+@keyframes admin-line-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* ── Календарь: неделя въезжает с той стороны, куда листали ─────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Специфичнее общего «подъёма» блоков страницы — иначе он бы перебил */
+  .admin-root main [data-week-dir='1'] {
+    animation: admin-from-right var(--a-enter) var(--a-out) backwards;
+  }
+  .admin-root main [data-week-dir='-1'] {
+    animation: admin-from-left var(--a-enter) var(--a-out) backwards;
+  }
+}
+
+@keyframes admin-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes admin-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+/* ── Индикатор активного раздела: переезжает к выбранному пункту ───── */
+
+.admin-nav-indicator {
+  transition: transform 380ms var(--a-spring), opacity var(--a-base) ease;
+}
+
+/* ── Экран входа ─────────────────────────────────────────────────────── */
+
+.admin-login {
+  background:
+    radial-gradient(90% 60% at 50% 0%, var(--admin-glow), transparent 70%),
+    var(--admin-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-login-card {
+    animation: admin-rise 700ms var(--a-out) 850ms backwards;
+  }
+  .admin-login-caption {
+    animation: admin-fade 600ms ease-out 800ms backwards;
+  }
+}
+
+/* «Уменьшить движение»: всё сразу на месте, кроме смены цвета */
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav-indicator {
+    transition: none;
+  }
+}
+
+/* Печать карточки: анимации и тени на бумаге не нужны */
+@media print {
+  .admin-root,
+  .admin-root * {
+    animation: none !important;
+  }
+  .admin-root {
+    background: #fff !important;
+  }
+}
+
+/* ── Уведомления: полоска оставшегося времени ─────────────────────── */
+
+.admin-toast-timer {
+  animation: admin-timer linear forwards;
+}
+
+.admin-toast:hover .admin-toast-timer {
+  animation-play-state: paused;
+}
+
+@keyframes admin-timer {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* ── Смена темы: новая тема раскрывается кругом от кнопки ─────────────
+   Сам круг рисует JS (theme-toggle.tsx) через View Transitions API;
+   здесь — отключаем стандартное перекрёстное затухание браузера. */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Подложка страницы при оттягивании на iPhone — в цвет панели, а не белая */
+html:has(.admin-root),
+html:has(.admin-root) body {
+  background: oklch(0.974 0.006 84);
+}
+
+html:has(.admin-root.dark),
+html:has(.admin-root.dark) body {
+  background: oklch(0.175 0.004 84);
+}
+
+/* Первое положение подложки меню ставится без перехода (sidebar-nav.tsx) */
+.admin-nav-indicator[data-pending] {
+  transition: none;
+}
+
+/* Сетка плиток не поднимается целиком — плитки идут своей очередью */
+.admin-root main > * > .admin-tiles {
+  animation: none;
+}
+
+/* Строки списка проступают очередью (--i — номер строки) */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-stagger > * {
+    animation: admin-rise var(--a-enter) var(--a-out) backwards;
+    animation-delay: calc(90ms + min(var(--i, 0), 12) * 28ms);
+  }
+}
+
+/* Экран входа: знак сайта прорисовывается линией — рама, «М», засечка
+   (ModuleEstetMark с draw, pathLength = 1) */
+@media (prefers-reduced-motion: no-preference) {
+  /* Концы линий квадратные и круглые: до старта они видны точкой,
+     поэтому в первом кадре линия ещё и прозрачна (admin-draw-in) */
+  .me-draw path,
+  .me-draw line {
+    stroke-dasharray: 1;
+    animation: admin-draw-in 1s var(--a-in-out) backwards;
+  }
+  .me-draw path:nth-of-type(2) {
+    animation-delay: 220ms;
+  }
+  .me-draw line {
+    animation-duration: 400ms;
+    animation-delay: 950ms;
+  }
+  .admin-login-word {
+    animation: admin-rise 600ms var(--a-out) 700ms backwards;
+  }
+}
+
+@keyframes admin-draw-in {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Личный кабинет клиента (/kabinet). Корень тот же — .admin-root, поэтому
+   всё выше (токены, появление, скелетоны) работает и здесь.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Ход заказа: пять кружков на линии, латунная заливка доходит до текущего этапа */
+.kb-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.kb-track__line {
+  position: absolute;
+  top: 15px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.kb-track__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--primary);
+  transform-origin: left;
+  transform: scaleX(var(--p, 0));
+}
+
+.kb-step__dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+
+.kb-step--done .kb-step__dot {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.kb-step--current .kb-step__dot {
+  border-color: var(--primary);
+  color: var(--accent-foreground);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kb-track__fill {
+    animation: kb-fill 1.1s var(--a-in-out) 250ms backwards;
+  }
+  .kb-step__dot {
+    animation: admin-pop 520ms var(--a-pop) backwards;
+    animation-delay: calc(150ms + var(--i, 0) * 110ms);
+  }
+  /* Текущий этап «дышит» — видно, где заказ сейчас */
+  .kb-step--current .kb-step__dot::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    border: 2px solid var(--primary);
+    animation: kb-breathe 2.4s var(--a-out) 1.2s infinite;
+  }
+}
+
+@keyframes kb-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes kb-breathe {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70%,
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+/* Фото в галерее: приближаются под мышью */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .kb-photo img {
+    transition: transform 600ms var(--a-out);
+  }
+  .kb-photo:hover img {
+    transform: scale(1.04);
+  }
+}

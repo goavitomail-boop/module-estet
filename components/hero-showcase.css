@@ -1,0 +1,131 @@
+/*
+ * Первый экран главной (components/hero-showcase.tsx): слева неподвижный
+ * текст, справа сцена, которая по кругу показывает, что есть на сайте.
+ *
+ * Главы сменяет не таймер, а конец полоски прогресса во вкладке: пауза
+ * (кнопка, уход с экрана, заставка при входе) останавливает анимации —
+ * и вместе с ними сам показ. Анимируются только transform и opacity,
+ * и только у текущей главы: слои во всю сцену двигаются лишь в своё окно.
+ *
+ * Общие входы, уходы, шторка и палец — в scene-kit.css.
+ */
+
+/* Пока идёт заставка — всё на первом кадре, показ глав тоже стоит */
+html[data-preloader='active'] .hs,
+html[data-preloader='active'] .hs *,
+html[data-preloader='leaving'] .hs,
+html[data-preloader='leaving'] .hs * {
+  animation-play-state: paused !important;
+}
+/* Пауза кнопкой или когда первый экран ушёл из виду */
+.hs-paused,
+.hs-paused * {
+  animation-play-state: paused !important;
+}
+
+/* ── Фон ──────────────────────────────────────────────────────────── */
+
+/* Чёрный мрамор с тёплыми прожилками под тёмной вуалью: фон живой, а не
+   плоский серый, текст читается как прежде.
+   Текстура — бесшовная плитка Marble006 из ambientCG (CC0, можно без
+   указания автора), 2048 px; на телефон — та же, 1366 px. Плитка повторяется
+   в своём размере, а не растягивается на весь экран: на Retina и телефоне
+   камень остаётся чётким. 60% вуали уже запечено в картинку (так она легче),
+   градиент ниже добавляет остальное. Пока текстура грузится — цвет bg-foreground */
+.hs-stone {
+  background-image:
+    linear-gradient(90deg, rgb(18 17 15 / 0.78) 0%, rgb(18 17 15 / 0.3) 55%, rgb(18 17 15 / 0.55) 100%),
+    url(/images/hero-stone.webp);
+  background-size: auto, 1024px;
+  background-position: center top;
+}
+/* На телефоне и планшете текст идёт на всю ширину — вуаль ровная сверху вниз */
+@media (max-width: 1023px) {
+  .hs-stone {
+    background-image:
+      linear-gradient(180deg, rgb(18 17 15 / 0.55) 0%, rgb(18 17 15 / 0.25) 50%, rgb(18 17 15 / 0.62) 100%),
+      url(/images/hero-stone-m.webp);
+    background-size: auto, 683px;
+  }
+}
+
+/* ── Текст слева ───────────────────────────────────────────────────── */
+
+.hs-title {
+  font-family: var(--font-oswald), 'Arial Narrow', sans-serif;
+  font-size: clamp(2.75rem, 5vw, 4.75rem);
+  line-height: 1.04;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+.hs-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.hs-line > span {
+  display: inline-block;
+  animation: hs-rise 0.9s var(--d) var(--out) both;
+}
+
+/* ── Смена глав ───────────────────────────────────────────────────── */
+
+/* Створки-купе: съезжаются над прошлой главой и разъезжаются над шкафом */
+.hs-door {
+  animation: hs-door-l 1.45s var(--in-out) both;
+}
+.hs-door--r {
+  animation-name: hs-door-r;
+}
+@keyframes hs-door-l {
+  0% { transform: translateX(-101%); animation-timing-function: var(--out); }
+  32% { transform: none; }
+  45% { transform: none; animation-timing-function: var(--in-out); }
+  100% { transform: translateX(-101%); }
+}
+@keyframes hs-door-r {
+  0% { transform: translateX(101%); animation-timing-function: var(--out); }
+  32% { transform: none; }
+  45% { transform: none; animation-timing-function: var(--in-out); }
+  100% { transform: translateX(101%); }
+}
+/* Шкаф под створками появляется, когда они сомкнулись */
+.hs-behind {
+  animation: hs-behind 1.45s linear both;
+}
+@keyframes hs-behind {
+  0%, 31% { opacity: 0; }
+  32%, 100% { opacity: 1; }
+}
+
+/* Полоска шага в телефоне квиза: 1 из 6 → 2 из 6 */
+.hs-step {
+  transform: scaleX(0.1667);
+  transform-origin: left;
+  animation: hs-step 0.5s var(--d) var(--out) forwards;
+}
+@keyframes hs-step {
+  to { transform: scaleX(0.3333); }
+}
+
+/* ── Вкладки ──────────────────────────────────────────────────────── */
+
+/* Конец этой полоски и есть смена главы (onAnimationEnd) */
+.hs-progress {
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: hs-progress var(--t) linear forwards;
+}
+@keyframes hs-progress {
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Без движения главы меняются только вкладками */
+  .hs-progress {
+    animation: none;
+    transform: none;
+  }
+}

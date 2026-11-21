@@ -1,0 +1,45 @@
+/*
+ * Форма записи на замер (booking-scenes.tsx). Сцены шагов живут в .hs
+ * (scene-kit) и .ss (scheme-kit); здесь — циферблат слота и круги звонка.
+ */
+
+/* Стрелка циферблата 40×40 поворачивается вокруг его центра */
+.bk-hand {
+  transform-box: view-box;
+  transform-origin: 20px 20px;
+}
+
+/* Выбрали слот: дуга часов визита прочерчивается, стрелка проходит их */
+.bk-arc {
+  stroke-dasharray: 1;
+  animation: bk-arc 0.8s 0.05s var(--in-out) both;
+}
+@keyframes bk-arc {
+  from { stroke-dashoffset: 1; }
+}
+.bk-hand--sweep {
+  animation: bk-hand 0.8s 0.05s var(--in-out) both;
+}
+@keyframes bk-hand {
+  from { transform: rotate(var(--a0)); }
+  to { transform: rotate(var(--a1)); }
+}
+
+/* Звонок: от аватара расходятся круги; до начала и после конца их не видно */
+.bk-ring {
+  opacity: 0;
+  animation: bk-ring 1.2s var(--d, 0s) var(--out) forwards;
+}
+@keyframes bk-ring {
+  0% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk-arc,
+  .bk-hand--sweep,
+  .bk-ring {
+    animation-duration: 1ms;
+    animation-delay: 0s;
+  }
+}

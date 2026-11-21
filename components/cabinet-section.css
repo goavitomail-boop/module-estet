@@ -1,0 +1,26 @@
+/*
+ * Сцена «Личный кабинет» на главной (components/cabinet-section.tsx).
+ * Остальное движение — из scene-kit.css; здесь только то, чего там нет.
+ */
+
+/* Полоса заполняется слева направо: этапы и срок изготовления */
+.cab-fill {
+  animation: cab-fill var(--t, 0.55s) var(--d, 0s) var(--out) both;
+}
+@keyframes cab-fill {
+  from { transform: scaleX(0); }
+}
+
+/* Текущий этап «дышит» латунным кольцом */
+.cab-ring {
+  opacity: 0;
+  animation: cab-ring 2.2s var(--d, 0s) var(--out) infinite;
+}
+@keyframes cab-ring {
+  0% { opacity: 0.9; transform: scale(0.6); }
+  70%, 100% { opacity: 0; transform: scale(1.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cab-ring { animation: none; }
+}

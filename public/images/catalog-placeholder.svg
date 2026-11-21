@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Фотография пока не загружена">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#efece6"/>
+      <stop offset="1" stop-color="#e2ddd4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <g fill="none" stroke="#b9ab93" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="430" y="330" width="340" height="250" rx="18"/>
+    <path d="M430 505l92-86a26 26 0 0 1 36 0l84 79"/>
+    <path d="M648 528l52-48a26 26 0 0 1 36 0l34 32"/>
+    <circle cx="676" cy="396" r="26"/>
+  </g>
+  <text x="600" y="668" text-anchor="middle" font-family="Oswald, Arial, sans-serif" font-size="38" letter-spacing="2" fill="#9a8b73">ФОТО НЕ ЗАГРУЖЕНО</text>
+</svg>

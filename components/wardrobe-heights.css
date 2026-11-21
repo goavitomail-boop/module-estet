@@ -1,0 +1,25 @@
+/*
+ * Высота шкафа (components/wardrobe-heights.tsx). Корень — .hs из scene-kit:
+ * оттуда кривые. Шкаф меняет высоту переходами по transform: верх корпуса
+ * и антресоль едут вверх-вниз, размерные линии растягиваются от низа.
+ */
+
+.wh-move {
+  transition: transform 0.8s var(--in-out);
+}
+.wh-fade {
+  transition: opacity 0.5s var(--out);
+}
+.wh-stretch {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transition: transform 0.8s var(--in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wh-move,
+  .wh-fade,
+  .wh-stretch {
+    transition: none !important;
+  }
+}

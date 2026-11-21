@@ -1,0 +1,371 @@
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  PutBucketCorsCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { createReadStream } from 'node:fs'
+import { mkdir, stat, statfs, unlink, writeFile, access, constants as fsConstants } from 'node:fs/promises'
+import path from 'node:path'
+import { Readable } from 'node:stream'
+import { siteUrl } from '@/lib/seo'
+
+/**
+ * Файловое хранилище сайта: файлы из квиза, файлы менеджеров к заявкам,
+ * фото портфолио и каталога.
+ *
+ * Основное — Neon Object Storage: S3-совместимое хранилище того же проекта
+ * Neon, что и база (бакет files, объявлен в neon.ts). Доступ — переменные
+ * AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.
+ *
+ * Запасное — Vercel Blob, где файлы лежали раньше. Пока переменных Neon на
+ * сервере нет, всё пишется и читается по-старому. Когда они есть, новые
+ * файлы идут в Neon, а читается сначала Neon, потом Blob: файл, ещё не
+ * перенесённый скриптом scripts/neon-storage.mjs migrate, всё равно
+ * откроется.
+ *
+ * Ключ объекта — тот же путь, что был в Blob (leads/…, portfolio/…,
+ * catalog/…): база хранит пути, и после переноса ничего в ней менять не нужно.
+ *
+ * Третий вариант — папка на самом сервере (STORAGE_DIR, например
+ * /var/www/storage). Если она задана, новые файлы пишутся туда, а читается
+ * сначала она, потом Neon и Blob — старые файлы откроются, если те живы.
+ * Папка должна лежать вне папок сайта (html, html-old): их меняет выкатка.
+ */
+
+export const BUCKET = process.env.STORAGE_BUCKET || 'files'
+
+/** Где лежат новые файлы: на сервере, в Neon, в Blob или нигде (не настроено ничего) */
+export type StorageKind = 'local' | 'neon' | 'blob' | null
+
+/** Папка хранилища на сервере — абсолютный путь из STORAGE_DIR */
+export function localStorageDir(): string | null {
+  const dir = process.env.STORAGE_DIR?.trim()
+  return dir && path.isAbsolute(dir) ? path.resolve(dir) : null
+}
+
+export function isLocalStorage(): boolean {
+  return localStorageDir() !== null
+}
+
+export function isNeonStorage(): boolean {
+  return Boolean(process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
+}
+
+/** Blob: на своём сервере только по токену (OIDC бывает лишь на Vercel) */
+export function isBlobStorage(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL)
+}
+
+export function storageKind(): StorageKind {
+  if (isLocalStorage()) return 'local'
+  if (isNeonStorage()) return 'neon'
+  if (isBlobStorage()) return 'blob'
+  return null
+}
+
+let client: S3Client | null = null
+
+function s3(): S3Client {
+  client ??= new S3Client({
+    endpoint: process.env.AWS_ENDPOINT_URL_S3,
+    region: process.env.AWS_REGION || 'us-east-2',
+    // Neon понимает только адреса вида endpoint/бакет/ключ
+    forcePathStyle: true,
+    // Контрольные суммы — только там, где их требует сам протокол. Новые
+    // версии SDK добавляют их всюду, и тогда подписанная ссылка для браузера
+    // ждёт сумму пустого тела, а S3-совместимые хранилища не все их понимают
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
+  })
+  return client
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Ключи
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Имя файла без путей и управляющих символов: оно попадает в ключ хранилища */
+export function safeName(value: string): string {
+  const base = value.split(/[\\/]/).pop() ?? ''
+  const clean = base.replace(/[^\p{L}\p{N}._ -]+/gu, '_').replace(/\.{2,}/g, '.').trim().slice(0, 120)
+  return clean || 'file'
+}
+
+/**
+ * Ключ нового файла в папке: имя со случайным хвостом перед расширением, как
+ * делал Blob. Хвост нужен и для неповторимости, и для кэша: один адрес — всегда
+ * один и тот же файл, поэтому /media отдаёт картинки с вечным кэшем
+ */
+export function newKey(folder: string, name: string): string {
+  const clean = safeName(name)
+  const dot = clean.lastIndexOf('.')
+  const stem = dot > 0 ? clean.slice(0, dot) : clean
+  const ext = dot > 0 ? clean.slice(dot) : ''
+  const tail = crypto.randomUUID().replace(/-/g, '').slice(0, 10)
+  return `${folder.replace(/\/+$/, '')}/${Date.now()}-${stem}-${tail}${ext}`
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Запись
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** Источники, с которых браузер грузит прямо в бакет: сайт и то, что задано в STORAGE_CORS_ORIGINS */
+export function corsOrigins(): string[] {
+  const extra = (process.env.STORAGE_CORS_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  const main = new URL(siteUrl)
+  return [...new Set([main.origin, `${main.protocol}//www.${main.host}`, ...extra])]
+}
+
+let corsReady: Promise<void> | null = null
+
+/**
+ * Разрешить браузеру грузить в бакет напрямую (CORS) — один раз на запуск
+ * сервера, при первой загрузке. Не вышло — не страшно: браузер тогда
+ * отправит файл запасным путём через сервер
+ */
+function ensureCors(): Promise<void> {
+  corsReady ??= s3()
+    .send(
+      new PutBucketCorsCommand({
+        Bucket: BUCKET,
+        CORSConfiguration: {
+          CORSRules: [{ AllowedOrigins: corsOrigins(), AllowedMethods: ['PUT'], AllowedHeaders: ['content-type'], MaxAgeSeconds: 3600 }],
+        },
+      }),
+    )
+    .then(() => undefined)
+    // Раз на запуск: если у ключа нет права на CORS, журнал не забьётся одинаковыми ошибками
+    .catch((error) => {
+      console.error('[Storage] Не удалось настроить CORS бакета (настройте его командой scripts/neon-storage.mjs setup):', error instanceof Error ? error.message : error)
+    })
+  return corsReady
+}
+
+/**
+ * Ссылка, по которой браузер сам положит файл в бакет (подписанный PUT на
+ * 10 минут). Тип и размер подписаны: с другим размером или типом хранилище
+ * файл не примет — так одноразовую ссылку не используют для чего-то большего
+ */
+export async function signUpload(key: string, contentType: string, size: number): Promise<{ url: string; headers: Record<string, string> }> {
+  await ensureCors()
+  const url = await getSignedUrl(
+    s3(),
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType, ContentLength: size }),
+    { expiresIn: 600, signableHeaders: new Set(['content-type', 'content-length']) },
+  )
+  return { url, headers: { 'Content-Type': contentType } }
+}
+
+/**
+ * Путь файла на диске по ключу. Ключ приходит из базы и из адреса /media, и
+ * выйти за пределы папки хранилища он не должен ни при каком содержимом
+ */
+function localPath(key: string): string {
+  const root = localStorageDir()
+  if (!root) throw new Error('STORAGE_DIR не задан')
+  const full = path.resolve(root, key)
+  if (full !== root && !full.startsWith(root + path.sep)) throw new Error('Недопустимый путь файла')
+  return full
+}
+
+/** Тип файла по расширению: на диске он не хранится, а ключи сохраняют расширение исходного имени */
+const TYPES: Record<string, string> = {
+  '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.avif': 'image/avif',
+  '.heic': 'image/heic', '.pdf': 'application/pdf', '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+}
+
+function typeByName(key: string): string {
+  return TYPES[path.extname(key).toLowerCase()] ?? 'application/octet-stream'
+}
+
+/** Положить файл с сервера: в папку на сервере, иначе в Neon, а пока и он не настроен — в Blob */
+export async function putFile(key: string, body: Uint8Array, contentType: string): Promise<{ pathname: string }> {
+  if (isLocalStorage()) {
+    const full = localPath(key)
+    await mkdir(path.dirname(full), { recursive: true })
+    // wx — не перезаписывать: у ключа случайный хвост, совпадение значит ошибку
+    await writeFile(full, body, { flag: 'wx' })
+    return { pathname: key }
+  }
+  if (isNeonStorage()) {
+    await s3().send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType, ContentLength: body.byteLength }))
+    return { pathname: key }
+  }
+  const { put } = await import('@vercel/blob')
+  const blob = await put(key, Buffer.from(body), { access: 'private', contentType, addRandomSuffix: false })
+  return { pathname: blob.pathname }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Чтение и удаление
+   ══════════════════════════════════════════════════════════════════════ */
+
+export type StoredFile = { stream: ReadableStream; contentType: string; size: number }
+
+const isMissing = (error: unknown) => {
+  const e = error as { name?: string; $metadata?: { httpStatusCode?: number } }
+  return e?.name === 'NoSuchKey' || e?.name === 'NotFound' || e?.$metadata?.httpStatusCode === 404
+}
+
+/** Файл по ключу: сначала Neon, потом Blob — там лежат ещё не перенесённые. Нет нигде — null */
+export async function readFile(key: string): Promise<StoredFile | null> {
+  if (isLocalStorage()) {
+    try {
+      const full = localPath(key)
+      const info = await stat(full)
+      if (info.isFile()) {
+        return {
+          stream: Readable.toWeb(createReadStream(full)) as unknown as ReadableStream,
+          contentType: typeByName(key),
+          size: info.size,
+        }
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error
+    }
+    // Файла на сервере нет — возможно, он загружен раньше, в Neon или Blob
+    if (!isNeonStorage() && !isBlobStorage()) return null
+  }
+  // Отказ Neon (не «файла нет», а, например, 403) запоминаем и всё равно
+  // пробуем Blob: файл мог остаться там, если его ещё не перенесли. Нет его и
+  // там — отдаём именно ошибку Neon, чтобы в журнале была настоящая причина
+  let neonError: unknown = null
+  if (isNeonStorage()) {
+    try {
+      const result = await s3().send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+      if (result.Body) {
+        return {
+          stream: result.Body.transformToWebStream(),
+          contentType: result.ContentType || 'application/octet-stream',
+          size: Number(result.ContentLength ?? 0),
+        }
+      }
+    } catch (error) {
+      if (!isMissing(error)) neonError = error
+    }
+  }
+  if (!isBlobStorage()) {
+    if (neonError) throw neonError
+    return null
+  }
+  const { get } = await import('@vercel/blob')
+  const result = await get(key, { access: 'private' })
+  if (!result || result.statusCode !== 200 || !result.stream) {
+    if (neonError) throw neonError
+    return null
+  }
+  return { stream: result.stream as unknown as ReadableStream, contentType: result.blob.contentType || 'application/octet-stream', size: result.blob.size }
+}
+
+/** Есть ли файл в Neon — для проверки после загрузки и для переноса */
+export async function existsInNeon(key: string): Promise<boolean> {
+  try {
+    await s3().send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
+    return true
+  } catch (error) {
+    if (isMissing(error)) return false
+    throw error
+  }
+}
+
+/**
+ * Удалить файлы везде, где они могут быть: и в Neon, и в Blob. Ошибки — в
+ * журнал: запись в базе уже удалена, и осиротевший файл лучше, чем
+ * несохранённое удаление
+ */
+export async function deleteFiles(keys: string[]): Promise<void> {
+  const list = keys.filter(Boolean)
+  if (list.length === 0) return
+  if (isLocalStorage()) {
+    for (const key of list) {
+      try {
+        await unlink(localPath(key))
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+          console.error('[Storage] Не удалось удалить файл с сервера:', key, error instanceof Error ? error.message : error)
+        }
+      }
+    }
+  }
+  if (isNeonStorage()) {
+    for (let i = 0; i < list.length; i += 1000) {
+      try {
+        await s3().send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: list.slice(i, i + 1000).map((Key) => ({ Key })), Quiet: true } }))
+      } catch (error) {
+        console.error('[Storage] Не удалось удалить файлы из Neon:', error instanceof Error ? error.message : error)
+      }
+    }
+  }
+  if (isBlobStorage()) {
+    try {
+      const { del } = await import('@vercel/blob')
+      await del(list)
+    } catch (error) {
+      console.error('[Storage] Не удалось удалить файлы из Blob:', error instanceof Error ? error.message : error)
+    }
+  }
+}
+
+/**
+ * Почему хранилище отказало — словами, без секретов. Неудачный HEAD приходит
+ * без тела, и SDK знает только код ответа, поэтому проверка ниже делает
+ * запрос со списком файлов: на него хранилище отвечает кодом ошибки
+ */
+export function describeStorageError(error: unknown): string {
+  const e = error as { name?: string; code?: string; message?: string; $metadata?: { httpStatusCode?: number } }
+  const status = e?.$metadata?.httpStatusCode
+  // У сетевых ошибок name — просто «Error», а суть в code (ECONNREFUSED…)
+  const id = e?.name && e.name !== 'Error' ? e.name : (e?.code ?? e?.name)
+  switch (id) {
+    case 'InvalidAccessKeyId':
+      return 'Neon не знает такой ключ — он удалён или AWS_ACCESS_KEY_ID вписан с ошибкой'
+    case 'SignatureDoesNotMatch':
+      return 'секрет не подходит к ключу — AWS_SECRET_ACCESS_KEY с ошибкой или от другого ключа, либо AWS_REGION не совпадает с регионом в адресе'
+    case 'AuthorizationHeaderMalformed':
+      return 'неверный регион — AWS_REGION должен совпадать с регионом в AWS_ENDPOINT_URL_S3'
+    case 'AccessDenied':
+      return 'у ключа нет прав на хранилище (нужны storage:read и storage:write) или он от другой ветки Neon'
+    case 'NoSuchBucket':
+      return `бакета «${BUCKET}» нет — создайте его в консоли Neon: ветка production → Object storage → New bucket`
+    case 'ENOTFOUND':
+    case 'ECONNREFUSED':
+    case 'ETIMEDOUT':
+      return 'адрес хранилища не отвечает — проверьте AWS_ENDPOINT_URL_S3'
+  }
+  if (status === 403) return 'доступ запрещён (403) — ключ удалён, секрет с ошибкой или у ключа нет прав storage:read и storage:write'
+  if (status === 400) return 'хранилище отклонило запрос (400) — чаще всего неверный AWS_REGION или адрес AWS_ENDPOINT_URL_S3'
+  const detail = e?.message && e.message !== id ? `: ${e.message.slice(0, 160)}` : ''
+  return `${id ?? 'ошибка'}${status ? ` (${status})` : ''}${detail}`
+}
+
+/** Для диагностики: есть ли папка хранилища на сервере, можно ли в неё писать и сколько места */
+export async function checkLocalStorage(): Promise<{ ok: boolean; error?: string; freeGb?: number }> {
+  const dir = localStorageDir()
+  if (!dir) return { ok: false, error: 'STORAGE_DIR не задан или путь не абсолютный' }
+  try {
+    await access(dir, fsConstants.W_OK)
+    const fs = await statfs(dir)
+    return { ok: true, freeGb: Math.round(((fs.bavail * fs.bsize) / 1024 ** 3) * 10) / 10 }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code
+    return { ok: false, error: code === 'ENOENT' ? `папки ${dir} нет — создайте её: mkdir -p ${dir}` : code === 'EACCES' ? `нет прав на запись в ${dir}` : String(error) }
+  }
+}
+
+/** Для диагностики: доступен ли бакет Neon. Ошибку — текстом, без секретов */
+export async function checkNeonBucket(): Promise<{ ok: boolean; error?: string }> {
+  if (!isNeonStorage()) return { ok: false, error: 'переменные AWS_* не заданы' }
+  try {
+    await s3().send(new ListObjectsV2Command({ Bucket: BUCKET, MaxKeys: 1 }))
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: describeStorageError(error) }
+  }
+}

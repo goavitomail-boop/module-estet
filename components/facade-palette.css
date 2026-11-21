@@ -1,0 +1,117 @@
+/*
+ * Веер образцов (components/facade-palette.tsx). Корень — .hs из scene-kit:
+ * оттуда кривые. Пластины вращаются вокруг заклёпки переходами, а не
+ * анимациями: веер сворачивают и раскрывают в любой момент, и пластина едет
+ * обратно с того места, где её застали. Сворачивается вдвое быстрее.
+ *
+ * Размеры — в долях ширины сцены (cqw), их задаёт компонент: --w — ширина
+ * пластины, --len — от заклёпки до кончика, --pivot — заклёпка над низом
+ * сцены, --lift — насколько выдвигается выбранная.
+ */
+
+.fp-stage {
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  max-width: 34rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.fp[data-open] .fp-stage {
+  cursor: default;
+  /* Вдоль веера ведут пальцем, вертикально — листают страницу */
+  touch-action: pan-y;
+}
+
+.fp-arm {
+  position: absolute;
+  left: calc(50% - var(--w) / 2);
+  bottom: calc(var(--pivot) - var(--w) / 2);
+  width: var(--w);
+  height: calc(var(--len) + var(--w) / 2);
+  transform-origin: 50% calc(100% - var(--w) / 2);
+  transform: rotate(var(--closed));
+  transition: transform 0.45s var(--in-out);
+}
+.fp[data-open] .fp-arm {
+  transform: rotate(var(--open));
+  transition: transform 0.9s var(--spring) calc(var(--i) * 18ms);
+}
+.fp-arm:focus-visible {
+  outline: none;
+}
+
+/* Пластина: сверху образец, у заклёпки — светлый хвостик, как у настоящего веера */
+.fp-strip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 1.2cqw 1.2cqw calc(var(--w) / 2) calc(var(--w) / 2);
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--foreground) 12%, transparent),
+    -0.4cqw 0.4cqw 1.4cqw color-mix(in oklab, var(--foreground) 16%, transparent);
+  transition: transform 0.2s var(--out);
+}
+.fp-swatch {
+  position: absolute;
+  inset: 0 0 calc(var(--w) * 1.15) 0;
+}
+.fp-strip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--primary);
+  opacity: 0;
+  transition: opacity 0.2s var(--out);
+}
+.fp-arm[data-lift] .fp-strip {
+  transform: translateY(calc(var(--lift) * -1));
+  transition: transform 0.35s var(--out);
+}
+.fp-arm[data-lift] .fp-strip::after,
+.fp-arm:focus-visible .fp-strip::after {
+  opacity: 1;
+}
+
+.fp-rivet {
+  position: absolute;
+  left: 50%;
+  bottom: var(--pivot);
+  width: 3.2cqw;
+  height: 3.2cqw;
+  translate: -50% 50%;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow:
+    inset 0 0 0 0.7cqw color-mix(in oklab, var(--primary) 70%, var(--foreground)),
+    0 0.2cqw 0.6cqw color-mix(in oklab, var(--foreground) 30%, transparent);
+  pointer-events: none;
+}
+
+/* Образец рядом с веером: новый въезжает шторкой, быстрее обычной — по вееру водят */
+.fp-tile .hs-wipe,
+.fp-tile .hs-wipe > .hs-wipe-img {
+  animation-duration: 0.55s;
+}
+.fp-name {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+.fp-name > span {
+  display: inline-block;
+}
+.fp-name > [data-new] {
+  animation: hs-rise 0.5s var(--out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-arm,
+  .fp-strip,
+  .fp-strip::after {
+    transition: none !important;
+  }
+}

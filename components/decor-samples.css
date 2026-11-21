@@ -1,0 +1,44 @@
+/*
+ * Образцы декоров (components/decor-samples.tsx) в карточке «Цвета и
+ * фактуры» на главной. Лежат стопкой; мышью раскладываются в ряд, пока
+ * курсор на карточке (.group из materials-section.tsx), пальцем — один раз,
+ * когда карточку долистали (data-open). Собираются вдвое быстрее.
+ */
+
+.ds {
+  position: relative;
+  display: block;
+  height: 2.6rem;
+  --chip: 1.75rem;
+  --step: 1.3rem;
+}
+
+.ds-chip {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--chip);
+  height: var(--chip);
+  overflow: hidden;
+  border-radius: 0.3rem;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--background) 22%, transparent),
+    -2px 2px 6px color-mix(in oklab, var(--foreground) 70%, transparent);
+  transform: translate(calc(var(--i) * 2px), calc(var(--i) * -1.5px)) rotate(var(--tilt));
+  transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.group:hover .ds-chip,
+.group:focus-within .ds-chip,
+.ds[data-open] .ds-chip {
+  transform: translateX(calc(var(--i) * var(--step)));
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 30ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chip,
+  .group:hover .ds-chip,
+  .group:focus-within .ds-chip,
+  .ds[data-open] .ds-chip {
+    transition: none !important;
+  }
+}
