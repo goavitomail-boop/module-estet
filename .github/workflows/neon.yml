@@ -193,10 +193,14 @@ jobs:
           echo "/media/catalog/ci/ci-test.png → $code"
           [ "$code" = 200 ] && cmp -s media.png ci.png && echo "Сайт отдаёт файл из бакета байт в байт"
 
-          # 4. Заявка с файлом: путь сохраняется в базе
+          # 4. Заявка с файлом: путь сохраняется в базе. Номер свой у каждого
+          # запуска: ветка базы PR живёт между запусками, и заявка с тем же
+          # номером через несколько минут — дубль, у которого остаётся старый файл
+          n=$(printf '%07d' $(( GITHUB_RUN_ID % 10000000 )))
+          phone="+7 999 ${n:0:3}-${n:3:2}-${n:5:2}"
           started=$(( $(date +%s%3N) - 10000 ))
           body=$(curl -sS -X POST http://localhost:3000/api/leads -H 'content-type: application/json' \
-            --data "{\"type\":\"project\",\"name\":\"Проверка файлов CI\",\"phone\":\"+7 999 000-00-01\",\"startedAt\":$started,\"details\":{\"files\":[{\"name\":\"ci.png\",\"size\":$size,\"type\":\"image/png\",\"pathname\":\"$key\"}]}}")
+            --data "{\"type\":\"project\",\"name\":\"Проверка файлов CI\",\"phone\":\"$phone\",\"startedAt\":$started,\"details\":{\"files\":[{\"name\":\"ci.png\",\"size\":$size,\"type\":\"image/png\",\"pathname\":\"$key\"}]}}")
           id=$(json "$body" id)
           db=$(node --env-file=.env.local -e 'console.log(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "")')
           saved=$(psql "$db" -tAc "SELECT details->'files'->0->>'pathname' FROM leads WHERE id = '$id'")
